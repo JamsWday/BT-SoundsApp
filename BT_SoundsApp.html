@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="neon">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nueva Canción – BT SoundsApp v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+/* ── THEMES ── */
+:root {
+  --bg: #0e0e10;
+  --surface: #16161a;
+  --surface2: #1e1e24;
+  --border: #2a2a35;
+  --accent: #e8c840;
+  --accent2: #c45f3a;
+  --green: #4caf7d;
+  --text: #e8e8f0;
+  --muted: #7a7a90;
+  --dim: #3a3a4a;
+  --scrollbar-bg: #0e0e10ee;
+}
+
+/* Tema Neón (oscuro con neones) — default */
+[data-theme="neon"] {
+  --bg: #09090f;
+  --surface: #0f0f1a;
+  --surface2: #14142a;
+  --border: #1e1e3a;
+  --accent: #00ffe7;
+  --accent2: #ff2d78;
+  --green: #39ff14;
+  --text: #e8e8ff;
+  --muted: #7070aa;
+  --dim: #2a2a4a;
+  --scrollbar-bg: #09090fee;
+}
+[data-theme="neon"] .title-input { color: #00ffe7; text-shadow: 0 0 12px rgba(0,255,231,0.5); }
+[data-theme="neon"] .header { border-bottom-color: #00ffe7; box-shadow: 0 2px 20px rgba(0,255,231,0.15); }
+[data-theme="neon"] .section-name-input { color: #ff2d78; background: rgba(255,45,120,0.08); border-color: rgba(255,45,120,0.3); }
+[data-theme="neon"] .section-name-input:focus { border-color: #ff2d78; }
+[data-theme="neon"] .btn-primary { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
+[data-theme="neon"] .btn-primary:hover { background: #33fff0; }
+[data-theme="neon"] #btnPlay { background: #00ffe7; color: #09090f; }
+[data-theme="neon"] #btnPlay:hover { background: #33fff0; }
+[data-theme="neon"] #btnPlay.playing { background: #ff2d78; color: #fff; }
+[data-theme="neon"] .pbtn.ok { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
+[data-theme="neon"] .pbtn.ok:hover { background: #33fff0; }
+[data-theme="neon"] .etab.active { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
+[data-theme="neon"] .modal { border-color: #00ffe7; }
+[data-theme="neon"] .modal h3 { color: #00ffe7; }
+[data-theme="neon"] .chord-popup { border-color: #00ffe7; background: #0f0f1a; }
+[data-theme="neon"] .chord-popup input:focus { border-color: #00ffe7; }
+[data-theme="neon"] .btn:hover { border-color: #00ffe7; color: #00ffe7; }
+[data-theme="neon"] .add-chord-in-bar:hover { border-color: #00ffe7; color: #00ffe7; background: rgba(0,255,231,0.06); }
+[data-theme="neon"] .add-bar-btn:hover { border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.05); }
+[data-theme="neon"] .add-row-btn:hover { border-color: #ff2d78; color: #ff2d78; }
+[data-theme="neon"] .add-section-btn:hover { border-color: #00ffe7; color: #00ffe7; }
+[data-theme="neon"] .section-insert:hover { background: rgba(0,255,231,0.08); border-color: rgba(0,255,231,0.3); }
+[data-theme="neon"] .section-insert:hover::after { color: #00ffe7; }
+[data-theme="neon"] .section-insert.drag-over { background: rgba(0,255,231,0.18) !important; border-color: #00ffe7 !important; }
+[data-theme="neon"] .repeat-input { color: #00ffe7; background: rgba(0,255,231,0.08); border-color: rgba(0,255,231,0.25); }
+[data-theme="neon"] .repeat-input:focus { border-color: #00ffe7; background: rgba(0,255,231,0.14); }
+[data-theme="neon"] #btnReadonly.readonly-active { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
+[data-theme="neon"] .scroll-speed-val { color: #00ffe7; }
+[data-theme="neon"] #scrollSpeed { accent-color: #00ffe7; }
+[data-theme="neon"] #scrollSpeed::-webkit-slider-thumb { background: #00ffe7; box-shadow: 0 0 0 3px rgba(0,255,231,0.2); }
+[data-theme="neon"] #scrollSpeed::-moz-range-thumb { background: #00ffe7; }
+[data-theme="neon"] .scroll-progress-fill { background: #00ffe7; }
+[data-theme="neon"] .drag-handle:hover { color: #00ffe7; }
+[data-theme="neon"] .title-input:focus { border-bottom-color: #00ffe7; }
+[data-theme="neon"] .meta-input:focus { border-bottom-color: #00ffe7; color: var(--text); }
+[data-theme="neon"] .section-lyric-input:focus { border-bottom-color: #ff2d78; color: var(--text); }
+[data-theme="neon"] .comment-input:focus { border-bottom-color: #ff2d78; color: var(--text); }
+[data-theme="neon"] body.readonly .x-label { color: #00ffe7; }
+[data-theme="neon"] body.readonly .repeat-input { color: #00ffe7; }
+[data-theme="neon"] body.readonly #btnReadonly { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
+
+/* Tema Claro */
+[data-theme="light"] {
+  --bg: #f5f5f0;
+  --surface: #ffffff;
+  --surface2: #eeeeea;
+  --border: #d0d0c8;
+  --accent: #b07a10;
+  --accent2: #c0401a;
+  --green: #2e8b57;
+  --text: #1a1a20;
+  --muted: #606070;
+  --dim: #b0b0b8;
+  --scrollbar-bg: #f5f5f0ee;
+}
+[data-theme="light"] body { background: #f5f5f0; }
+[data-theme="light"] .title-input { color: #b07a10; }
+[data-theme="light"] .header { border-bottom-color: #b07a10; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+[data-theme="light"] .section-name-input { color: #c0401a; background: rgba(192,64,26,0.06); border-color: rgba(192,64,26,0.25); }
+[data-theme="light"] .bar-line { background: #f9f9f6; border-color: #d8d8d0; }
+[data-theme="light"] .comment-row { background: #f0f0ec; border-color: #d0d0c8; }
+[data-theme="light"] .chord-pill { color: #1a1a20; }
+[data-theme="light"] .chord-pill:hover { background: rgba(176,122,16,0.08); border-color: rgba(176,122,16,0.3); color: #b07a10; }
+[data-theme="light"] .chord-popup { background: #fff; border-color: #b07a10; box-shadow: 0 6px 24px rgba(0,0,0,0.15); }
+[data-theme="light"] .chord-popup input[type="text"] { background: #f5f5f0; color: #1a1a20; border-color: #d0d0c8; }
+[data-theme="light"] .chord-popup input:focus { border-color: #b07a10; }
+[data-theme="light"] .modal { background: #fff; border-color: #b07a10; }
+[data-theme="light"] .modal h3 { color: #b07a10; }
+[data-theme="light"] .modal textarea { background: #f5f5f0; color: #606070; border-color: #d0d0c8; }
+[data-theme="light"] .modal-overlay { background: rgba(0,0,0,0.4); }
+[data-theme="light"] .btn { background: #eeeeea; border-color: #d0d0c8; color: #606070; }
+[data-theme="light"] .btn:hover { border-color: #b07a10; color: #b07a10; }
+[data-theme="light"] .btn-primary { background: #b07a10; color: #fff; border-color: #b07a10; }
+[data-theme="light"] .btn-primary:hover { background: #c88c18; }
+[data-theme="light"] #btnPlay { background: #b07a10; color: #fff; }
+[data-theme="light"] #btnPlay:hover { background: #c88c18; }
+[data-theme="light"] #btnPlay.playing { background: #c0401a; color: #fff; }
+[data-theme="light"] #scrollBar { background: #f5f5f0ee; border-top-color: #d0d0c8; }
+[data-theme="light"] .scroll-speed-val { color: #b07a10; }
+[data-theme="light"] #scrollSpeed { accent-color: #b07a10; }
+[data-theme="light"] #scrollSpeed::-webkit-slider-thumb { background: #b07a10; box-shadow: 0 0 0 3px rgba(176,122,16,0.2); }
+[data-theme="light"] #scrollSpeed::-moz-range-thumb { background: #b07a10; }
+[data-theme="light"] .scroll-progress-fill { background: #b07a10; }
+[data-theme="light"] .pbtn { background: #eeeeea; border-color: #d0d0c8; color: #606070; }
+[data-theme="light"] .pbtn:hover { border-color: #b0b0b8; color: #1a1a20; }
+[data-theme="light"] .pbtn.ok { background: #b07a10; color: #fff; border-color: #b07a10; }
+[data-theme="light"] .pbtn.ok:hover { background: #c88c18; }
+[data-theme="light"] .etab { background: transparent; border-color: #d0d0c8; color: #606070; }
+[data-theme="light"] .etab.active { background: #b07a10; color: #fff; border-color: #b07a10; }
+[data-theme="light"] .repeat-input { color: #b07a10; background: rgba(176,122,16,0.06); border-color: rgba(176,122,16,0.2); }
+[data-theme="light"] .repeat-input:focus { border-color: #b07a10; }
+[data-theme="light"] body.readonly #btnReadonly { background: #b07a10; color: #fff; border-color: #b07a10; }
+[data-theme="light"] body.readonly .x-label { color: #b07a10; }
+[data-theme="light"] body.readonly .repeat-input { color: #b07a10; }
+[data-theme="light"] .section-insert:hover { background: rgba(176,122,16,0.06); border-color: rgba(176,122,16,0.25); }
+[data-theme="light"] .section-insert:hover::after { color: #b07a10; }
+[data-theme="light"] .add-chord-in-bar:hover { border-color: #b07a10; color: #b07a10; background: rgba(176,122,16,0.06); }
+[data-theme="light"] .add-bar-btn:hover { border-color: #2e8b57; color: #2e8b57; background: rgba(46,139,87,0.05); }
+[data-theme="light"] .add-row-btn:hover { border-color: #c0401a; color: #c0401a; }
+[data-theme="light"] .add-section-btn:hover { border-color: #b07a10; color: #b07a10; }
+[data-theme="light"] .drag-handle:hover { color: #b07a10; }
+[data-theme="light"] .meta-input:focus { border-bottom-color: #b07a10; }
+[data-theme="light"] .title-input:focus { border-bottom-color: #b07a10; }
+[data-theme="light"] .section-lyric-input:focus { border-bottom-color: #c0401a; color: #1a1a20; }
+[data-theme="light"] .comment-input:focus { border-bottom-color: #c0401a; color: #1a1a20; }
+[data-theme="light"] .bar-div { background: #b0b0b8; }
+[data-theme="light"] .bar-div:hover { background: #c04040; }
+[data-theme="light"] .rep-bracket { color: #b0b0b8; }
+
+/* Tema Azul y Granate */
+[data-theme="bluered"] {
+  --bg: #080c14;
+  --surface: #0e1420;
+  --surface2: #141c2c;
+  --border: #1e2a42;
+  --accent: #3a9fd4;
+  --accent2: #8b1a3a;
+  --green: #2ecfa8;
+  --text: #dce8f8;
+  --muted: #6888aa;
+  --dim: #243050;
+  --scrollbar-bg: #080c14ee;
+}
+[data-theme="bluered"] .title-input { color: #3a9fd4; }
+[data-theme="bluered"] .header { border-bottom-color: #3a9fd4; box-shadow: 0 2px 16px rgba(58,159,212,0.15); }
+[data-theme="bluered"] .section-name-input { color: #c0405a; background: rgba(192,64,90,0.1); border-color: rgba(192,64,90,0.3); }
+[data-theme="bluered"] .section-name-input:focus { border-color: #c0405a; }
+[data-theme="bluered"] .btn:hover { border-color: #3a9fd4; color: #3a9fd4; }
+[data-theme="bluered"] .btn-primary { background: #3a9fd4; color: #080c14; border-color: #3a9fd4; }
+[data-theme="bluered"] .btn-primary:hover { background: #5ab8e8; }
+[data-theme="bluered"] #btnPlay { background: #3a9fd4; color: #080c14; }
+[data-theme="bluered"] #btnPlay:hover { background: #5ab8e8; }
+[data-theme="bluered"] #btnPlay.playing { background: #8b1a3a; color: #fff; }
+[data-theme="bluered"] .scroll-speed-val { color: #3a9fd4; }
+[data-theme="bluered"] #scrollSpeed { accent-color: #3a9fd4; }
+[data-theme="bluered"] #scrollSpeed::-webkit-slider-thumb { background: #3a9fd4; box-shadow: 0 0 0 3px rgba(58,159,212,0.2); }
+[data-theme="bluered"] #scrollSpeed::-moz-range-thumb { background: #3a9fd4; }
+[data-theme="bluered"] .scroll-progress-fill { background: #3a9fd4; }
+[data-theme="bluered"] .pbtn.ok { background: #3a9fd4; color: #080c14; border-color: #3a9fd4; }
+[data-theme="bluered"] .pbtn.ok:hover { background: #5ab8e8; }
+[data-theme="bluered"] .etab.active { background: #3a9fd4; color: #080c14; border-color: #3a9fd4; }
+[data-theme="bluered"] .modal { border-color: #3a9fd4; }
+[data-theme="bluered"] .modal h3 { color: #3a9fd4; }
+[data-theme="bluered"] .chord-popup { border-color: #3a9fd4; background: #0e1420; }
+[data-theme="bluered"] .chord-popup input:focus { border-color: #3a9fd4; }
+[data-theme="bluered"] .repeat-input { color: #3a9fd4; background: rgba(58,159,212,0.08); border-color: rgba(58,159,212,0.25); }
+[data-theme="bluered"] .repeat-input:focus { border-color: #3a9fd4; }
+[data-theme="bluered"] body.readonly #btnReadonly { background: #3a9fd4; color: #080c14; border-color: #3a9fd4; }
+[data-theme="bluered"] body.readonly .x-label { color: #3a9fd4; }
+[data-theme="bluered"] body.readonly .repeat-input { color: #3a9fd4; }
+[data-theme="bluered"] .section-insert:hover { background: rgba(58,159,212,0.08); border-color: rgba(58,159,212,0.3); }
+[data-theme="bluered"] .section-insert:hover::after { color: #3a9fd4; }
+[data-theme="bluered"] .add-chord-in-bar:hover { border-color: #3a9fd4; color: #3a9fd4; background: rgba(58,159,212,0.06); }
+[data-theme="bluered"] .add-bar-btn:hover { border-color: #2ecfa8; color: #2ecfa8; background: rgba(46,207,168,0.05); }
+[data-theme="bluered"] .add-row-btn:hover { border-color: #c0405a; color: #c0405a; }
+[data-theme="bluered"] .add-section-btn:hover { border-color: #3a9fd4; color: #3a9fd4; }
+[data-theme="bluered"] .drag-handle:hover { color: #3a9fd4; }
+[data-theme="bluered"] .meta-input:focus { border-bottom-color: #3a9fd4; }
+[data-theme="bluered"] .title-input:focus { border-bottom-color: #3a9fd4; }
+[data-theme="bluered"] .section-lyric-input:focus { border-bottom-color: #c0405a; }
+[data-theme="bluered"] .comment-input:focus { border-bottom-color: #c0405a; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+}
+.title-block { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.meta-sep { color: #2a2a3a; font-size: 0.8rem; }
+.meta-label { font-size: 0.8rem; color: var(--muted); flex-shrink: 0; }
+.meta-input {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed #2a2a3a;
+  outline: none;
+  padding: 1px 2px;
+  width: 90px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.meta-input-sm { width: 44px; }
+.meta-input:focus { border-bottom-color: var(--accent); color: var(--text); }
+.meta-input::placeholder { color: #2a2a3a; }
+.title-input {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.title-input:focus { border-bottom-color: var(--accent); }
+.title-input::placeholder { color: #4a4a30; }
+.artist-input {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  outline: none;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.artist-input::placeholder { color: #3a3a50; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  transition: all 0.2s;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+.btn-primary:hover { background: #f5d84a; color: var(--bg); }
+
+/* ── CONTAINER ── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── SECTION BLOCK ── */
+.section-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.section-block:hover { border-color: var(--dim); }
+.section-block.dragging { overflow: visible; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+}
+.section-name-input {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  background: rgba(196,95,58,0.1);
+  border: 1px solid rgba(196,95,58,0.3);
+  border-radius: 4px;
+  padding: 3px 8px;
+  outline: none;
+  width: 120px;
+  min-width: 80px;
+  flex-shrink: 1;
+}
+.section-name-input:focus { border-color: var(--accent2); }
+.section-lyric-input {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  outline: none;
+  flex: 1;
+  min-width: 0;
+  font-family: 'IBM Plex Sans', sans-serif;
+  padding: 2px 0;
+  transition: border-color 0.2s;
+}
+.section-lyric-input:focus { border-bottom-color: var(--accent2); color: var(--text); }
+.section-lyric-input::placeholder { color: #333344; }
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: all 0.15s;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.btn-icon:hover { color: #c04040; background: rgba(192,64,64,0.1); }
+.collapse-arrow {
+  font-size: 0.65rem;
+  color: var(--muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.section-block.collapsed .collapse-arrow { transform: rotate(-90deg); }
+.section-block.collapsed .bars-area { display: none; }
+
+/* ── BARS AREA ── */
+.bars-area {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── ROW WRAPPER ── */
+.row-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── BAR LINE ── */
+.bar-line {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 8px 10px;
+  background: #13131a;
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  flex-wrap: wrap;
+  min-height: 46px;
+}
+.row-wrap .comment-row { border-radius: 0 0 6px 6px; }
+
+/* repeat brackets */
+.rep-bracket {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.3rem;
+  color: #404055;
+  user-select: none;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ── COMPÁS UNIT ── */
+.bar-unit {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+/* bar separator */
+.bar-div {
+  width: 2px;
+  height: 28px;
+  background: var(--dim);
+  border-radius: 1px;
+  margin: 0 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.bar-div:hover { background: #c04040; }
+.bar-div[title]:hover::after {
+  content: "Eliminar compás";
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222;
+  color: #c04040;
+  font-size: 0.65rem;
+  font-family: 'Space Mono', monospace;
+  padding: 3px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ── CHORD PILL ── */
+.chord-pill {
+  font-family: 'Space Mono', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e8e8ff;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+.chord-pill sup { font-size: 0.52rem; vertical-align: super; line-height: 1; }
+.chord-pill:hover { background: rgba(232,200,64,0.1); border-color: rgba(232,200,64,0.4); color: var(--accent); }
+
+/* ── ADD CHORD INSIDE BAR ── */
+.add-chord-in-bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 1px dashed #2a2a40;
+  color: #333348;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Space Mono', monospace;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+.add-chord-in-bar:hover { border-color: var(--accent); color: var(--accent); background: rgba(232,200,64,0.06); }
+
+/* ── ADD BAR BUTTON ── */
+.add-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px dashed #2a2a40;
+  color: #444458;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  flex-shrink: 0;
+}
+.add-bar-btn:hover { border-color: var(--green); color: var(--green); background: rgba(76,175,125,0.05); }
+
+/* ── ROW RIGHT CONTROLS ── */
+.row-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-left: 10px;
+  flex-shrink: 0;
+}
+.repeat-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.x-label { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+.repeat-input {
+  width: 34px;
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(232,200,64,0.08);
+  border: 1px solid rgba(232,200,64,0.25);
+  border-radius: 4px;
+  padding: 3px 4px;
+  outline: none;
+}
+.repeat-input:focus { border-color: var(--accent); background: rgba(232,200,64,0.14); }
+
+/* ── COMMENT ROW ── */
+.comment-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 6px;
+  background: #11111a;
+  border: 1px solid var(--border);
+  border-top: none;
+}
+.comment-icon { font-size: 0.75rem; color: #333348; }
+.comment-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  color: var(--muted);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 2px 0;
+  outline: none;
+  transition: all 0.2s;
+}
+.comment-input::placeholder { color: #282836; }
+.comment-input:focus { border-bottom-color: var(--accent2); color: var(--text); }
+
+/* ── ADD ROW / SECTION BUTTONS ── */
+.add-row-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  padding: 8px;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+.add-row-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+.add-section-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed #222230;
+  border-radius: 10px;
+  color: #404055;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  padding: 14px;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+.add-section-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── CHORD POPUP ── */
+.chord-popup {
+  display: none;
+  position: fixed;
+  background: #1e1e2a;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 14px;
+  z-index: 9999;
+  min-width: 220px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+}
+.chord-popup.open { display: block; }
+.chord-popup label {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+.chord-popup input[type="text"] {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.92rem;
+  padding: 6px 10px;
+  outline: none;
+}
+.chord-popup input[type="text"]:focus { border-color: var(--accent); }
+.popup-actions { display: flex; gap: 8px; margin-top: 8px; }
+.pbtn {
+  flex: 1;
+  padding: 5px 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.66rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.pbtn:hover { border-color: var(--dim); color: var(--text); }
+.pbtn.del { color: #c04040; border-color: rgba(192,64,64,0.4); }
+.pbtn.del:hover { background: rgba(192,64,64,0.1); }
+.pbtn.ok { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+.pbtn.ok:hover { background: #f5d84a; }
+
+/* ── EXPORT MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 560px;
+  width: 90%;
+}
+.modal h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--accent); margin-bottom: 14px; }
+.modal textarea {
+  width: 100%; height: 200px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  padding: 12px;
+  outline: none;
+  resize: none;
+}
+.modal-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.export-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.etab {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.etab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+.etab:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── DRAG HANDLE ── */
+.drag-handle {
+  cursor: grab;
+  color: #333348;
+  font-size: 1rem;
+  padding: 2px 6px 2px 2px;
+  user-select: none;
+  transition: color 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.drag-handle:hover { color: var(--accent); }
+.drag-handle:active { cursor: grabbing; }
+
+/* ── SECTION INSERT ZONE ── */
+.section-insert {
+  height: 24px;
+  margin: 2px 0;
+  border-radius: 4px;
+  border: 1px dashed transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.section-insert::after {
+  content: "+ sección aquí";
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  color: #2a2a3a;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.section-insert:hover {
+  background: rgba(232,200,64,0.08);
+  border-color: rgba(232,200,64,0.3);
+}
+.section-insert:hover::after { color: var(--accent); }
+.section-insert.drag-over {
+  background: rgba(232,200,64,0.18) !important;
+  border: 2px dashed var(--accent) !important;
+  height: 36px !important;
+}
+.section-insert.drag-over::after { color: var(--accent) !important; font-weight: bold; }
+
+/* ── DRAG STATES ── */
+.section-block.dragging { opacity: 0.35; }
+.row-wrap.dragging { opacity: 0.35; }
+.row-wrap.drag-over-top { border-top: 2px solid var(--green) !important; margin-top: -1px; }
+.row-wrap.drag-over-bottom { border-bottom: 2px solid var(--green) !important; margin-bottom: -1px; }
+
+/* ── MOBILE ── */
+@media (max-width: 600px) {
+  .header {
+    padding: 10px 14px;
+    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .title-block {
+    width: 100%;
+  }
+  .title-input {
+    font-size: 1.25rem;
+  }
+  .artist-input {
+    font-size: 0.68rem;
+  }
+  .meta-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto auto auto auto;
+    align-items: center;
+    gap: 4px;
+    row-gap: 6px;
+  }
+  /* Tonalidad ocupa más espacio */
+  .meta-input:not(.meta-input-sm) {
+    width: 100%;
+    min-width: 60px;
+  }
+  .meta-input-sm {
+    width: 40px;
+  }
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .btn {
+    font-size: 0.65rem;
+    padding: 7px 10px;
+  }
+  /* Simplify meta row on small screens: stack into two lines */
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    row-gap: 6px;
+  }
+  /* Separators hidden on mobile to save space */
+  .meta-sep { display: none; }
+  /* Each meta group wraps naturally */
+  .meta-label { font-size: 0.75rem; }
+  .meta-input {
+    font-size: 0.7rem;
+    border-bottom-color: #3a3a50;
+  }
+}
+
+/* ── AUTOSCROLL BAR ── */
+#scrollBar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--scrollbar-bg);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  padding: 10px 20px;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+body.readonly #scrollBar { display: flex; }
+
+#btnPlay {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 9px 22px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--bg);
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+#btnPlay:hover { background: #f5d84a; }
+#btnPlay.playing { background: var(--accent2); color: #fff; }
+#btnPlay.playing:hover { background: #d96940; }
+#btnPlay .play-icon { font-size: 1rem; line-height: 1; }
+
+.scroll-speed-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.scroll-speed-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+#scrollSpeed {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+#scrollSpeed::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(232,200,64,0.2);
+  transition: box-shadow 0.15s;
+}
+#scrollSpeed::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(232,200,64,0.25); }
+#scrollSpeed::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+.scroll-speed-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  font-weight: 700;
+  min-width: 28px;
+  text-align: left;
+}
+.scroll-progress {
+  flex: 1;
+  max-width: 200px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.scroll-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.3s linear;
+}
+
+/* extra bottom padding in readonly so bar doesn't cover content */
+body.readonly { padding-bottom: 68px !important; }
+
+/* ── READ-ONLY MODE ── */
+body.readonly .header-actions .btn:not(#btnReadonly) { display: none; }
+body.readonly #btnReadonly { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+body.readonly .section-insert { display: none !important; }
+body.readonly .add-section-btn { display: none !important; }
+body.readonly .add-row-btn { display: none !important; }
+body.readonly .add-bar-btn { display: none !important; }
+body.readonly .add-chord-in-bar { display: none !important; }
+body.readonly .drag-handle { display: none !important; }
+body.readonly .btn-icon { display: none !important; }
+body.readonly .bar-div { cursor: default; pointer-events: none; }
+body.readonly .bar-div:hover { background: var(--dim); }
+body.readonly .bar-div[title]:hover::after { display: none; }
+body.readonly .chord-pill { cursor: default; pointer-events: none; }
+body.readonly .chord-pill:hover { background: transparent; border-color: transparent; color: #e8e8ff; }
+body.readonly .section-block:hover { border-color: var(--border); }
+body.readonly .collapse-arrow { display: none; }
+body.readonly .section-header { cursor: default; pointer-events: none; }
+
+/* Replace editable inputs with static text in readonly mode */
+body.readonly .title-input,
+body.readonly .artist-input,
+body.readonly .meta-input { pointer-events: none; border-color: transparent !important; }
+body.readonly .section-name-input { pointer-events: none; }
+body.readonly .section-lyric-input { pointer-events: none; }
+body.readonly .repeat-input { pointer-events: none; border-color: transparent !important; background: transparent !important; }
+body.readonly .comment-input { pointer-events: none; border-color: transparent !important; }
+
+/* Dimmer comment row in readonly */
+body.readonly .comment-row { background: transparent; border-color: transparent; padding-top: 2px; padding-bottom: 2px; }
+body.readonly .comment-icon { display: none; }
+body.readonly .comment-input { display: block; color: #555570; font-size: 0.76rem; }
+body.readonly .comment-input::placeholder { color: transparent; }
+
+/* Right side: only show repeat badge, hide controls */
+body.readonly .row-right { gap: 6px; }
+body.readonly .x-label { color: var(--accent); }
+body.readonly .repeat-input { color: var(--accent); font-weight: 700; }
+
+/* Bigger, cleaner chord display */
+body.readonly .chord-pill { font-size: 1.15rem; padding: 5px 11px; }
+body.readonly .bar-line { padding: 10px 14px; background: var(--surface); border-color: transparent; border-bottom: 1px solid var(--border); border-radius: 6px; }
+body.readonly .row-wrap:last-of-type .bar-line { border-bottom-color: transparent; }
+body.readonly .section-header { padding: 10px 14px; background: transparent; border-bottom: 1px solid rgba(196,95,58,0.2); }
+body.readonly .section-block { border-color: transparent; background: transparent; margin-bottom: 4px; }
+body.readonly .bars-area { padding: 6px 10px; gap: 2px; }
+
+/* Readonly mode: hide row-right buttons but keep repeat */
+body.readonly .row-right .btn-icon { display: none; }
+
+@media print {
+  .header-actions, .add-bar-btn, .add-chord-in-bar,
+  .add-row-btn, .add-section-btn, .btn-icon, .drag-handle,
+  .comment-icon, .section-insert { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .header { background: white !important; border-bottom: 2px solid #333 !important; position: static; padding: 12px 20px; }
+  .title-input { color: black !important; font-size: 1.6rem; }
+  .artist-input { color: #444 !important; }
+  .meta-row { gap: 8px; }
+  .meta-input { color: #555 !important; border-bottom-color: #ccc !important; font-size: 0.78rem; }
+  .meta-label { color: #555 !important; }
+  .meta-sep { color: #aaa !important; }
+  .section-block { border: 1px solid #ccc !important; background: white !important; break-inside: avoid; margin-bottom: 8px; }
+  .section-header { background: #f5f5f5 !important; }
+  .section-name-input { color: #c45f3a !important; background: transparent !important; border-color: #c45f3a !important; font-size: 0.8rem; }
+  .section-lyric-input { color: #555 !important; font-size: 0.82rem; }
+  .bar-line { background: white !important; border-color: #ddd !important; padding: 10px 12px; }
+  .bar-div { background: #333 !important; height: 32px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rep-bracket { color: #444 !important; font-size: 1.5rem !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .chord-pill { color: black !important; font-weight: bold; font-size: 1.25rem !important; padding: 4px 10px !important; }
+  .comment-row { background: white !important; border-color: #eee !important; }
+  .comment-input { color: #666 !important; border-bottom-color: #ccc !important; display: block !important; }
+  .x-label { color: #555 !important; display: inline !important; }
+  .repeat-input { color: #333 !important; background: transparent !important; border-color: #ccc !important; font-size: 1rem !important; font-weight: bold; }
+  .row-right { gap: 4px; }
+  .container { padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="title-block">
+    <input class="title-input" id="songTitle" placeholder="Título de la canción..." spellcheck="false"
+      oninput="songData.title = this.value; saveUndo()" />
+    <div class="meta-row">
+      <input class="artist-input" id="songArtist" placeholder="Artista / banda..." spellcheck="false"
+        oninput="songData.artist = this.value" />
+      <span class="meta-sep">|</span>
+      <label class="meta-label">🎵</label>
+      <input class="meta-input" id="songKey" placeholder="Tonalidad..." title="Tonalidad (ej: Do Mayor, La menor)"
+        oninput="songData.key = this.value" />
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" id="btnUndo" onclick="undo()" title="Deshacer (Ctrl+Z)" disabled>↩</button>
+    <button class="btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
+    <button class="btn" id="btnTheme" onclick="cycleTheme()" title="Cambiar tema de color">🎨 Tema</button>
+    <button class="btn" onclick="exportJSON()">⬇ JSON</button>
+    <button class="btn" onclick="exportWord()">📄 RTF</button>
+    <button class="btn btn-primary" onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar">👁 Tocar</button>
+  </div>
+</div>
+
+<div class="container" id="chart"></div>
+
+<!-- AUTOSCROLL BAR (visible only in readonly/play mode) -->
+<div id="scrollBar">
+  <button id="btnPlay" onclick="toggleScroll()">
+    <span class="play-icon" id="playIcon">▶</span>
+    <span id="playLabel">Play</span>
+  </button>
+  <div class="scroll-speed-wrap">
+    <span class="scroll-speed-label">Velocidad</span>
+    <input type="range" id="scrollSpeed" min="1" max="10" value="3"
+      oninput="updateSpeedLabel()" title="Velocidad de autoscroll" />
+    <span class="scroll-speed-val" id="speedVal">3</span>
+  </div>
+  <div class="scroll-progress" title="Progreso">
+    <div class="scroll-progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <h3>Exportar / Importar</h3>
+
+    <div class="export-tabs">
+      <button class="etab active" onclick="switchTab('json')">JSON</button>
+      <button class="etab" onclick="switchTab('share')">🔗 Compartir</button>
+    </div>
+
+    <!-- JSON tab -->
+    <div id="tabJson">
+      <textarea id="jsonOutput"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="copyJSON()">📋 Copiar</button>
+        <button class="btn" onclick="downloadJSON()">⬇ Descargar .json</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFromFile(event)" />
+        <button class="btn" onclick="document.getElementById('importFile').click()">📂 Importar fichero</button>
+        <button class="btn" onclick="closeModal()">Cerrar</button>
+      </div>
+    </div>
+
+    <!-- Share tab -->
+    <div id="tabShare" style="display:none">
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+        El link lleva la canción codificada dentro. Quien lo abra verá exactamente tu versión actual.
+      </p>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="shareUrl" type="text" readonly
+          style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;
+                 color:var(--muted);font-family:Space Mono,monospace;font-size:0.68rem;
+                 padding:8px 10px;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" />
+        <button class="btn btn-primary" onclick="copyShareUrl()" style="flex-shrink:0">📋 Copiar link</button>
+      </div>
+      <div id="shareStatus" style="font-family:Space Mono,monospace;font-size:0.68rem;
+           color:var(--green);margin-top:8px;min-height:18px;"></div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="btn" onclick="closeModal()">Cerrar</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA MODEL
+// sections[] → rows[] → bars[][] → chord strings
+// bar = array of chord strings  (NO "|" inside)
+// ═══════════════════════════════════════════════
+let songData = {
+  title: "",
+  artist: "",
+  key: "",
+  bpm: "",
+  timeSignature: "",
+  sections: [
+    {
+      id: "s1",
+      name: "Intro",
+      lyric: "",
+      rows: [
+        { id: "r1", bars: [["C","G"],["Am"],["F"]], repeats: null, comment: "" }
+      ]
+    }
+  ]
+};
+
+let _id = 1;
+const uid = () => "x" + (_id++);
+
+// Deep clone helper
+const clone = (obj) => JSON.parse(JSON.stringify(obj));
+
+// ═══════════════════════════════════════════════
+// UNDO / REDO
+// ═══════════════════════════════════════════════
+const _history = [];
+let _histIdx = -1;
+
+function saveUndo() {
+  // Drop any redo states ahead
+  _history.splice(_histIdx + 1);
+  _history.push(clone(songData));
+  if (_history.length > 50) _history.shift();
+  _histIdx = _history.length - 1;
+  updateUndoButtons();
+}
+
+function undo() {
+  if (_histIdx <= 0) return;
+  _histIdx--;
+  songData = clone(_history[_histIdx]);
+  syncHeaderInputs();
+  render();
+  updateUndoButtons();
+}
+
+function redo() {
+  if (_histIdx >= _history.length - 1) return;
+  _histIdx++;
+  songData = clone(_history[_histIdx]);
+  syncHeaderInputs();
+  render();
+  updateUndoButtons();
+}
+
+function updateUndoButtons() {
+  const u = document.getElementById("btnUndo");
+  const r = document.getElementById("btnRedo");
+  if (u) u.disabled = _histIdx <= 0;
+  if (r) r.disabled = _histIdx >= _history.length - 1;
+}
+
+function syncHeaderInputs() {
+  document.getElementById("songTitle").value  = songData.title || "";
+  document.getElementById("songArtist").value = songData.artist || "";
+  document.getElementById("songKey").value    = songData.key || "";
+}
+
+// Keyboard shortcuts
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) { e.preventDefault(); redo(); }
+});
+// unreliable during dragover in many browsers)
+// ═══════════════════════════════════════════════
+let _drag = null; // { type, fromIdx } | { type, secId, fromRowIdx }
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render() {
+  const chart = document.getElementById("chart");
+  chart.innerHTML = "";
+
+  // ── Insert zone between sections
+  const makeInsertZone = (insertIdx) => {
+    const zone = document.createElement("div");
+    zone.className = "section-insert";
+    zone.addEventListener("click", () => insertSectionAt(insertIdx));
+
+    zone.addEventListener("dragover", e => {
+      if (_drag && _drag.type === "section") {
+        e.preventDefault();
+        zone.classList.add("drag-over");
+      }
+    });
+    zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+    zone.addEventListener("drop", e => {
+      e.preventDefault();
+      zone.classList.remove("drag-over");
+      if (!_drag || _drag.type !== "section") return;
+      const fromIdx = _drag.fromIdx;
+      const moved = songData.sections.splice(fromIdx, 1)[0];
+      // insertIdx was captured before splice; adjust if needed
+      let to = insertIdx;
+      if (fromIdx < to) to--;
+      songData.sections.splice(to, 0, moved);
+      _drag = null;
+      render();
+    });
+    return zone;
+  };
+
+  songData.sections.forEach((sec, si) => {
+    chart.appendChild(makeInsertZone(si));
+
+    // ── section block — NOT draggable itself
+    const block = document.createElement("div");
+    block.className = "section-block";
+
+    // dragend cleanup on block (catches drop-outside cases)
+    block.addEventListener("dragend", () => {
+      block.classList.remove("dragging");
+      _drag = null;
+    });
+
+    // ── section header
+    const hdr = document.createElement("div");
+    hdr.className = "section-header";
+
+    // ── drag handle — THIS is draggable
+    const secHandle = document.createElement("span");
+    secHandle.className = "drag-handle";
+    secHandle.textContent = "⠿";
+    secHandle.title = "Arrastrar para reordenar sección";
+    secHandle.draggable = true;
+    secHandle.addEventListener("click", e => e.stopPropagation());
+    secHandle.addEventListener("dragstart", e => {
+      _drag = { type: "section", fromIdx: si };
+      e.dataTransfer.effectAllowed = "move";
+      // Use the block as drag image
+      e.dataTransfer.setDragImage(block, 20, 20);
+      setTimeout(() => block.classList.add("dragging"), 0);
+    });
+    secHandle.addEventListener("dragend", () => {
+      block.classList.remove("dragging");
+      _drag = null;
+    });
+
+    const nameIn = document.createElement("input");
+    nameIn.className = "section-name-input";
+    nameIn.value = sec.name;
+    nameIn.placeholder = "Sección...";
+    nameIn.addEventListener("click", e => e.stopPropagation());
+    nameIn.addEventListener("change", () => { sec.name = nameIn.value; });
+
+    const lyricIn = document.createElement("input");
+    lyricIn.className = "section-lyric-input";
+    lyricIn.value = sec.lyric;
+    lyricIn.placeholder = "[letra de referencia o comentario...]";
+    lyricIn.addEventListener("click", e => e.stopPropagation());
+    lyricIn.addEventListener("change", () => { sec.lyric = lyricIn.value; });
+
+    const delSec = document.createElement("button");
+    delSec.className = "btn-icon";
+    delSec.title = "Eliminar sección";
+    delSec.textContent = "✕";
+    delSec.addEventListener("click", e => { e.stopPropagation(); deleteSection(sec.id); });
+
+    const dupSec = document.createElement("button");
+    dupSec.className = "btn-icon";
+    dupSec.title = "Duplicar sección";
+    dupSec.textContent = "⧉";
+    dupSec.style.color = "#4a4a6a";
+    dupSec.addEventListener("click", e => {
+      e.stopPropagation();
+      saveUndo();
+      const copy = clone(sec);
+      copy.id = uid();
+      copy.name = sec.name + " (copia)";
+      copy.rows = copy.rows.map(r => ({ ...r, id: uid() }));
+      songData.sections.splice(si + 1, 0, copy);
+      render();
+    });
+
+    const arrow = document.createElement("span");
+    arrow.className = "collapse-arrow";
+    arrow.textContent = "▼";
+
+    hdr.appendChild(secHandle);
+    hdr.appendChild(nameIn);
+    hdr.appendChild(lyricIn);
+    hdr.appendChild(dupSec);
+    hdr.appendChild(delSec);
+    hdr.appendChild(arrow);
+    hdr.addEventListener("click", () => { if (!_readonly) block.classList.toggle("collapsed"); });
+    block.appendChild(hdr);
+
+    // ── bars area
+    const barsArea = document.createElement("div");
+    barsArea.className = "bars-area";
+
+    sec.rows.forEach((row, ri) => {
+      const rowWrap = document.createElement("div");
+      rowWrap.className = "row-wrap";
+
+      rowWrap.addEventListener("dragover", e => {
+        if (_drag && _drag.type === "row") {
+          e.preventDefault();
+          e.stopPropagation();
+          rowWrap.classList.remove("drag-over-top", "drag-over-bottom");
+          const mid = rowWrap.getBoundingClientRect().top + rowWrap.getBoundingClientRect().height / 2;
+          rowWrap.classList.add(e.clientY < mid ? "drag-over-top" : "drag-over-bottom");
+        }
+      });
+      rowWrap.addEventListener("dragleave", () => {
+        rowWrap.classList.remove("drag-over-top", "drag-over-bottom");
+      });
+      rowWrap.addEventListener("drop", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        rowWrap.classList.remove("drag-over-top", "drag-over-bottom");
+        if (!_drag || _drag.type !== "row") return;
+        const fromSec = songData.sections.find(s => s.id === _drag.secId);
+        if (!fromSec) return;
+        const fromRi = _drag.fromRowIdx;
+        const mid = rowWrap.getBoundingClientRect().top + rowWrap.getBoundingClientRect().height / 2;
+        const below = e.clientY >= mid;
+        const movedRow = fromSec.rows.splice(fromRi, 1)[0];
+        let toRi = sec.rows.indexOf(row);
+        if (fromSec === sec && fromRi <= toRi) toRi--;
+        if (below) toRi++;
+        toRi = Math.max(0, Math.min(toRi, sec.rows.length));
+        sec.rows.splice(toRi, 0, movedRow);
+        _drag = null;
+        render();
+      });
+
+      // ── bar line
+      const barLine = document.createElement("div");
+      barLine.className = "bar-line";
+
+      // row drag handle
+      const rowHandle = document.createElement("span");
+      rowHandle.className = "drag-handle";
+      rowHandle.textContent = "⠿";
+      rowHandle.title = "Arrastrar para mover línea";
+      rowHandle.style.fontSize = "0.85rem";
+      rowHandle.draggable = true;
+      rowHandle.addEventListener("dragstart", e => {
+        e.stopPropagation();
+        _drag = { type: "row", secId: sec.id, fromRowIdx: ri };
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setDragImage(rowWrap, 20, 10);
+        setTimeout(() => rowWrap.classList.add("dragging"), 0);
+      });
+      rowHandle.addEventListener("dragend", () => {
+        rowWrap.classList.remove("dragging", "drag-over-top", "drag-over-bottom");
+        _drag = null;
+      });
+      barLine.appendChild(rowHandle);
+
+      // opening bracket
+      const bOpen = document.createElement("span");
+      bOpen.className = "rep-bracket";
+      bOpen.textContent = "𝄆";
+      barLine.appendChild(bOpen);
+
+      // ── each bar
+      row.bars.forEach((bar, bi) => {
+        if (bi > 0) {
+          const div = document.createElement("span");
+          div.className = "bar-div";
+          div.title = "Eliminar compás";
+          div.addEventListener("click", (e) => {
+            e.stopPropagation();
+            row.bars.splice(bi, 1);
+            render();
+          });
+          barLine.appendChild(div);
+        }
+
+        const barUnit = document.createElement("div");
+        barUnit.className = "bar-unit";
+
+        bar.forEach((chord, ci) => {
+          const pill = document.createElement("span");
+          pill.className = "chord-pill";
+          pill.innerHTML = fmtChord(chord);
+          pill.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openPopup(pill, { type: "edit", sec, row, bi, ci, chord });
+          });
+          barUnit.appendChild(pill);
+        });
+
+        const addC = document.createElement("span");
+        addC.className = "add-chord-in-bar";
+        addC.title = "Añadir acorde en este compás";
+        addC.textContent = "+";
+        addC.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openPopup(addC, { type: "new-chord", sec, row, bi });
+        });
+        barUnit.appendChild(addC);
+        barLine.appendChild(barUnit);
+      });
+
+      const bClose = document.createElement("span");
+      bClose.className = "rep-bracket";
+      bClose.textContent = "𝄇";
+      barLine.appendChild(bClose);
+
+      // right controls
+      const right = document.createElement("div");
+      right.className = "row-right";
+
+      const addBar = document.createElement("button");
+      addBar.className = "add-bar-btn";
+      addBar.innerHTML = `<span style="font-size:1rem;line-height:1">+</span> compás`;
+      addBar.title = "Añadir compás al final de esta línea";
+      addBar.addEventListener("click", () => { saveUndo(); row.bars.push(["C"]); render(); });
+      right.appendChild(addBar);
+
+      const xl = document.createElement("span");
+      xl.className = "x-label";
+      xl.textContent = "x";
+      const repIn = document.createElement("input");
+      repIn.type = "number";
+      repIn.min = 1; repIn.max = 32;
+      repIn.className = "repeat-input";
+      repIn.value = row.repeats !== null ? row.repeats : "";
+      repIn.placeholder = "–";
+      repIn.title = "Número de repeticiones";
+      repIn.addEventListener("change", () => {
+        const v = parseInt(repIn.value);
+        row.repeats = isNaN(v) ? null : v;
+      });
+      right.appendChild(xl);
+      right.appendChild(repIn);
+
+      const delRow = document.createElement("button");
+      delRow.className = "btn-icon";
+      delRow.title = "Eliminar línea";
+      delRow.textContent = "✕";
+      delRow.addEventListener("click", () => { saveUndo(); sec.rows.splice(ri, 1); render(); });
+
+      const dupRow = document.createElement("button");
+      dupRow.className = "btn-icon";
+      dupRow.title = "Duplicar línea";
+      dupRow.textContent = "⧉";
+      dupRow.style.color = "#4a4a6a";
+      dupRow.addEventListener("click", () => {
+        saveUndo();
+        const copy = clone(row);
+        copy.id = uid();
+        sec.rows.splice(ri + 1, 0, copy);
+        render();
+      });
+
+      right.appendChild(dupRow);
+      right.appendChild(delRow);
+
+      barLine.appendChild(right);
+      rowWrap.appendChild(barLine);
+
+      // comment row
+      const commRow = document.createElement("div");
+      commRow.className = "comment-row";
+      const ciEl = document.createElement("span");
+      ciEl.className = "comment-icon";
+      ciEl.textContent = "💬";
+      const commIn = document.createElement("input");
+      commIn.type = "text";
+      commIn.className = "comment-input";
+      commIn.placeholder = "Nota o comentario para esta línea...";
+      commIn.value = row.comment || "";
+      commIn.addEventListener("change", () => { row.comment = commIn.value; });
+      commRow.appendChild(ciEl);
+      commRow.appendChild(commIn);
+      rowWrap.appendChild(commRow);
+
+      barsArea.appendChild(rowWrap);
+    });
+
+    // + add row
+    const addRowBtn = document.createElement("button");
+    addRowBtn.className = "add-row-btn";
+    addRowBtn.textContent = "+ Añadir línea de compases";
+    addRowBtn.addEventListener("click", () => {
+      saveUndo();
+      sec.rows.push({ id: uid(), bars: [["C"],["G"],["Am"],["F"]], repeats: null, comment: "" });
+      render();
+    });
+    barsArea.appendChild(addRowBtn);
+
+    block.appendChild(barsArea);
+    chart.appendChild(block);
+  });
+
+  // Insert zone after last section
+  chart.appendChild(makeInsertZone(songData.sections.length));
+
+  // + add section button
+  const addSec = document.createElement("button");
+  addSec.className = "add-section-btn";
+  addSec.textContent = "+ Añadir sección al final";
+  addSec.addEventListener("click", () => insertSectionAt(songData.sections.length));
+  chart.appendChild(addSec);
+}
+
+function insertSectionAt(idx) {
+  saveUndo();
+  songData.sections.splice(idx, 0, {
+    id: uid(), name: "Nueva sección", lyric: "",
+    rows: [{ id: uid(), bars: [["C"],["G"],["Am"],["F"]], repeats: null, comment: "" }]
+  });
+  render();
+}
+
+// ═══════════════════════════════════════════════
+// FORMAT CHORD TEXT (superscripts)
+// ═══════════════════════════════════════════════
+function fmtChord(s) {
+  return s
+    .replace(/MA⁷|MA7|maj7/gi, m => 'MA<sup>7</sup>')
+    .replace(/⁷/g, '<sup>7</sup>')
+    .replace(/(\d+)(?=[^\d]|$)/g, (m, n) => `<sup>${n}</sup>`);
+}
+
+// ═══════════════════════════════════════════════
+// POPUP EDITOR — attached to body, fixed position
+// ═══════════════════════════════════════════════
+let _popup = null;
+
+function openPopup(anchor, ctx) {
+  if (_readonly) return;
+  closePopup();
+
+  const pop = document.createElement("div");
+  pop.className = "chord-popup open";
+
+  const isEdit = ctx.type === "edit";
+  pop.innerHTML = `
+    <label>${isEdit ? "Editar acorde" : "Nuevo acorde"}</label>
+    <input type="text" id="popInput" value="${isEdit ? esc(ctx.chord) : ""}"
+      placeholder="${isEdit ? ctx.chord : "Ej: Am7"}" spellcheck="false" autocomplete="off" />
+    <div class="popup-actions">
+      ${isEdit ? '<button class="pbtn del" id="popDel">🗑 Eliminar</button>' : ''}
+      <button class="pbtn" id="popCancel">Cancelar</button>
+      <button class="pbtn ok" id="popOk">OK</button>
+    </div>
+  `;
+
+  // Attach to body so no parent clips it
+  document.body.appendChild(pop);
+  _popup = { el: pop, anchor };
+
+  // Position below the anchor, adjust if it goes off screen
+  const rect = anchor.getBoundingClientRect();
+  const popW = 220;
+  const popH = 130;
+  let top = rect.bottom + 8;
+  let left = rect.left;
+
+  // Keep within viewport
+  if (left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
+  if (left < 8) left = 8;
+  if (top + popH > window.innerHeight - 8) top = rect.top - popH - 8;
+
+  pop.style.top  = top + "px";
+  pop.style.left = left + "px";
+
+  const input = pop.querySelector("#popInput");
+  input.focus();
+  input.select();
+
+  const confirm = () => {
+    const val = input.value.trim();
+    if (isEdit) {
+      if (val) editChord(ctx, val);
+      else removeChord(ctx);
+    } else {
+      if (val) addChord(ctx, val);
+    }
+    closePopup();
+  };
+
+  pop.querySelector("#popOk").addEventListener("click", confirm);
+  pop.querySelector("#popCancel").addEventListener("click", closePopup);
+  if (isEdit) pop.querySelector("#popDel").addEventListener("click", () => { removeChord(ctx); closePopup(); });
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") confirm();
+    if (e.key === "Escape") closePopup();
+    e.stopPropagation();
+  });
+
+  setTimeout(() => document.addEventListener("click", outsideClose), 10);
+}
+
+function outsideClose(e) {
+  if (_popup && !_popup.el.contains(e.target) && !_popup.anchor.contains(e.target)) {
+    closePopup();
+  }
+}
+
+function closePopup() {
+  if (_popup) { _popup.el.remove(); _popup = null; }
+  document.removeEventListener("click", outsideClose);
+}
+
+// ═══════════════════════════════════════════════
+// READ-ONLY / PERFORMANCE MODE
+// ═══════════════════════════════════════════════
+let _readonly = false;
+function toggleReadonly() {
+  _readonly = !_readonly;
+  document.body.classList.toggle("readonly", _readonly);
+  const btn = document.getElementById("btnReadonly");
+  if (_readonly) {
+    btn.textContent = "✏ Editar";
+    btn.title = "Volver al modo edición";
+    closePopup();
+  } else {
+    btn.textContent = "👁 Tocar";
+    btn.title = "Vista solo lectura para tocar";
+    stopScroll(); // stop autoscroll when leaving play mode
+  }
+}
+
+// ═══════════════════════════════════════════════
+// AUTOSCROLL
+// ═══════════════════════════════════════════════
+let _scrollRaf = null;
+let _scrolling  = false;
+
+function toggleScroll() {
+  _scrolling ? stopScroll() : startScroll();
+}
+
+function startScroll() {
+  _scrolling = true;
+  const btn  = document.getElementById("btnPlay");
+  const icon = document.getElementById("playIcon");
+  const lbl  = document.getElementById("playLabel");
+  btn.classList.add("playing");
+  icon.textContent = "⏹";
+  lbl.textContent  = "Stop";
+
+  let last = null;
+  function step(ts) {
+    if (!_scrolling) return;
+
+    const speed = parseInt(document.getElementById("scrollSpeed").value);
+    // px per second: speed 1 = 10 px/s … speed 10 = 150 px/s (mitad de velocidad)
+    const pxPerSec = 10 + (speed - 1) * (140 / 9);
+
+    if (last !== null) {
+      const delta = (ts - last) / 1000;
+      window.scrollBy(0, pxPerSec * delta);
+    }
+    last = ts;
+
+    // Update progress bar
+    const scrolled = window.scrollY;
+    const total    = document.body.scrollHeight - window.innerHeight;
+    const pct      = total > 0 ? Math.min(100, (scrolled / total) * 100) : 0;
+    document.getElementById("progressFill").style.width = pct + "%";
+
+    // Auto-stop at the bottom
+    if (scrolled + window.innerHeight >= document.body.scrollHeight - 4) {
+      stopScroll();
+      return;
+    }
+
+    _scrollRaf = requestAnimationFrame(step);
+  }
+  _scrollRaf = requestAnimationFrame(step);
+}
+
+function stopScroll() {
+  _scrolling = false;
+  if (_scrollRaf) { cancelAnimationFrame(_scrollRaf); _scrollRaf = null; }
+  const btn  = document.getElementById("btnPlay");
+  const icon = document.getElementById("playIcon");
+  const lbl  = document.getElementById("playLabel");
+  if (btn) {
+    btn.classList.remove("playing");
+    icon.textContent = "▶";
+    lbl.textContent  = "Play";
+  }
+}
+
+function updateSpeedLabel() {
+  const v = document.getElementById("scrollSpeed").value;
+  document.getElementById("speedVal").textContent = v;
+}
+
+// Space bar toggles play/stop in readonly mode
+document.addEventListener("keydown", e => {
+  if (_readonly && e.code === "Space" && e.target === document.body) {
+    e.preventDefault();
+    toggleScroll();
+  }
+});
+
+// ═══════════════════════════════════════════════
+// DATA MUTATIONS
+// ═══════════════════════════════════════════════
+function editChord(ctx, val) {
+  saveUndo();
+  ctx.row.bars[ctx.bi][ctx.ci] = val;
+  render();
+}
+
+function removeChord(ctx) {
+  saveUndo();
+  const bar = ctx.row.bars[ctx.bi];
+  bar.splice(ctx.ci, 1);
+  if (bar.length === 0) {
+    if (ctx.row.bars.length > 1) ctx.row.bars.splice(ctx.bi, 1);
+    else ctx.row.bars[ctx.bi] = ["?"];
+  }
+  render();
+}
+
+function addChord(ctx, val) {
+  saveUndo();
+  ctx.row.bars[ctx.bi].push(val);
+  render();
+}
+
+function deleteSection(id) {
+  if (!confirm("¿Eliminar esta sección?")) return;
+  saveUndo();
+  songData.sections = songData.sections.filter(s => s.id !== id);
+  render();
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT / IMPORT / SHARE
+// ═══════════════════════════════════════════════
+function exportJSON() {
+  const json = JSON.stringify(songData, null, 2);
+  document.getElementById("jsonOutput").value = json;
+  // pre-generate share URL
+  generateShareUrl();
+  document.getElementById("exportModal").classList.add("open");
+  switchTab("json");
+}
+
+function switchTab(tab) {
+  document.getElementById("tabJson").style.display = tab === "json" ? "" : "none";
+  document.getElementById("tabShare").style.display = tab === "share" ? "" : "none";
+  document.querySelectorAll(".etab").forEach((el, i) => {
+    el.classList.toggle("active", (i === 0 && tab === "json") || (i === 1 && tab === "share"));
+  });
+  if (tab === "share") generateShareUrl();
+}
+
+function generateShareUrl() {
+  try {
+    const json = JSON.stringify(songData);
+    const encoded = btoa(encodeURIComponent(json));
+    // Build URL using current page location (works when opened as a file too)
+    const base = window.location.href.split("?")[0].split("#")[0];
+    const url = base + "?song=" + encoded;
+    document.getElementById("shareUrl").value = url;
+  } catch(e) {
+    document.getElementById("shareUrl").value = "Error generando URL";
+  }
+}
+
+function copyShareUrl() {
+  const input = document.getElementById("shareUrl");
+  input.select();
+  input.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(input.value).then(() => {
+    const s = document.getElementById("shareStatus");
+    s.textContent = "✓ Link copiado al portapapeles";
+    setTimeout(() => { s.textContent = ""; }, 2500);
+  }).catch(() => {
+    document.execCommand("copy");
+    document.getElementById("shareStatus").textContent = "✓ Copiado";
+  });
+}
+
+function downloadJSON() {
+  const json = JSON.stringify(songData, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const filename = (songData.title || "cancion").replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s]/g,"").trim().replace(/\s+/g,"_") || "cancion";
+  a.href = url;
+  a.download = filename + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const d = JSON.parse(e.target.result);
+      loadSong(d);
+      closeModal();
+    } catch(err) { alert("Fichero inválido: " + err.message); }
+  };
+  reader.readAsText(file);
+  // Reset so the same file can be re-imported if needed
+  event.target.value = "";
+}
+
+function importJSON() {
+  try {
+    const d = JSON.parse(document.getElementById("jsonOutput").value);
+    loadSong(d);
+    closeModal();
+  } catch(e) { alert("JSON inválido: " + e.message); }
+}
+
+function loadSong(d) {
+  songData = d;
+  syncHeaderInputs();
+  saveUndo();
+  render();
+}
+
+function copyJSON() {
+  const ta = document.getElementById("jsonOutput");
+  ta.select();
+  navigator.clipboard.writeText(ta.value).catch(() => document.execCommand("copy"));
+}
+
+function closeModal() {
+  document.getElementById("exportModal").classList.remove("open");
+}
+
+// ── Load from URL if ?song= param present
+(function loadFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const encoded = params.get("song");
+    if (encoded) {
+      const json = decodeURIComponent(atob(encoded));
+      const d = JSON.parse(json);
+      // defer until after render() init
+      setTimeout(() => loadSong(d), 0);
+    }
+  } catch(e) { /* ignore bad URL params */ }
+})();
+
+function esc(s) {
+  return (s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT TO RTF (opens in Word, Pages, LibreOffice)
+// Pure browser generation — no library needed
+// ═══════════════════════════════════════════════
+function exportWord() {
+  const plain = (s) => s.replace(/MA⁷|MA7|maj7/gi, 'MA7').replace(/⁷/g,'7');
+
+  // RTF escape: non-ASCII → \uN?
+  const rtfEsc = (s) => s.split('').map(c => {
+    const code = c.charCodeAt(0);
+    if (code < 128) return c.replace(/\\/g,'\\\\').replace(/\{/g,'\\{').replace(/\}/g,'\\}');
+    return `\\u${code}?`;
+  }).join('');
+
+  const lines = [];
+
+  // RTF header
+  lines.push(
+    '{\\rtf1\\ansi\\deff0',
+    '{\\fonttbl{\\f0\\fswiss Arial;}{\\f1\\fmodern Courier New;}}',
+    '{\\colortbl;\\red0\\green0\\blue0;\\red196\\green95\\blue58;\\red136\\green136\\blue136;\\red51\\green51\\blue51;}',
+    '\\paperw11906\\paperh16838\\margl1080\\margr1080\\margt1080\\margb1080',
+    '\\widowctrl\\hyphauto'
+  );
+
+  // Title
+  const title = rtfEsc(songData.title || 'Sin título');
+  lines.push(`\\pard\\sb0\\sa120\\f0\\fs40\\b ${title}\\b0\\par`);
+
+  // Artist + meta line
+  const metaParts = [];
+  if (songData.artist) metaParts.push(songData.artist.toUpperCase());
+  if (songData.key) metaParts.push('🎵 ' + songData.key);
+  if (songData.bpm) metaParts.push('♩ ' + songData.bpm + ' BPM');
+  if (songData.timeSignature) metaParts.push(songData.timeSignature);
+  if (metaParts.length) {
+    lines.push(`\\pard\\sb0\\sa320\\f0\\fs18\\cf3 ${rtfEsc(metaParts.join('   |   '))}\\cf1\\par`);
+  }
+
+  songData.sections.forEach((sec) => {
+    // Section header line
+    const name = rtfEsc(sec.name);
+    const lyric = sec.lyric ? '  ' + rtfEsc(sec.lyric) : '';
+    lines.push(
+      `\\pard\\sb240\\sa80\\brdrb\\brdrs\\brdrw10\\brdrcf2\\f0\\fs20\\b\\cf2 ${name}\\b0\\cf3\\i${lyric}\\i0\\cf1\\par`
+    );
+
+    sec.rows.forEach((row) => {
+      // Build chord line: || C  G | Am | F ||  x4
+      const parts = row.bars.map(bar => bar.map(plain).join('  '));
+      const chordsText = rtfEsc('\u{1D106}  ' + parts.join('   |   ') + '  \u{1D107}');
+      const repeatText = row.repeats ? rtfEsc(`   \u00D7${row.repeats}`) : '';
+
+      lines.push(
+        `\\pard\\sb80\\sa${row.comment ? 20 : 120}\\li200\\f1\\fs24\\b ${chordsText}\\b0\\f0\\fs20\\cf2${repeatText}\\cf1\\par`
+      );
+
+      if (row.comment) {
+        const comm = rtfEsc('  ' + row.comment);
+        lines.push(`\\pard\\sb0\\sa120\\li280\\f0\\fs17\\cf3\\i ${comm}\\i0\\cf1\\par`);
+      }
+    });
+  });
+
+  lines.push('}');
+
+  const rtf = lines.join('\n');
+  const blob = new Blob([rtf], { type: 'application/rtf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const filename = (songData.title || 'cancion')
+    .replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s]/g, '')
+    .trim().replace(/\s+/g, '_') || 'cancion';
+  a.href = url;
+  a.download = filename + '.rtf';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════
+// THEME SWITCHER
+// ═══════════════════════════════════════════════
+const _themes = [
+  { key: "neon",     label: "Neón Oscuro",    icon: "🌙", desc: "Oscuro con neones" },
+  { key: "default",  label: "Clásico Dorado", icon: "✨", desc: "Oscuro con ámbar" },
+  { key: "light",    label: "Claro",          icon: "☀️", desc: "Fondo blanco" },
+  { key: "bluered",  label: "Azul & Granate", icon: "🔵", desc: "Azul marino y granate" }
+];
+let _themeIdx = 0;
+let _themePickerOpen = false;
+
+function cycleTheme() {
+  const btn = document.getElementById("btnTheme");
+  if (_themePickerOpen) { closeThemePicker(); return; }
+
+  _themePickerOpen = true;
+  const picker = document.createElement("div");
+  picker.id = "themePicker";
+  picker.style.cssText = `
+    position: fixed; z-index: 9999;
+    background: var(--surface); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 10px 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+    display: flex; flex-direction: column; gap: 4px; min-width: 200px;
+  `;
+
+  _themes.forEach((t, i) => {
+    const btn2 = document.createElement("button");
+    btn2.style.cssText = `
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      border-radius: 6px; border: 1px solid transparent; cursor: pointer;
+      background: ${i === _themeIdx ? 'var(--surface2)' : 'transparent'};
+      border-color: ${i === _themeIdx ? 'var(--accent)' : 'transparent'};
+      color: var(--text); font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.82rem; text-align: left; width: 100%;
+      transition: all 0.15s;
+    `;
+    btn2.innerHTML = `<span style="font-size:1.1rem">${t.icon}</span>
+      <span><strong style="display:block;font-size:0.8rem">${t.label}</strong>
+      <span style="font-size:0.7rem;color:var(--muted)">${t.desc}</span></span>`;
+    btn2.addEventListener("mouseover", () => {
+      if (i !== _themeIdx) btn2.style.background = 'var(--surface2)';
+    });
+    btn2.addEventListener("mouseout", () => {
+      if (i !== _themeIdx) btn2.style.background = 'transparent';
+    });
+    btn2.addEventListener("click", (e) => {
+      e.stopPropagation();
+      _themeIdx = i;
+      applyTheme(i);
+      closeThemePicker();
+    });
+    picker.appendChild(btn2);
+  });
+
+  document.body.appendChild(picker);
+
+  // Position below the button
+  const rect = btn.getBoundingClientRect();
+  let left = rect.right - 200;
+  if (left < 8) left = 8;
+  picker.style.top = (rect.bottom + 8) + "px";
+  picker.style.left = left + "px";
+
+  setTimeout(() => document.addEventListener("click", closeThemePickerOutside), 10);
+}
+
+function closeThemePickerOutside(e) {
+  const picker = document.getElementById("themePicker");
+  const btn = document.getElementById("btnTheme");
+  if (picker && !picker.contains(e.target) && !btn.contains(e.target)) {
+    closeThemePicker();
+  }
+}
+
+function closeThemePicker() {
+  const picker = document.getElementById("themePicker");
+  if (picker) picker.remove();
+  _themePickerOpen = false;
+  document.removeEventListener("click", closeThemePickerOutside);
+}
+
+function applyTheme(idx) {
+  const t = _themes[idx];
+  const html = document.documentElement;
+  if (t.key === "default") {
+    html.removeAttribute("data-theme");
+  } else {
+    html.setAttribute("data-theme", t.key);
+  }
+  const btnT = document.getElementById("btnTheme");
+  if (btnT) btnT.textContent = t.icon + " Tema";
+  try { localStorage.setItem("bt_theme", t.key); } catch(e) {}
+}
+
+// Load saved theme
+(function initTheme() {
+  try {
+    const saved = localStorage.getItem("bt_theme");
+    if (saved) {
+      const idx = _themes.findIndex(t => t.key === saved);
+      if (idx >= 0) { _themeIdx = idx; applyTheme(idx); return; }
+    }
+  } catch(e) {}
+  _themeIdx = 0;
+  applyTheme(0);
+})();
+
+// ── INIT
+saveUndo();
+render();
+</script>
+</body>
+</html>
