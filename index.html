@@ -1525,7 +1525,7 @@ async function saveSongCloud() {
   }
 
   if (result.error) {
-    setCloudStatus("error", "⚠ Error al guardar");
+    setCloudStatus("error", "⚠ Error al guardar" + result.error);
     console.error(result.error);
     return;
   }
