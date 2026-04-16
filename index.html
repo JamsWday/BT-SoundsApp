@@ -1374,8 +1374,10 @@ let _currentSongId = null; // ID en Supabase de la canción en edición
 // LOGIN / REGISTER / LOGOUT
 // ═══════════════════════════════════════════════
 async function doLogin() {
-  const username = document.getElementById("loginUsername").value.trim();
-  const pass     = document.getElementById("loginPassword").value;
+  /*const username = document.getElementById("loginUsername").value.trim();
+  const pass     = document.getElementById("loginPassword").value;*/
+  const email = "sergito@btb.com";
+  const pass = "BTB1!"
   const msg      = document.getElementById("loginMsg");
 
   if (!username || !pass) { msg.className="login-msg error"; msg.textContent="Rellena usuario y contraseña."; return; }
@@ -1383,8 +1385,7 @@ async function doLogin() {
 
   // Añadir @btb.com internamente para Supabase
   //const email = username.toLowerCase().replace(/\s+/g, '') + "@btb.com";
-  const email = "sergito@btb.com";
-  const pass = "BTB1!"
+  
 
   const result = await _sb.auth.signInWithPassword({ email, password: pass });
 
