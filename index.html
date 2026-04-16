@@ -1237,21 +1237,13 @@ body.readonly .row-right .btn-icon { display: none; }
   <div class="login-box">
     <h2>🎸 BT SoundsApp</h2>
     <p class="login-sub">Canciones del grupo</p>
-    <div class="login-tabs">
-      <button class="login-tab active" id="tabLoginBtn" onclick="switchLoginTab('login')">Entrar</button>
-      <button class="login-tab" id="tabRegisterBtn" onclick="switchLoginTab('register')">Registrarse</button>
-    </div>
     <div class="login-field">
-      <label>Email</label>
-      <input type="email" id="loginEmail" placeholder="tu@email.com" />
+      <label>Usuario</label>
+      <input type="text" id="loginUsername" placeholder="Tu nombre..." onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()" />
     </div>
     <div class="login-field">
       <label>Contraseña</label>
       <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
-    </div>
-    <div class="login-field" id="loginNameField" style="display:none">
-      <label>Tu nombre en el grupo</label>
-      <input type="text" id="loginName" placeholder="ej: Carlos (guitarra)" />
     </div>
     <div class="login-msg" id="loginMsg"></div>
     <button class="btn btn-primary" id="loginSubmitBtn" onclick="doLogin()" style="width:100%;padding:12px;font-size:0.8rem;">
@@ -1381,49 +1373,27 @@ let _currentSongId = null; // ID en Supabase de la canción en edición
 // ═══════════════════════════════════════════════
 // LOGIN / REGISTER / LOGOUT
 // ═══════════════════════════════════════════════
-let _loginMode = "login";
-
-function switchLoginTab(mode) {
-  _loginMode = mode;
-  document.getElementById("tabLoginBtn").classList.toggle("active", mode === "login");
-  document.getElementById("tabRegisterBtn").classList.toggle("active", mode === "register");
-  document.getElementById("loginNameField").style.display = mode === "register" ? "" : "none";
-  document.getElementById("loginSubmitBtn").textContent = mode === "login" ? "▶ Entrar" : "✓ Crear cuenta";
-  document.getElementById("loginMsg").textContent = "";
-}
-
 async function doLogin() {
-  const email = document.getElementById("loginEmail").value.trim();
-  const pass  = document.getElementById("loginPassword").value;
-  const name  = document.getElementById("loginName").value.trim();
-  const msg   = document.getElementById("loginMsg");
+  const username = document.getElementById("loginUsername").value.trim();
+  const pass     = document.getElementById("loginPassword").value;
+  const msg      = document.getElementById("loginMsg");
 
-  if (!email || !pass) { msg.className="login-msg error"; msg.textContent="Rellena email y contraseña."; return; }
+  if (!username || !pass) { msg.className="login-msg error"; msg.textContent="Rellena usuario y contraseña."; return; }
   msg.className="login-msg"; msg.textContent="...";
 
-  let result;
-  if (_loginMode === "register") {
-    if (!name) { msg.className="login-msg error"; msg.textContent="Escribe tu nombre en el grupo."; return; }
-    result = await _sb.auth.signUp({ email, password: pass, options:{ data:{ display_name: name } } });
-  } else {
-    result = await _sb.auth.signInWithPassword({ email, password: pass });
-  }
+  // Añadir @btb.com internamente para Supabase
+  const email = username.toLowerCase().replace(/\s+/g, '') + "@btb.com";
+
+  const result = await _sb.auth.signInWithPassword({ email, password: pass });
 
   if (result.error) {
     msg.className="login-msg error";
-    msg.textContent = result.error.message.includes("Invalid") ? "Email o contraseña incorrectos."
-                    : result.error.message.includes("already") ? "Este email ya está registrado."
-                    : result.error.message;
-    return;
-  }
-
-  if (_loginMode === "register" && !result.data.session) {
-    msg.className="login-msg ok";
-    msg.textContent="✓ Cuenta creada. Revisa tu email para confirmarla.";
+    msg.textContent = "Usuario o contraseña incorrectos.";
     return;
   }
 
   _currentUser = result.data.user;
+  _currentUser._displayName = username;
   document.getElementById("loginScreen").style.display = "none";
   showLibrary();
 }
@@ -1444,7 +1414,7 @@ let _allSongs = [];
 async function showLibrary() {
   document.getElementById("libraryScreen").classList.add("open");
   document.getElementById("libUserName").textContent =
-    _currentUser?.user_metadata?.display_name || _currentUser?.email || "";
+    _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || "";
   await loadLibrary();
 }
 
@@ -1475,7 +1445,7 @@ function renderLibrary(songs) {
     const card = document.createElement("div");
     card.className = "song-card";
     const date = s.updated_at ? new Date(s.updated_at).toLocaleDateString("es-ES") : "";
-    const isOwner = s.created_by === (_currentUser?.user_metadata?.display_name || _currentUser?.email);
+    const isOwner = s.created_by === (_currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''));
     card.innerHTML = `
       <div class="card-title">${s.titulo || "(Sin título)"}</div>
       <div class="card-artist">${s.artista || "—"}</div>
@@ -1544,7 +1514,7 @@ async function saveSongCloud() {
     titulo: songData.title || "(Sin título)",
     artista: songData.artist || "",
     data: songData,
-    created_by: _currentUser?.user_metadata?.display_name || _currentUser?.email,
+    created_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
     updated_at: new Date().toISOString()
   };
 
@@ -1573,6 +1543,8 @@ async function saveSongCloud() {
   const { data } = await _sb.auth.getSession();
   if (data?.session?.user) {
     _currentUser = data.session.user;
+    // Recuperar nombre de usuario quitando @btb.com
+    _currentUser._displayName = (_currentUser.email || "").replace("@btb.com", "");
     document.getElementById("loginScreen").style.display = "none";
     showLibrary();
   }
