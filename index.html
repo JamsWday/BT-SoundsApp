@@ -1382,7 +1382,9 @@ async function doLogin() {
   msg.className="login-msg"; msg.textContent="...";
 
   // Añadir @btb.com internamente para Supabase
-  const email = username.toLowerCase().replace(/\s+/g, '') + "@btb.com";
+  //const email = username.toLowerCase().replace(/\s+/g, '') + "@btb.com";
+  const email = "sergito@btb.com";
+  const pass = "BTB1!"
 
   const result = await _sb.auth.signInWithPassword({ email, password: pass });
 
