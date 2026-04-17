@@ -1201,6 +1201,288 @@ body.readonly .row-right .btn-icon { display: none; }
 #cloudStatus.saved { color: var(--green); border-color: var(--green); }
 #cloudStatus.error { color: var(--accent2); border-color: var(--accent2); }
 
+/* ── AUDIO SYSTEM ── */
+.audio-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.audio-btn:hover { color: var(--accent); border-color: var(--accent); }
+.audio-btn.has-audio { color: var(--green); }
+.audio-btn.playing-audio { color: var(--accent2); animation: pulse-audio 1s infinite; }
+@keyframes pulse-audio { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.audio-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 6000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.audio-modal-overlay.open { display: flex; }
+.audio-modal {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  padding: 26px 28px;
+  max-width: 500px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.audio-modal h3 {
+  font-family: 'Playfair Display', serif;
+  color: var(--accent);
+  font-size: 1.15rem;
+  margin-bottom: 0;
+}
+.audio-modal .audio-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: -8px;
+}
+.audio-source-tabs {
+  display: flex;
+  gap: 6px;
+}
+.audio-tab {
+  flex: 1;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.audio-tab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+
+.audio-panel { display: flex; flex-direction: column; gap: 12px; }
+.audio-panel.hidden { display: none; }
+
+.audio-drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.audio-drop-zone:hover, .audio-drop-zone.drag-over {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,255,231,0.04);
+}
+.audio-drop-zone .drop-icon { font-size: 2rem; margin-bottom: 8px; }
+
+.audio-url-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.audio-url-input:focus { border-color: var(--accent); }
+.audio-url-input::placeholder { color: var(--muted); }
+
+.audio-record-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+.record-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 3px solid var(--accent2);
+  background: transparent;
+  color: var(--accent2);
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.record-btn:hover { background: rgba(255,45,120,0.1); }
+.record-btn.recording {
+  background: var(--accent2);
+  color: #fff;
+  animation: pulse-rec 1s infinite;
+}
+@keyframes pulse-rec { 0%,100%{box-shadow:0 0 0 0 rgba(255,45,120,0.4)} 50%{box-shadow:0 0 0 14px rgba(255,45,120,0)} }
+.record-timer {
+  font-family: 'Space Mono', monospace;
+  font-size: 1rem;
+  color: var(--muted);
+}
+.record-timer.active { color: var(--accent2); }
+.record-status {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.audio-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.audio-preview-bar.hidden { display: none; }
+.audio-play-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--bg);
+  transition: background 0.15s;
+}
+.audio-play-btn:hover { background: var(--green); }
+.audio-play-btn.playing { background: var(--accent2); color: #fff; }
+.audio-progress {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.audio-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.3s linear;
+}
+.audio-time {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.audio-del-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.audio-del-btn:hover { color: #c04040; border-color: rgba(192,64,64,0.4); }
+
+.audio-modal-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Song-level audio player in header */
+#songAudioPlayer {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+#songAudioPlayer.visible { display: flex; }
+#songAudioPlayer .sap-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+#songAudioPlayer .sap-play {
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+#songAudioPlayer .sap-play:hover { background: var(--green); }
+#songAudioPlayer .sap-play.playing { background: var(--accent2); color: #fff; }
+#songAudioPlayer .sap-bar {
+  width: 80px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#songAudioPlayer .sap-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  border-radius: 2px;
+}
+#songAudioPlayer .sap-edit {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+#songAudioPlayer .sap-edit:hover { color: var(--accent); }
+
+@media print {
+  .audio-btn, #songAudioPlayer { display: none !important; }
+}
+
 @media print {
   .header-actions, .add-bar-btn, .add-chord-in-bar,
   .add-row-btn, .add-section-btn, .btn-icon, .drag-handle,
@@ -1284,6 +1566,14 @@ body.readonly .row-right .btn-icon { display: none; }
   </div>
   <div class="header-actions">
     <span id="cloudStatus"></span>
+    <!-- Song-level audio player -->
+    <div id="songAudioPlayer">
+      <span class="sap-label">🎵</span>
+      <button class="sap-play" id="sapPlayBtn" onclick="toggleSongAudio()">▶</button>
+      <div class="sap-bar"><div class="sap-fill" id="sapFill"></div></div>
+      <button class="sap-edit" onclick="openAudioModal('song',null)" title="Cambiar audio">✎</button>
+    </div>
+    <button class="btn" id="btnSongAudio" onclick="openAudioModal('song',null)" title="Añadir audio a la canción">🎵 Audio</button>
     <button class="btn" onclick="showLibrary()">📚 Canciones</button>
     <button class="btn" id="btnUndo" onclick="undo()" title="Deshacer (Ctrl+Z)" disabled>↩</button>
     <button class="btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
@@ -1312,6 +1602,70 @@ body.readonly .row-right .btn-icon { display: none; }
   </div>
   <div class="scroll-progress" title="Progreso">
     <div class="scroll-progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<!-- AUDIO MODAL -->
+<div class="audio-modal-overlay" id="audioModal">
+  <div class="audio-modal">
+    <h3>🎵 Audio</h3>
+    <p class="audio-sub" id="audioModalLabel">Canción completa</p>
+
+    <div class="audio-source-tabs">
+      <button class="audio-tab active" id="atab-file" onclick="switchAudioTab('file')">📁 Archivo</button>
+      <button class="audio-tab" id="atab-url" onclick="switchAudioTab('url')">🔗 URL</button>
+      <button class="audio-tab" id="atab-rec" onclick="switchAudioTab('rec')">🎙 Grabar</button>
+    </div>
+
+    <!-- File tab -->
+    <div class="audio-panel" id="apanel-file">
+      <div class="audio-drop-zone" id="audioDropZone"
+        onclick="document.getElementById('audioFileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="handleAudioDrop(event)">
+        <div class="drop-icon">🎵</div>
+        <div>Pulsa o arrastra un archivo de audio</div>
+        <div style="font-size:0.72rem;margin-top:6px;color:var(--muted)">MP3, WAV, OGG, M4A, AAC...</div>
+      </div>
+      <input type="file" id="audioFileInput" accept="audio/*" style="display:none" onchange="handleAudioFile(event)" />
+    </div>
+
+    <!-- URL tab -->
+    <div class="audio-panel hidden" id="apanel-url">
+      <input class="audio-url-input" id="audioUrlInput" type="url"
+        placeholder="https://ejemplo.com/cancion.mp3"
+        onkeydown="if(event.key==='Enter')applyAudioUrl()" />
+      <button class="btn btn-primary" onclick="applyAudioUrl()" style="width:100%">✓ Usar esta URL</button>
+    </div>
+
+    <!-- Record tab -->
+    <div class="audio-panel hidden" id="apanel-rec">
+      <div class="audio-record-area">
+        <div class="record-status" id="recStatus">Pulsa el botón para grabar</div>
+        <button class="record-btn" id="recBtn" onclick="toggleRecord()">🎙</button>
+        <div class="record-timer" id="recTimer">0:00</div>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="audio-preview-bar hidden" id="audioPreview">
+      <button class="audio-play-btn" id="previewPlayBtn" onclick="togglePreviewPlay()">▶</button>
+      <div class="audio-progress" id="audioProgressBar" onclick="seekAudioPreview(event)">
+        <div class="audio-progress-fill" id="audioProgressFill"></div>
+      </div>
+      <span class="audio-time" id="audioTimeLabel">0:00</span>
+      <button class="audio-del-btn" onclick="deleteCurrentAudio()" title="Eliminar audio">🗑</button>
+    </div>
+
+    <div id="audioUploadStatus" style="display:none;font-family:'Space Mono',monospace;font-size:0.72rem;
+         color:var(--accent);text-align:center;padding:6px 0;letter-spacing:0.05em;">
+      ⏳ Subiendo audio...
+    </div>
+    <div class="audio-modal-actions">
+      <button class="btn btn-primary" id="btnSaveAudio" onclick="saveAudioAndClose()">✓ Guardar</button>
+      <button class="btn" id="btnCloseAudio" onclick="closeAudioModal()">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -1490,6 +1844,17 @@ function newSong() {
 async function deleteSong(id, e) {
   e.stopPropagation();
   if (!confirm("¿Borrar esta canción? No se puede deshacer.")) return;
+
+  // Cargar datos completos para limpiar audios del Storage
+  const { data: songRow } = await _sb.from("Canciones").select("data").eq("id", id).single();
+  if (songRow?.data) {
+    const d = songRow.data;
+    const paths = [];
+    if (d.audio?.storagePath) paths.push(d.audio.storagePath);
+    d.sections?.forEach(s => { if (s.audio?.storagePath) paths.push(s.audio.storagePath); });
+    if (paths.length) await _sb.storage.from(AUDIO_BUCKET).remove(paths);
+  }
+
   const { error } = await _sb.from("Canciones").delete().eq("id", id);
   if (error) { alert("Error al borrar."); return; }
   await loadLibrary();
@@ -1747,6 +2112,18 @@ function render() {
     hdr.appendChild(secHandle);
     hdr.appendChild(nameIn);
     hdr.appendChild(lyricIn);
+
+    // audio button for section
+    const secAudioBtn = document.createElement("button");
+    secAudioBtn.className = "audio-btn btn-icon" + (sec.audio ? " has-audio" : "");
+    secAudioBtn.title = sec.audio ? "Audio de sección (pulsa para editar)" : "Añadir audio a esta sección";
+    secAudioBtn.textContent = sec.audio ? "🔊" : "🎵";
+    secAudioBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      openAudioModal("section", sec.id);
+    });
+    hdr.appendChild(secAudioBtn);
+
     hdr.appendChild(dupSec);
     hdr.appendChild(delSec);
     hdr.appendChild(arrow);
@@ -2392,6 +2769,313 @@ function exportWord() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// ═══════════════════════════════════════════════
+// AUDIO SYSTEM — con Supabase Storage
+// ═══════════════════════════════════════════════
+const AUDIO_BUCKET = "song-audio"; // nombre del bucket en Supabase Storage
+
+let _audioCtx = null;
+let _audioPreviewEl = null;
+let _recMediaRec = null;
+let _recChunks = [];
+let _recTimerInt = null;
+let _recSeconds = 0;
+let _pendingAudio = null;   // { src, type, name, blob? }
+let _activeAudioEl = null;
+
+// ── Sube un Blob a Supabase Storage y devuelve la URL pública permanente
+async function uploadAudioBlob(blob, filename) {
+  const safeName = filename.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ._-]/g, "_");
+  const path = `${Date.now()}_${safeName}`;
+  const { data, error } = await _sb.storage
+    .from(AUDIO_BUCKET)
+    .upload(path, blob, { contentType: blob.type, upsert: false });
+  if (error) throw new Error("Storage error: " + error.message);
+  const { data: { publicUrl } } = _sb.storage.from(AUDIO_BUCKET).getPublicUrl(data.path);
+  return { publicUrl, storagePath: data.path };
+}
+
+// ── Elimina un archivo de Supabase Storage dado su path
+async function deleteAudioFromStorage(storagePath) {
+  if (!storagePath) return;
+  await _sb.storage.from(AUDIO_BUCKET).remove([storagePath]);
+}
+
+// ── Muestra / oculta el indicador de subida y bloquea botones
+function setAudioUploading(active) {
+  document.getElementById("audioUploadStatus").style.display = active ? "block" : "none";
+  document.getElementById("btnSaveAudio").disabled  = active;
+  document.getElementById("btnCloseAudio").disabled = active;
+}
+
+function openAudioModal(target, secId) {
+  _audioCtx = { target, secId };
+  const label = document.getElementById("audioModalLabel");
+  label.textContent = target === "song"
+    ? "Canción completa"
+    : ("Sección: " + (songData.sections.find(s => s.id === secId)?.name || secId));
+  switchAudioTab("file");
+  _pendingAudio = null;
+  stopPreviewAudio();
+  stopRecord();
+  const existing = target === "song" ? songData.audio : songData.sections.find(s => s.id === secId)?.audio;
+  if (existing) {
+    loadPreviewAudio(existing.src, existing.name || "Audio");
+  } else {
+    document.getElementById("audioPreview").classList.add("hidden");
+  }
+  document.getElementById("audioModal").classList.add("open");
+}
+
+function closeAudioModal() {
+  stopPreviewAudio();
+  stopRecord();
+  document.getElementById("audioModal").classList.remove("open");
+}
+
+async function saveAudioAndClose() {
+  if (!_pendingAudio) { closeAudioModal(); return; }
+
+  // Si es un blob local (archivo subido o grabación), hay que subirlo a Storage
+  if (_pendingAudio.type === "blob" && _pendingAudio.blob) {
+    setAudioUploading(true);
+    try {
+      // Borrar audio anterior del Storage si existía
+      const existing = _audioCtx.target === "song"
+        ? songData.audio
+        : songData.sections.find(s => s.id === _audioCtx.secId)?.audio;
+      if (existing?.storagePath) await deleteAudioFromStorage(existing.storagePath);
+
+      const { publicUrl, storagePath } = await uploadAudioBlob(_pendingAudio.blob, _pendingAudio.name);
+      _pendingAudio = { src: publicUrl, storagePath, type: "url", name: _pendingAudio.name };
+    } catch(err) {
+      setAudioUploading(false);
+      alert("⚠ Error al subir el audio: " + err.message +
+            "\n\nAsegúrate de haber creado el bucket 'song-audio' en Supabase Storage.");
+      return;
+    }
+    setAudioUploading(false);
+  }
+
+  if (_audioCtx.target === "song") {
+    songData.audio = _pendingAudio;
+    updateSongAudioPlayer();
+  } else {
+    const sec = songData.sections.find(s => s.id === _audioCtx.secId);
+    if (sec) { sec.audio = _pendingAudio; render(); }
+  }
+  _pendingAudio = null;
+  closeAudioModal();
+}
+
+async function deleteCurrentAudio() {
+  if (!confirm("¿Eliminar el audio?")) return;
+  _pendingAudio = null;
+  const existing = _audioCtx.target === "song"
+    ? songData.audio
+    : songData.sections.find(s => s.id === _audioCtx.secId)?.audio;
+  // Borrar del Storage si tiene path guardado
+  if (existing?.storagePath) await deleteAudioFromStorage(existing.storagePath);
+
+  if (_audioCtx.target === "song") {
+    songData.audio = null;
+    updateSongAudioPlayer();
+  } else {
+    const sec = songData.sections.find(s => s.id === _audioCtx.secId);
+    if (sec) { sec.audio = null; render(); }
+  }
+  stopPreviewAudio();
+  document.getElementById("audioPreview").classList.add("hidden");
+}
+
+function switchAudioTab(tab) {
+  ["file","url","rec"].forEach(t => {
+    document.getElementById("apanel-" + t).classList.toggle("hidden", t !== tab);
+    document.getElementById("atab-" + t).classList.toggle("active", t === tab);
+  });
+  if (tab !== "rec") stopRecord();
+}
+
+function handleAudioFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const url = URL.createObjectURL(file);
+  _pendingAudio = { src: url, type: "blob", name: file.name, blob: file };
+  loadPreviewAudio(url, file.name);
+  e.target.value = "";
+}
+
+function handleAudioDrop(e) {
+  e.preventDefault();
+  document.getElementById("audioDropZone").classList.remove("drag-over");
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.type.startsWith("audio/")) { alert("Selecciona un archivo de audio."); return; }
+  const url = URL.createObjectURL(file);
+  _pendingAudio = { src: url, type: "blob", name: file.name, blob: file };
+  loadPreviewAudio(url, file.name);
+}
+
+function applyAudioUrl() {
+  const url = document.getElementById("audioUrlInput").value.trim();
+  if (!url) { alert("Introduce una URL válida."); return; }
+  _pendingAudio = { src: url, type: "url", name: url.split("/").pop() || "Audio externo" };
+  loadPreviewAudio(url, _pendingAudio.name);
+}
+
+function loadPreviewAudio(src, name) {
+  stopPreviewAudio();
+  _audioPreviewEl = new Audio(src);
+  _audioPreviewEl.addEventListener("timeupdate", updatePreviewProgress);
+  _audioPreviewEl.addEventListener("ended", () => {
+    const btn = document.getElementById("previewPlayBtn");
+    if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
+    document.getElementById("audioProgressFill").style.width = "0%";
+    document.getElementById("audioTimeLabel").textContent = "0:00";
+  });
+  document.getElementById("audioPreview").classList.remove("hidden");
+  const btn = document.getElementById("previewPlayBtn");
+  if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
+  document.getElementById("audioProgressFill").style.width = "0%";
+  document.getElementById("audioTimeLabel").textContent = "0:00";
+}
+
+function stopPreviewAudio() {
+  if (_audioPreviewEl) { _audioPreviewEl.pause(); _audioPreviewEl.src = ""; _audioPreviewEl = null; }
+  const btn = document.getElementById("previewPlayBtn");
+  if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
+}
+
+function togglePreviewPlay() {
+  if (!_audioPreviewEl) return;
+  const btn = document.getElementById("previewPlayBtn");
+  if (_audioPreviewEl.paused) {
+    _audioPreviewEl.play().catch(() => {});
+    btn.textContent = "⏸"; btn.classList.add("playing");
+  } else {
+    _audioPreviewEl.pause();
+    btn.textContent = "▶"; btn.classList.remove("playing");
+  }
+}
+
+function updatePreviewProgress() {
+  if (!_audioPreviewEl || !_audioPreviewEl.duration) return;
+  const pct = (_audioPreviewEl.currentTime / _audioPreviewEl.duration) * 100;
+  document.getElementById("audioProgressFill").style.width = pct + "%";
+  document.getElementById("audioTimeLabel").textContent = fmtTime(_audioPreviewEl.currentTime);
+}
+
+function seekAudioPreview(e) {
+  if (!_audioPreviewEl || !_audioPreviewEl.duration) return;
+  const bar = document.getElementById("audioProgressBar");
+  const rect = bar.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  _audioPreviewEl.currentTime = pct * _audioPreviewEl.duration;
+}
+
+function fmtTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return m + ":" + String(s).padStart(2, "0");
+}
+
+async function toggleRecord() {
+  if (_recMediaRec && _recMediaRec.state === "recording") {
+    _recMediaRec.stop();
+  } else {
+    await startRecord();
+  }
+}
+
+async function startRecord() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _recChunks = []; _recSeconds = 0;
+    _recMediaRec = new MediaRecorder(stream);
+    _recMediaRec.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
+    _recMediaRec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(_recTimerInt);
+      const blob = new Blob(_recChunks, { type: "audio/webm" });
+      const url = URL.createObjectURL(blob);
+      const recName = "Grabacion_" + new Date().toLocaleTimeString("es-ES").replace(/:/g,"-") + ".webm";
+      _pendingAudio = { src: url, type: "blob", name: recName, blob };
+      loadPreviewAudio(url, _pendingAudio.name);
+      const btn = document.getElementById("recBtn");
+      btn.classList.remove("recording"); btn.textContent = "🎙";
+      document.getElementById("recStatus").textContent = "✓ Grabación lista. Pulsa Guardar para subir.";
+      document.getElementById("recTimer").classList.remove("active");
+    };
+    _recMediaRec.start(100);
+    const btn = document.getElementById("recBtn");
+    btn.classList.add("recording"); btn.textContent = "⏹";
+    document.getElementById("recStatus").textContent = "🔴 Grabando...";
+    document.getElementById("recTimer").classList.add("active");
+    _recTimerInt = setInterval(() => {
+      _recSeconds++;
+      document.getElementById("recTimer").textContent = fmtTime(_recSeconds);
+    }, 1000);
+  } catch(err) {
+    document.getElementById("recStatus").textContent = "⚠ No se pudo acceder al micrófono: " + err.message;
+  }
+}
+
+function stopRecord() {
+  if (_recMediaRec && _recMediaRec.state === "recording") _recMediaRec.stop();
+  clearInterval(_recTimerInt); _recSeconds = 0;
+  const btn = document.getElementById("recBtn");
+  if (btn) { btn.classList.remove("recording"); btn.textContent = "🎙"; }
+  const timer = document.getElementById("recTimer");
+  if (timer) { timer.textContent = "0:00"; timer.classList.remove("active"); }
+  const status = document.getElementById("recStatus");
+  if (status) status.textContent = "Pulsa el botón para grabar";
+}
+
+function updateSongAudioPlayer() {
+  const player = document.getElementById("songAudioPlayer");
+  const songBtn = document.getElementById("btnSongAudio");
+  if (songData.audio) {
+    player.classList.add("visible");
+    if (songBtn) songBtn.style.display = "none";
+  } else {
+    player.classList.remove("visible");
+    if (songBtn) songBtn.style.display = "";
+    stopSongAudio();
+  }
+}
+
+function toggleSongAudio() {
+  if (!songData.audio) return;
+  if (!_activeAudioEl) {
+    _activeAudioEl = new Audio(songData.audio.src);
+    _activeAudioEl.addEventListener("timeupdate", () => {
+      if (!_activeAudioEl || !_activeAudioEl.duration) return;
+      const pct = (_activeAudioEl.currentTime / _activeAudioEl.duration) * 100;
+      const fill = document.getElementById("sapFill");
+      if (fill) fill.style.width = pct + "%";
+    });
+    _activeAudioEl.addEventListener("ended", stopSongAudio);
+  }
+  const btn = document.getElementById("sapPlayBtn");
+  if (_activeAudioEl.paused) {
+    _activeAudioEl.play().catch(() => {});
+    if (btn) { btn.textContent = "⏸"; btn.classList.add("playing"); }
+  } else {
+    _activeAudioEl.pause();
+    if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
+  }
+}
+
+function stopSongAudio() {
+  if (_activeAudioEl) { _activeAudioEl.pause(); _activeAudioEl.src = ""; _activeAudioEl = null; }
+  const btn = document.getElementById("sapPlayBtn");
+  if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
+  const fill = document.getElementById("sapFill");
+  if (fill) fill.style.width = "0%";
+}
+
+document.getElementById("audioModal").addEventListener("click", e => {
+  if (e.target === document.getElementById("audioModal")) closeAudioModal();
+});
 
 // ═══════════════════════════════════════════════
 // THEME SWITCHER
