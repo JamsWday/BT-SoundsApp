@@ -1681,6 +1681,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
         <div class="audio-progress-fill" id="audioProgressFill"></div>
       </div>
       <span class="audio-time" id="audioTimeLabel">0:00</span>
+      <button class="audio-del-btn" onclick="downloadCurrentAudio()" title="Descargar audio">⬇</button>
       <button class="audio-del-btn" onclick="deleteCurrentAudio()" title="Eliminar audio">🗑</button>
     </div>
 
@@ -2912,6 +2913,47 @@ async function saveAudioAndClose() {
   }
   _pendingAudio = null;
   closeAudioModal();
+}
+
+async function downloadCurrentAudio() {
+  // Determinar el audio a descargar: pendiente (aún no guardado) o el ya guardado
+  const audio = _pendingAudio
+    || (_audioCtx.target === "song"
+        ? songData.audio
+        : songData.sections.find(s => s.id === _audioCtx.secId)?.audio);
+  if (!audio?.src) return;
+
+  // Construir nombre de fichero: "TítuloCanción - NombreSección.ext"
+  const songTitle = (songData.title || "Cancion").replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s]/g, "").trim() || "Cancion";
+  let filename;
+  if (_audioCtx.target === "song") {
+    filename = songTitle;
+  } else {
+    const sec = songData.sections.find(s => s.id === _audioCtx.secId);
+    const secName = (sec?.name || "Seccion").replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s]/g, "").trim() || "Seccion";
+    filename = songTitle + " - " + secName;
+  }
+
+  // Obtener extensión del nombre original o de la URL
+  const originalName = audio.name || audio.src.split("/").pop() || "";
+  const ext = originalName.split(".").pop().split("?")[0].toLowerCase();
+  const safeExt = ["mp3","wav","ogg","m4a","aac","webm","flac","opus"].includes(ext) ? ext : "audio";
+  filename = filename.replace(/\s+/g, "_") + "." + safeExt;
+
+  try {
+    // Fetch para obtener el blob (necesario para URLs de Storage / externas)
+    const resp = await fetch(audio.src);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (err) {
+    // Fallback: abrir en nueva pestaña si el fetch falla (CORS, etc.)
+    window.open(audio.src, "_blank");
+  }
 }
 
 async function deleteCurrentAudio() {
