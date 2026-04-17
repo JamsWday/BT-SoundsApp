@@ -982,8 +982,8 @@ body.readonly .section-header { padding: 10px 14px; background: transparent; bor
 body.readonly .section-block { border-color: transparent; background: transparent; margin-bottom: 4px; }
 body.readonly .bars-area { padding: 6px 10px; gap: 2px; }
 
-/* Readonly mode: hide row-right buttons but keep repeat */
 body.readonly .row-right .btn-icon { display: none; }
+body.readonly .audio-btn.btn-icon { display: none !important; }
 
 /* ── LOGIN SCREEN ── */
 #loginScreen {
@@ -1218,6 +1218,28 @@ body.readonly .row-right .btn-icon { display: none; }
 .audio-btn.has-audio { color: var(--green); }
 .audio-btn.playing-audio { color: var(--accent2); animation: pulse-audio 1s infinite; }
 @keyframes pulse-audio { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Inline section play button */
+.sec-play-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--green);
+  background: transparent;
+  color: var(--green);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.18s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.sec-play-btn.visible { display: flex; }
+.sec-play-btn:hover { background: rgba(57,255,20,0.12); }
+.sec-play-btn.playing { background: var(--accent2); border-color: var(--accent2); color: #fff; animation: pulse-audio 1s infinite; }
+body.readonly .sec-play-btn.visible { display: flex !important; }
 
 .audio-modal-overlay {
   display: none;
@@ -1593,6 +1615,10 @@ body.readonly .row-right .btn-icon { display: none; }
   <button id="btnPlay" onclick="toggleScroll()">
     <span class="play-icon" id="playIcon">▶</span>
     <span id="playLabel">Play</span>
+  </button>
+  <!-- Song audio in Tocar mode -->
+  <button id="btnScrollSongAudio" onclick="toggleSongAudio()" title="Reproducir audio de la canción" style="display:none;font-family:'Space Mono',monospace;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:7px 14px;border-radius:6px;border:1.5px solid var(--green);background:transparent;color:var(--green);cursor:pointer;transition:all 0.18s;flex-shrink:0;gap:5px;align-items:center;">
+    🎵 <span id="scrollSongAudioLbl">Audio</span>
   </button>
   <div class="scroll-speed-wrap">
     <span class="scroll-speed-label">Velocidad</span>
@@ -2101,6 +2127,9 @@ function render() {
       copy.id = uid();
       copy.name = sec.name + " (copia)";
       copy.rows = copy.rows.map(r => ({ ...r, id: uid() }));
+      // No copiar el audio: cada sección debe tener su propio archivo
+      // Compartir el mismo storagePath causaría que borrar uno borre el otro
+      copy.audio = null;
       songData.sections.splice(si + 1, 0, copy);
       render();
     });
@@ -2113,7 +2142,7 @@ function render() {
     hdr.appendChild(nameIn);
     hdr.appendChild(lyricIn);
 
-    // audio button for section
+    // audio button for section (edit/add)
     const secAudioBtn = document.createElement("button");
     secAudioBtn.className = "audio-btn btn-icon" + (sec.audio ? " has-audio" : "");
     secAudioBtn.title = sec.audio ? "Audio de sección (pulsa para editar)" : "Añadir audio a esta sección";
@@ -2123,6 +2152,18 @@ function render() {
       openAudioModal("section", sec.id);
     });
     hdr.appendChild(secAudioBtn);
+
+    // inline play button for section audio (only shown when audio exists)
+    const secPlayBtn = document.createElement("button");
+    secPlayBtn.className = "sec-play-btn" + (sec.audio ? " visible" : "");
+    secPlayBtn.title = "Escuchar audio de esta sección";
+    secPlayBtn.textContent = "▶";
+    secPlayBtn.dataset.secId = sec.id;
+    secPlayBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      toggleSectionAudio(sec.id, secPlayBtn);
+    });
+    hdr.appendChild(secPlayBtn);
 
     hdr.appendChild(dupSec);
     hdr.appendChild(delSec);
@@ -2456,10 +2497,13 @@ function toggleReadonly() {
     btn.textContent = "✏ Editar";
     btn.title = "Volver al modo edición";
     closePopup();
+    updateScrollSongAudioBtn();
   } else {
     btn.textContent = "👁 Tocar";
     btn.title = "Vista solo lectura para tocar";
-    stopScroll(); // stop autoscroll when leaving play mode
+    stopScroll();
+    stopAllSectionAudio();
+    stopSongAudio();
   }
 }
 
@@ -2661,6 +2705,7 @@ function loadSong(d) {
   syncHeaderInputs();
   saveUndo();
   render();
+  updateSongAudioPlayer();
 }
 
 function copyJSON() {
@@ -3030,6 +3075,61 @@ function stopRecord() {
   if (status) status.textContent = "Pulsa el botón para grabar";
 }
 
+// ── Section audio inline playback
+let _secAudioEl = null;
+let _secAudioId = null;
+
+function toggleSectionAudio(secId, btn) {
+  // If same section is already playing → pause/stop
+  if (_secAudioId === secId && _secAudioEl) {
+    if (!_secAudioEl.paused) {
+      _secAudioEl.pause();
+      btn.textContent = "▶";
+      btn.classList.remove("playing");
+      return;
+    } else {
+      _secAudioEl.play().catch(() => {});
+      btn.textContent = "⏸";
+      btn.classList.add("playing");
+      return;
+    }
+  }
+
+  // Stop previous section audio
+  stopAllSectionAudio();
+  // Also stop song audio if playing
+  stopSongAudio();
+
+  const sec = songData.sections.find(s => s.id === secId);
+  if (!sec?.audio?.src) return;
+
+  _secAudioId = secId;
+  _secAudioEl = new Audio(sec.audio.src);
+  _secAudioEl.addEventListener("ended", () => {
+    btn.textContent = "▶";
+    btn.classList.remove("playing");
+    _secAudioEl = null;
+    _secAudioId = null;
+  });
+  _secAudioEl.play().catch(() => {});
+  btn.textContent = "⏸";
+  btn.classList.add("playing");
+}
+
+function stopAllSectionAudio() {
+  if (_secAudioEl) {
+    _secAudioEl.pause();
+    _secAudioEl.src = "";
+    _secAudioEl = null;
+  }
+  _secAudioId = null;
+  // Reset all play buttons
+  document.querySelectorAll(".sec-play-btn").forEach(b => {
+    b.textContent = "▶";
+    b.classList.remove("playing");
+  });
+}
+
 function updateSongAudioPlayer() {
   const player = document.getElementById("songAudioPlayer");
   const songBtn = document.getElementById("btnSongAudio");
@@ -3041,10 +3141,23 @@ function updateSongAudioPlayer() {
     if (songBtn) songBtn.style.display = "";
     stopSongAudio();
   }
+  updateScrollSongAudioBtn();
+}
+
+function updateScrollSongAudioBtn() {
+  const scrollBtn = document.getElementById("btnScrollSongAudio");
+  if (!scrollBtn) return;
+  if (songData.audio) {
+    scrollBtn.style.display = "flex";
+  } else {
+    scrollBtn.style.display = "none";
+  }
 }
 
 function toggleSongAudio() {
   if (!songData.audio) return;
+  // Stop any section audio when playing song
+  stopAllSectionAudio();
   if (!_activeAudioEl) {
     _activeAudioEl = new Audio(songData.audio.src);
     _activeAudioEl.addEventListener("timeupdate", () => {
@@ -3056,12 +3169,18 @@ function toggleSongAudio() {
     _activeAudioEl.addEventListener("ended", stopSongAudio);
   }
   const btn = document.getElementById("sapPlayBtn");
+  const scrollBtn = document.getElementById("btnScrollSongAudio");
+  const lbl = document.getElementById("scrollSongAudioLbl");
   if (_activeAudioEl.paused) {
     _activeAudioEl.play().catch(() => {});
     if (btn) { btn.textContent = "⏸"; btn.classList.add("playing"); }
+    if (scrollBtn) { scrollBtn.style.borderColor = "var(--accent2)"; scrollBtn.style.color = "var(--accent2)"; }
+    if (lbl) lbl.textContent = "⏸ Audio";
   } else {
     _activeAudioEl.pause();
     if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
+    if (scrollBtn) { scrollBtn.style.borderColor = "var(--green)"; scrollBtn.style.color = "var(--green)"; }
+    if (lbl) lbl.textContent = "Audio";
   }
 }
 
@@ -3071,6 +3190,10 @@ function stopSongAudio() {
   if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
   const fill = document.getElementById("sapFill");
   if (fill) fill.style.width = "0%";
+  const scrollBtn = document.getElementById("btnScrollSongAudio");
+  if (scrollBtn) { scrollBtn.style.borderColor = "var(--green)"; scrollBtn.style.color = "var(--green)"; }
+  const lbl = document.getElementById("scrollSongAudioLbl");
+  if (lbl) lbl.textContent = "Audio";
 }
 
 document.getElementById("audioModal").addEventListener("click", e => {
@@ -3189,6 +3312,7 @@ function applyTheme(idx) {
 // ── INIT
 saveUndo();
 render();
+updateSongAudioPlayer();
 </script>
 </body>
 </html>
