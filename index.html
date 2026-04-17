@@ -1421,7 +1421,7 @@ async function loadLibrary() {
   const grid = document.getElementById("libGrid");
   grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⏳</div><p>Cargando...</p></div>';
 
-  const { data, error } = await _sb.from("canciones")
+  const { data, error } = await _sb.from("Canciones")
     .select("id, titulo, artista, created_by, updated_at")
     .order("updated_at", { ascending: false });
 
@@ -1467,7 +1467,7 @@ function filterLibrary() {
 }
 
 async function openSong(id) {
-  const { data, error } = await _sb.from("canciones").select("*").eq("id", id).single();
+  const { data, error } = await _sb.from("Canciones").select("*").eq("id", id).single();
   if (error || !data) { alert("Error cargando la canción."); return; }
   _currentSongId = id;
   loadSong(data.data);
@@ -1490,7 +1490,7 @@ function newSong() {
 async function deleteSong(id, e) {
   e.stopPropagation();
   if (!confirm("¿Borrar esta canción? No se puede deshacer.")) return;
-  const { error } = await _sb.from("canciones").delete().eq("id", id);
+  const { error } = await _sb.from("Canciones").delete().eq("id", id);
   if (error) { alert("Error al borrar."); return; }
   await loadLibrary();
 }
@@ -1519,9 +1519,9 @@ async function saveSongCloud() {
 
   let result;
   if (_currentSongId) {
-    result = await _sb.from("canciones").update(payload).eq("id", _currentSongId).select().single();
+    result = await _sb.from("Canciones").update(payload).eq("id", _currentSongId).select().single();
   } else {
-    result = await _sb.from("canciones").insert(payload).select().single();
+    result = await _sb.from("Canciones").insert(payload).select().single();
   }
 
   if (result.error) {
