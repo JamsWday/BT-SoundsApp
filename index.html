@@ -1518,6 +1518,339 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   .audio-btn, #songAudioPlayer { display: none !important; }
 }
 
+/* ══════════════════════════════════════════
+   REPERTORIOS — estilos completos
+══════════════════════════════════════════ */
+#setlistScreen {
+  position: fixed; inset: 0; z-index: 7500;
+  background: var(--bg);
+  display: none; flex-direction: column;
+}
+#setlistScreen.open { display: flex; }
+
+.sl-header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.sl-header h1 {
+  font-family: 'Playfair Display', serif;
+  color: var(--accent); font-size: 1.3rem; flex: 1; min-width: 0;
+}
+.sl-body {
+  flex: 1; overflow-y: auto; padding: 24px 20px;
+  max-width: 900px; width: 100%; margin: 0 auto;
+}
+
+/* ── Tarjetas de repertorio ── */
+.sl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px; margin-top: 16px;
+}
+.sl-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.sl-card:hover { border-color: var(--accent); background: var(--surface2); }
+.sl-card-new {
+  background: transparent;
+  border: 1px dashed var(--dim);
+  border-radius: 10px; padding: 16px 18px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 8px; cursor: pointer;
+  transition: all 0.2s; min-height: 120px;
+}
+.sl-card-new:hover { border-color: var(--accent); color: var(--accent); }
+.sl-card-new-icon { font-size: 1.8rem; color: var(--dim); }
+.sl-card-new-lbl {
+  font-family: 'Space Mono', monospace; font-size: 0.7rem;
+  color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.sl-card-title {
+  font-family: 'Playfair Display', serif;
+  color: var(--accent); font-size: 1rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sl-card-venue {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem;
+  color: var(--muted); letter-spacing: 0.06em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sl-card-meta {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px;
+}
+.sl-badge {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 4px;
+  border: 1px solid var(--border); color: var(--muted);
+}
+.sl-badge.green { color: var(--green); border-color: rgba(76,175,125,0.4); background: rgba(76,175,125,0.08); }
+.sl-badge.amber { color: var(--accent); border-color: rgba(232,200,64,0.4); background: rgba(232,200,64,0.08); }
+.sl-card-actions {
+  display: flex; gap: 6px; margin-top: 8px;
+  border-top: 1px solid var(--border); padding-top: 10px;
+}
+
+/* ── Detail view ── */
+#slDetail { display: none; flex-direction: column; height: 100%; }
+#slDetail.open { display: flex; }
+#slList { display: flex; flex-direction: column; height: 100%; }
+
+.sl-detail-header {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.sl-detail-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem; color: var(--accent);
+  background: transparent; border: none;
+  border-bottom: 1px solid transparent; outline: none;
+  transition: border-color 0.2s; flex: 1; min-width: 120px;
+}
+.sl-detail-title:focus { border-bottom-color: var(--accent); }
+.sl-meta-input {
+  font-family: 'Space Mono', monospace; font-size: 0.7rem;
+  color: var(--muted); background: transparent;
+  border: none; border-bottom: 1px dashed var(--dim);
+  outline: none; padding: 2px 4px; transition: all 0.2s;
+}
+.sl-meta-input:focus { border-bottom-color: var(--accent); color: var(--text); }
+.sl-meta-input::placeholder { color: var(--dim); }
+
+/* ── Song rows ── */
+.sl-song-list {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.sl-song-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+  transition: border-color 0.2s; cursor: default;
+}
+.sl-song-row:hover { border-color: var(--dim); }
+.sl-song-row.dragging { opacity: 0.3; }
+.sl-song-row.drag-over { border-color: var(--accent); border-style: dashed; }
+.sl-song-row.active-concert {
+  border-color: var(--accent); background: var(--surface2);
+  box-shadow: 0 0 0 2px rgba(0,255,231,0.15);
+}
+.sl-num {
+  font-family: 'Space Mono', monospace; font-size: 0.72rem;
+  color: var(--muted); min-width: 22px; text-align: right;
+}
+.sl-row-handle {
+  cursor: grab; color: var(--dim); font-size: 1rem;
+  padding: 2px 4px; user-select: none; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.sl-row-handle:hover { color: var(--accent); }
+.sl-row-handle:active { cursor: grabbing; }
+.sl-song-info { flex: 1; min-width: 0; }
+.sl-song-title {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem;
+  font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sl-song-sub {
+  font-family: 'Space Mono', monospace; font-size: 0.62rem;
+  color: var(--muted); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sl-song-notes-input {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.72rem;
+  color: var(--muted); background: transparent;
+  border: none; border-bottom: 1px dashed transparent;
+  outline: none; width: 100%; transition: all 0.2s; margin-top: 3px;
+}
+.sl-song-notes-input:focus { border-bottom-color: var(--accent2); color: var(--text); }
+.sl-song-notes-input::placeholder { color: var(--dim); }
+.sl-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.sl-status-btn {
+  font-size: 1.1rem; background: transparent; border: none;
+  cursor: pointer; padding: 2px; border-radius: 4px;
+  transition: all 0.15s; line-height: 1;
+}
+.sl-status-btn:hover { background: var(--surface2); }
+.sl-link-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted);
+  cursor: pointer; transition: all 0.15s;
+}
+.sl-link-btn:hover { border-color: var(--accent); color: var(--accent); }
+.sl-link-btn.linked { border-color: rgba(76,175,125,0.5); color: var(--green); }
+.sl-del-btn {
+  background: transparent; border: none; color: var(--dim);
+  cursor: pointer; font-size: 0.9rem; padding: 2px 5px;
+  border-radius: 4px; transition: all 0.15s;
+}
+.sl-del-btn:hover { color: #c04040; background: rgba(192,64,64,0.1); }
+
+/* ── Add song row ── */
+.sl-add-song {
+  display: flex; gap: 8px; align-items: center;
+  padding: 0 20px 14px;
+}
+.sl-add-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 12px; color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem;
+  outline: none; transition: border-color 0.2s;
+}
+.sl-add-input:focus { border-color: var(--accent); }
+.sl-add-input::placeholder { color: var(--muted); }
+
+/* ── Concert mode ── */
+#concertMode {
+  position: fixed; inset: 0; z-index: 9500;
+  background: var(--bg); display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 30px; text-align: center;
+}
+#concertMode.open { display: flex; }
+.cm-counter {
+  font-family: 'Space Mono', monospace; font-size: 0.75rem;
+  color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.cm-status-icon { font-size: 3rem; margin-bottom: 12px; }
+.cm-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 6vw, 3.5rem);
+  color: var(--accent); line-height: 1.15;
+  margin-bottom: 8px;
+}
+.cm-sub {
+  font-family: 'Space Mono', monospace; font-size: 0.8rem;
+  color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.cm-notes {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.95rem;
+  color: var(--text); opacity: 0.7; margin-bottom: 32px;
+  max-width: 500px;
+}
+.cm-timer {
+  font-family: 'Space Mono', monospace; font-size: 2rem;
+  color: var(--accent); font-weight: 700; margin-bottom: 32px;
+  min-height: 2.5rem;
+}
+.cm-timer.warning { color: var(--accent2); }
+.cm-controls {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  justify-content: center;
+}
+.cm-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 12px 28px; border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted);
+  cursor: pointer; transition: all 0.18s;
+}
+.cm-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cm-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; font-size: 0.88rem; padding: 14px 36px; }
+.cm-btn.primary:hover { opacity: 0.88; }
+.cm-btn.danger { border-color: rgba(192,64,64,0.5); color: #c04040; }
+.cm-btn.danger:hover { background: rgba(192,64,64,0.1); }
+.cm-open-score {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer;
+  background: transparent; border: 1px dashed var(--dim);
+  border-radius: 4px; padding: 6px 14px;
+  transition: all 0.15s; margin-top: 8px;
+}
+.cm-open-score:hover { border-color: var(--accent); color: var(--accent); }
+.cm-progress {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; gap: 0;
+}
+.cm-progress-seg {
+  flex: 1; height: 4px; transition: background 0.3s;
+  background: var(--dim);
+}
+.cm-progress-seg.done { background: var(--green); }
+.cm-progress-seg.current { background: var(--accent); }
+
+/* ── Concert auto-advance settings in detail header ── */
+.sl-auto-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 20px; background: var(--surface2);
+  border-bottom: 1px solid var(--border); font-size: 0.72rem;
+  font-family: 'Space Mono', monospace; color: var(--muted);
+}
+.sl-auto-row label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.sl-auto-row input[type=checkbox] { accent-color: var(--accent); }
+.sl-auto-row input[type=number] {
+  width: 52px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text);
+  font-family: 'Space Mono', monospace; font-size: 0.72rem;
+  padding: 3px 6px; outline: none; text-align: center;
+}
+.sl-auto-row input[type=number]:focus { border-color: var(--accent); }
+
+/* Semáforo de estado */
+.sl-status-0::before { content: "⬜"; }
+.sl-status-1::before { content: "🟡"; }
+.sl-status-2::before { content: "🟢"; }
+
+/* Modal nueva canción en repertorio */
+#slAddModal {
+  position: fixed; inset: 0; z-index: 8500;
+  background: rgba(0,0,0,0.85);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+#slAddModal.open { display: flex; }
+.sl-add-modal-box {
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 12px; padding: 24px 26px;
+  width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px;
+}
+.sl-add-modal-box h3 {
+  font-family: 'Playfair Display', serif; color: var(--accent); font-size: 1.1rem;
+}
+.sl-field { display: flex; flex-direction: column; gap: 5px; }
+.sl-field label {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+}
+.sl-field input, .sl-field select, .sl-field textarea {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 12px; color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.88rem;
+  outline: none; transition: border-color 0.2s; width: 100%;
+}
+.sl-field input:focus, .sl-field select:focus, .sl-field textarea:focus { border-color: var(--accent); }
+.sl-field select option { background: var(--surface2); }
+.sl-field textarea { resize: none; height: 64px; font-size: 0.82rem; }
+.sl-field-row { display: flex; gap: 10px; }
+.sl-field-row .sl-field { flex: 1; }
+
+/* PDF print area (oculto) */
+#slPrintArea { display: none; }
+@media print {
+  body > *:not(#slPrintArea) { display: none !important; }
+  #slPrintArea { display: block !important; padding: 30px; }
+  #slPrintArea h2 { font-size: 1.6rem; margin-bottom: 4px; }
+  #slPrintArea .pv { color: #666; font-size: 0.85rem; margin-bottom: 20px; }
+  #slPrintArea ol { padding-left: 24px; }
+  #slPrintArea li { margin-bottom: 10px; font-size: 0.95rem; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  #slPrintArea li span { display: block; font-size: 0.8rem; color: #666; }
+}
+
 @media print {
   .header-actions, .add-bar-btn, .add-chord-in-bar,
   .add-row-btn, .add-section-btn, .btn-icon, .drag-handle,
@@ -1575,6 +1908,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
     <h1>🎵 Biblioteca de canciones</h1>
     <span class="lib-user" id="libUserName"></span>
     <button class="btn btn-primary" onclick="newSong()">＋ Nueva canción</button>
+    <button class="btn" onclick="showSetlists()" title="Gestionar repertorios para conciertos">🎭 Repertorios</button>
     <button class="btn" onclick="doLogout()">Salir</button>
   </div>
   <div class="lib-body">
@@ -1752,6 +2086,158 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════
+     REPERTORIOS — pantalla principal
+══════════════════════════════════════════ -->
+<div id="setlistScreen">
+  <div class="sl-header">
+    <h1>🎭 Repertorios</h1>
+    <span class="lib-user" id="slUserName"></span>
+    <button class="btn btn-primary" onclick="openNewSetlistModal()">＋ Nuevo repertorio</button>
+    <button class="btn" onclick="closeSetlists()">← Biblioteca</button>
+  </div>
+
+  <!-- Vista lista de repertorios -->
+  <div id="slList" class="sl-body">
+    <div class="lib-toolbar">
+      <input class="lib-search" id="slSearch" placeholder="🔍 Buscar repertorio..." oninput="filterSetlists()" style="max-width:360px;" />
+    </div>
+    <div class="sl-grid" id="slGrid"></div>
+  </div>
+
+  <!-- Vista detalle de un repertorio -->
+  <div id="slDetail">
+    <div class="sl-detail-header">
+      <button class="btn" onclick="backToSetlists()" style="flex-shrink:0">← Volver</button>
+      <input class="sl-detail-title" id="slDetailTitle" placeholder="Nombre del repertorio..." oninput="markSlDirty()" />
+      <input class="sl-meta-input" id="slDetailDate" type="date" title="Fecha del concierto" style="width:130px;" oninput="markSlDirty()" />
+      <input class="sl-meta-input" id="slDetailVenue" placeholder="Lugar / sala..." title="Lugar del concierto" style="width:150px;" oninput="markSlDirty()" />
+      <button class="btn btn-primary" onclick="saveCurrentSetlist()">☁ Guardar</button>
+      <button class="btn" onclick="openConcertMode()" title="Modo concierto">🎤 Concierto</button>
+      <button class="btn" onclick="exportSetlistPDF()" title="Exportar PDF imprimible">🖨 PDF</button>
+      <button class="btn" onclick="shareSetlistLink()" title="Compartir link readonly">🔗 Compartir</button>
+    </div>
+
+    <!-- Configuración avance automático -->
+    <div class="sl-auto-row" id="slAutoRow">
+      <label>
+        <input type="checkbox" id="slAutoAdv" onchange="markSlDirty()" />
+        Avance automático
+      </label>
+      <span id="slAutoAdvExtra" style="display:none;gap:6px;align-items:center;">
+        cada <input type="number" id="slAutoSecs" value="120" min="10" max="3600" style="width:60px;" oninput="markSlDirty()" /> segundos
+      </span>
+    </div>
+
+    <div class="sl-song-list" id="slSongList"></div>
+
+    <div class="sl-add-song">
+      <button class="btn btn-primary" onclick="openAddSongModal()" style="flex-shrink:0">＋ Añadir canción</button>
+      <span style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.06em;">
+        Las canciones que estén en la biblioteca se vinculan automáticamente
+      </span>
+    </div>
+
+    <div id="slShareResult" style="display:none;margin:0 20px 16px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;display:flex;gap:8px;align-items:center;">
+      <input id="slShareUrl" type="text" readonly style="flex:1;background:transparent;border:none;outline:none;font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--muted);" />
+      <button class="btn" onclick="copySlShareUrl()" style="flex-shrink:0;">📋 Copiar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nueva canción en repertorio -->
+<div id="slAddModal">
+  <div class="sl-add-modal-box">
+    <h3>Añadir canción al repertorio</h3>
+    <div class="sl-field">
+      <label>Título *</label>
+      <input id="slAddTitle" placeholder="Nombre de la canción..." />
+    </div>
+    <div class="sl-field-row">
+      <div class="sl-field">
+        <label>Artista</label>
+        <input id="slAddArtist" placeholder="Artista / banda..." />
+      </div>
+      <div class="sl-field">
+        <label>Tonalidad</label>
+        <input id="slAddKey" placeholder="Do Mayor..." style="width:100%;" />
+      </div>
+    </div>
+    <div class="sl-field-row">
+      <div class="sl-field">
+        <label>BPM</label>
+        <input id="slAddBpm" type="number" placeholder="120" min="20" max="300" />
+      </div>
+      <div class="sl-field">
+        <label>Duración (min)</label>
+        <input id="slAddDur" type="number" placeholder="4" min="1" max="60" />
+      </div>
+      <div class="sl-field">
+        <label>Estado</label>
+        <select id="slAddStatus">
+          <option value="0">⬜ Sin estado</option>
+          <option value="1">🟡 En progreso</option>
+          <option value="2">🟢 Lista</option>
+        </select>
+      </div>
+    </div>
+    <div class="sl-field">
+      <label>Notas / observaciones</label>
+      <textarea id="slAddNotes" placeholder="Intro especial, cambio de tono, coda..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="confirmAddSong()" style="flex:1;">✓ Añadir</button>
+      <button class="btn" onclick="closeAddSongModal()" style="flex:1;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nuevo repertorio -->
+<div id="slNewModal" style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:20px;">
+  <div class="sl-add-modal-box">
+    <h3>Nuevo repertorio</h3>
+    <div class="sl-field">
+      <label>Nombre *</label>
+      <input id="slNewName" placeholder="Gala de verano, Ensayo junio..." onkeydown="if(event.key==='Enter')confirmNewSetlist()" />
+    </div>
+    <div class="sl-field-row">
+      <div class="sl-field">
+        <label>Fecha</label>
+        <input id="slNewDate" type="date" />
+      </div>
+      <div class="sl-field">
+        <label>Lugar</label>
+        <input id="slNewVenue" placeholder="Teatro, sala..." />
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="confirmNewSetlist()" style="flex:1;">✓ Crear</button>
+      <button class="btn" onclick="closeNewSetlistModal()" style="flex:1;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modo concierto -->
+<div id="concertMode">
+  <div class="cm-counter" id="cmCounter">1 / 1</div>
+  <div class="cm-status-icon" id="cmStatusIcon">⬜</div>
+  <div class="cm-title" id="cmTitle">—</div>
+  <div class="cm-sub" id="cmSub"></div>
+  <div class="cm-notes" id="cmNotes"></div>
+  <div class="cm-timer" id="cmTimer" style="display:none;"></div>
+  <div class="cm-controls">
+    <button class="cm-btn" onclick="cmPrev()">← Anterior</button>
+    <button class="cm-btn primary" id="cmMainBtn" onclick="cmNext()">Siguiente →</button>
+    <button class="cm-btn" onclick="cmTogglePause()" id="cmPauseBtn" style="display:none;">⏸ Pausar</button>
+    <button class="cm-btn danger" onclick="closeConcertMode()">✕ Salir</button>
+  </div>
+  <button class="cm-open-score" id="cmOpenScore" onclick="cmOpenLinkedSong()" style="display:none;">📄 Ver cifrado</button>
+  <div class="cm-progress" id="cmProgress"></div>
+</div>
+
+<!-- Área de impresión PDF setlist -->
+<div id="slPrintArea"></div>
 
 <script>
 // ═══════════════════════════════════════════════
@@ -3254,6 +3740,550 @@ function stopSongAudio() {
 document.getElementById("audioModal").addEventListener("click", e => {
   if (e.target === document.getElementById("audioModal")) closeAudioModal();
 });
+
+// ═══════════════════════════════════════════════
+// REPERTORIOS (SETLISTS) — lógica completa
+// ═══════════════════════════════════════════════
+
+let _allSetlists = [];
+let _currentSetlist = null; // objeto completo en memoria
+let _slDirty = false;
+
+// ── Navegación ──────────────────────────────────
+function showSetlists() {
+  document.getElementById("libraryScreen").classList.remove("open");
+  document.getElementById("setlistScreen").classList.add("open");
+  document.getElementById("slUserName").textContent =
+    _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || "";
+  showSlList();
+  // Cargar biblioteca en paralelo para poder autolinkar
+  if (!_allSongs.length) loadLibrary();
+  loadSetlists();
+}
+
+function closeSetlists() {
+  document.getElementById("setlistScreen").classList.remove("open");
+  document.getElementById("libraryScreen").classList.add("open");
+}
+
+function showSlList() {
+  document.getElementById("slList").style.display = "flex";
+  document.getElementById("slList").style.flexDirection = "column";
+  document.getElementById("slDetail").classList.remove("open");
+  _currentSetlist = null;
+}
+
+function backToSetlists() {
+  if (_slDirty) {
+    if (confirm("Hay cambios sin guardar. ¿Descartar y volver?")) {
+      _slDirty = false;
+      showSlList();
+      loadSetlists();
+    }
+  } else {
+    showSlList();
+    loadSetlists();
+  }
+}
+
+// ── Carga y renderizado lista ────────────────────
+async function loadSetlists() {
+  const grid = document.getElementById("slGrid");
+  grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⏳</div><p>Cargando...</p></div>';
+  const { data, error } = await _sb.from("setlists")
+    .select("id, name, date, venue, songs, auto_advance, auto_secs, created_by, updated_at")
+    .eq("user_id", _currentUser.id)
+    .order("updated_at", { ascending: false });
+  if (error) {
+    grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⚠️</div><p>Error cargando repertorios.</p></div>';
+    return;
+  }
+  _allSetlists = data || [];
+  renderSetlistGrid(_allSetlists);
+}
+
+function renderSetlistGrid(list) {
+  const grid = document.getElementById("slGrid");
+  grid.innerHTML = "";
+  list.forEach(sl => {
+    const songs = sl.songs || [];
+    const doneCount = songs.filter(s => s.status == 2).length;
+    const dateStr = sl.date ? new Date(sl.date + "T00:00:00").toLocaleDateString("es-ES", { day:"2-digit", month:"short", year:"numeric" }) : "Sin fecha";
+    const card = document.createElement("div");
+    card.className = "sl-card";
+    card.innerHTML = `
+      <div class="sl-card-title">${sl.name || "(Sin nombre)"}</div>
+      <div class="sl-card-venue">📅 ${dateStr}${sl.venue ? " · " + sl.venue : ""}</div>
+      <div class="sl-card-meta">
+        <span class="sl-badge ${songs.length ? 'amber' : ''}">${songs.length} canción${songs.length !== 1 ? "es" : ""}</span>
+        ${doneCount > 0 ? `<span class="sl-badge green">${doneCount} 🟢 listas</span>` : ""}
+        ${sl.auto_advance ? '<span class="sl-badge">⏱ auto</span>' : ""}
+      </div>
+      <div class="sl-card-actions">
+        <button class="card-btn" onclick="openSetlist('${sl.id}')">✏️ Editar</button>
+        <button class="card-btn" onclick="duplicateSetlist('${sl.id}', event)">⧉ Duplicar</button>
+        <button class="card-btn danger" onclick="deleteSetlist('${sl.id}', event)">🗑 Borrar</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+  // tarjeta nueva
+  const newCard = document.createElement("div");
+  newCard.className = "sl-card-new";
+  newCard.innerHTML = `<div class="sl-card-new-icon">＋</div><div class="sl-card-new-lbl">Nuevo repertorio</div>`;
+  newCard.onclick = openNewSetlistModal;
+  grid.appendChild(newCard);
+}
+
+function filterSetlists() {
+  const q = document.getElementById("slSearch").value.toLowerCase();
+  renderSetlistGrid(_allSetlists.filter(s =>
+    (s.name||"").toLowerCase().includes(q) || (s.venue||"").toLowerCase().includes(q)
+  ));
+}
+
+// ── CRUD setlists ────────────────────────────────
+function openNewSetlistModal() {
+  document.getElementById("slNewName").value = "";
+  document.getElementById("slNewDate").value = "";
+  document.getElementById("slNewVenue").value = "";
+  document.getElementById("slNewModal").style.display = "flex";
+  setTimeout(() => document.getElementById("slNewName").focus(), 50);
+}
+function closeNewSetlistModal() { document.getElementById("slNewModal").style.display = "none"; }
+
+async function confirmNewSetlist() {
+  const name = document.getElementById("slNewName").value.trim();
+  if (!name) { alert("El repertorio necesita un nombre."); return; }
+  const payload = {
+    user_id: _currentUser.id,
+    name,
+    date: document.getElementById("slNewDate").value || null,
+    venue: document.getElementById("slNewVenue").value.trim() || null,
+    songs: [], auto_advance: false, auto_secs: 120,
+    created_by: _currentUser._displayName || "",
+    updated_at: new Date().toISOString()
+  };
+  const { data, error } = await _sb.from("setlists").insert(payload).select().single();
+  if (error) { alert("Error al crear repertorio: " + error.message); return; }
+  closeNewSetlistModal();
+  openSetlist(data.id);
+}
+
+async function openSetlist(id) {
+  const { data, error } = await _sb.from("setlists").select("*").eq("id", id).single();
+  if (error || !data) { alert("Error cargando repertorio."); return; }
+  _currentSetlist = data;
+  _slDirty = false;
+  document.getElementById("slList").style.display = "none";
+  document.getElementById("slDetail").classList.add("open");
+  document.getElementById("slDetailTitle").value = data.name || "";
+  document.getElementById("slDetailDate").value = data.date || "";
+  document.getElementById("slDetailVenue").value = data.venue || "";
+  const autoChk = document.getElementById("slAutoAdv");
+  autoChk.checked = !!data.auto_advance;
+  document.getElementById("slAutoSecs").value = data.auto_secs || 120;
+  document.getElementById("slAutoAdvExtra").style.display = data.auto_advance ? "flex" : "none";
+  autoChk.onchange = () => {
+    document.getElementById("slAutoAdvExtra").style.display = autoChk.checked ? "flex" : "none";
+    markSlDirty();
+  };
+  document.getElementById("slShareResult").style.display = "none";
+  renderSongList();
+}
+
+function markSlDirty() { _slDirty = true; }
+
+async function saveCurrentSetlist() {
+  if (!_currentSetlist) return;
+  const payload = {
+    name: document.getElementById("slDetailTitle").value.trim() || "(Sin nombre)",
+    date: document.getElementById("slDetailDate").value || null,
+    venue: document.getElementById("slDetailVenue").value.trim() || null,
+    songs: _currentSetlist.songs || [],
+    auto_advance: document.getElementById("slAutoAdv").checked,
+    auto_secs: parseInt(document.getElementById("slAutoSecs").value) || 120,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await _sb.from("setlists").update(payload).eq("id", _currentSetlist.id);
+  if (error) { alert("Error al guardar: " + error.message); return; }
+  Object.assign(_currentSetlist, payload);
+  _slDirty = false;
+  const btn = document.querySelector("#slDetail .sl-detail-header .btn-primary");
+  if (btn) { const orig = btn.textContent; btn.textContent = "✓ Guardado"; btn.style.background = "var(--green)"; setTimeout(() => { btn.textContent = orig; btn.style.background = ""; }, 2000); }
+}
+
+async function deleteSetlist(id, e) {
+  e.stopPropagation();
+  if (!confirm("¿Borrar este repertorio? No se puede deshacer.")) return;
+  await _sb.from("setlists").delete().eq("id", id);
+  await loadSetlists();
+}
+
+async function duplicateSetlist(id, e) {
+  e.stopPropagation();
+  const orig = _allSetlists.find(s => s.id === id);
+  if (!orig) return;
+  const payload = {
+    user_id: _currentUser.id,
+    name: (orig.name || "Repertorio") + " (copia)",
+    date: orig.date, venue: orig.venue,
+    songs: JSON.parse(JSON.stringify(orig.songs || [])),
+    auto_advance: orig.auto_advance, auto_secs: orig.auto_secs,
+    created_by: orig.created_by,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await _sb.from("setlists").insert(payload);
+  if (error) { alert("Error al duplicar."); return; }
+  await loadSetlists();
+}
+
+// ── Gestión de canciones dentro del repertorio ──
+function renderSongList() {
+  const list = document.getElementById("slSongList");
+  list.innerHTML = "";
+  const songs = _currentSetlist.songs || [];
+  if (!songs.length) {
+    list.innerHTML = '<div class="lib-empty" style="padding:40px 20px;"><div class="lib-empty-icon">🎵</div><p>Aún no hay canciones.<br>Añade la primera.</p></div>';
+    return;
+  }
+
+  songs.forEach((song, idx) => {
+    const row = document.createElement("div");
+    row.className = "sl-song-row";
+    row.draggable = true;
+
+    const statusIcons = ["⬜","🟡","🟢"];
+    const linked = song.song_id ? _allSongs.find(s => s.id === song.song_id) : null;
+
+    row.innerHTML = `
+      <span class="sl-row-handle" title="Arrastrar">⠿</span>
+      <span class="sl-num">${idx + 1}</span>
+      <div class="sl-song-info">
+        <div class="sl-song-title">${song.title || "(Sin título)"}</div>
+        <div class="sl-song-sub">
+          ${song.artist ? song.artist + " · " : ""}${song.key ? "🎵 " + song.key + " · " : ""}${song.bpm ? song.bpm + " bpm · " : ""}${song.duration ? "⏱ " + song.duration + " min" : ""}
+        </div>
+        <input class="sl-song-notes-input" value="${song.notes || ""}" placeholder="Notas, observaciones..." data-idx="${idx}" oninput="updateSongField(${idx},'notes',this.value)" />
+      </div>
+      <div class="sl-row-actions">
+        <button class="sl-status-btn" title="Cambiar estado" onclick="cycleStatus(${idx})">${statusIcons[song.status || 0]}</button>
+        ${linked ? `<button class="sl-link-btn linked" title="Abrir cifrado" onclick="openLinkedSong('${song.song_id}')">📄 Cifrado</button>` : `<button class="sl-link-btn" title="Vincular a canción de la biblioteca" onclick="linkSong(${idx})">🔗 Vincular</button>`}
+        <button class="sl-del-btn" title="Quitar del repertorio" onclick="removeSong(${idx})">✕</button>
+      </div>`;
+
+    // drag & drop reorder
+    const handle = row.querySelector(".sl-row-handle");
+    let _slDragIdx = null;
+    handle.addEventListener("dragstart", e => {
+      _slDragIdx = idx;
+      e.dataTransfer.effectAllowed = "move";
+      setTimeout(() => row.classList.add("dragging"), 0);
+    });
+    handle.addEventListener("dragend", () => row.classList.remove("dragging"));
+    row.addEventListener("dragover", e => { if (_slDragIdx !== null && _slDragIdx !== idx) { e.preventDefault(); row.classList.add("drag-over"); }});
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", e => {
+      e.preventDefault(); row.classList.remove("drag-over");
+      if (_slDragIdx === null || _slDragIdx === idx) return;
+      const moved = _currentSetlist.songs.splice(_slDragIdx, 1)[0];
+      _currentSetlist.songs.splice(idx, 0, moved);
+      _slDragIdx = null; markSlDirty(); renderSongList();
+    });
+
+    list.appendChild(row);
+  });
+}
+
+// Al abrir la biblioteca desde detail, intentamos autovincular por título+artista
+function autoLinkSongs() {
+  if (!_currentSetlist) return;
+  let changed = false;
+  _currentSetlist.songs.forEach(song => {
+    if (!song.song_id && _allSongs.length) {
+      const match = _allSongs.find(s =>
+        (s.titulo||"").toLowerCase() === (song.title||"").toLowerCase() &&
+        (s.artista||"").toLowerCase() === (song.artist||"").toLowerCase()
+      );
+      if (match) { song.song_id = match.id; changed = true; }
+    }
+  });
+  if (changed) { markSlDirty(); renderSongList(); }
+}
+
+function updateSongField(idx, field, value) {
+  if (!_currentSetlist) return;
+  _currentSetlist.songs[idx][field] = value;
+  markSlDirty();
+}
+
+function cycleStatus(idx) {
+  if (!_currentSetlist) return;
+  const s = _currentSetlist.songs[idx];
+  s.status = ((s.status || 0) + 1) % 3;
+  markSlDirty(); renderSongList();
+}
+
+function removeSong(idx) {
+  if (!_currentSetlist) return;
+  _currentSetlist.songs.splice(idx, 1);
+  markSlDirty(); renderSongList();
+}
+
+function openLinkedSong(songId) {
+  openSong(songId);
+  document.getElementById("setlistScreen").classList.remove("open");
+}
+
+async function linkSong(idx) {
+  if (!_allSongs.length) await loadLibrary();
+  const song = _currentSetlist.songs[idx];
+  const options = _allSongs.map((s, i) => `${i + 1}. ${s.titulo} — ${s.artista || "?"}`).join("\n");
+  const input = prompt(`Selecciona número de canción para vincular a "${song.title}":\n\n${options}`);
+  if (!input) return;
+  const n = parseInt(input) - 1;
+  if (n >= 0 && n < _allSongs.length) {
+    song.song_id = _allSongs[n].id;
+    markSlDirty(); renderSongList();
+  }
+}
+
+// ── Modal añadir canción ─────────────────────────
+function openAddSongModal() {
+  ["slAddTitle","slAddArtist","slAddKey","slAddNotes"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("slAddBpm").value = "";
+  document.getElementById("slAddDur").value = "";
+  document.getElementById("slAddStatus").value = "0";
+  document.getElementById("slAddModal").classList.add("open");
+  // Intento autocompletar si hay canciones en biblioteca
+  setTimeout(() => {
+    const titleInput = document.getElementById("slAddTitle");
+    titleInput.focus();
+    titleInput.oninput = () => {
+      const q = titleInput.value.toLowerCase();
+      if (q.length < 2) return;
+      const match = _allSongs.find(s => (s.titulo||"").toLowerCase().startsWith(q));
+      if (match) {
+        document.getElementById("slAddArtist").value = match.artista || "";
+        document.getElementById("slAddKey").value = match.data?.key || "";
+        document.getElementById("slAddBpm").value = match.data?.bpm || "";
+      }
+    };
+  }, 50);
+}
+function closeAddSongModal() { document.getElementById("slAddModal").classList.remove("open"); }
+
+function confirmAddSong() {
+  const title = document.getElementById("slAddTitle").value.trim();
+  if (!title) { alert("El título es obligatorio."); return; }
+  const artist = document.getElementById("slAddArtist").value.trim();
+  // Buscar si existe en biblioteca para autolinkar
+  const match = _allSongs.find(s =>
+    (s.titulo||"").toLowerCase() === title.toLowerCase() &&
+    (!artist || (s.artista||"").toLowerCase() === artist.toLowerCase())
+  );
+  const newSong = {
+    title,
+    artist,
+    key: document.getElementById("slAddKey").value.trim(),
+    bpm: document.getElementById("slAddBpm").value || "",
+    duration: document.getElementById("slAddDur").value || "",
+    notes: document.getElementById("slAddNotes").value.trim(),
+    status: parseInt(document.getElementById("slAddStatus").value) || 0,
+    song_id: match ? match.id : null
+  };
+  _currentSetlist.songs = _currentSetlist.songs || [];
+  _currentSetlist.songs.push(newSong);
+  markSlDirty(); renderSongList(); closeAddSongModal();
+}
+
+// ── Exportar PDF ────────────────────────────────
+function exportSetlistPDF() {
+  if (!_currentSetlist) return;
+  const songs = _currentSetlist.songs || [];
+  const dateStr = _currentSetlist.date
+    ? new Date(_currentSetlist.date + "T00:00:00").toLocaleDateString("es-ES", {day:"2-digit",month:"long",year:"numeric"})
+    : "";
+  const statusIcons = ["","🟡","🟢"];
+  const rows = songs.map((s, i) => `
+    <li>
+      <strong>${i+1}. ${s.title || "(Sin título)"}</strong>
+      ${statusIcons[s.status] || ""}
+      <span>${[s.artist, s.key ? "🎵 " + s.key : "", s.bpm ? s.bpm + " bpm" : "", s.duration ? "⏱ " + s.duration + " min" : ""].filter(Boolean).join(" · ")}</span>
+      ${s.notes ? `<span style="font-style:italic;color:#888;">${s.notes}</span>` : ""}
+    </li>`).join("");
+  document.getElementById("slPrintArea").innerHTML = `
+    <h2>${_currentSetlist.name || "Repertorio"}</h2>
+    <div class="pv">${[dateStr, _currentSetlist.venue].filter(Boolean).join(" · ")}</div>
+    <ol>${rows}</ol>`;
+  window.print();
+}
+
+// ── Compartir link ──────────────────────────────
+function shareSetlistLink() {
+  if (!_currentSetlist) return;
+  const payload = {
+    id: _currentSetlist.id,
+    name: _currentSetlist.name,
+    date: _currentSetlist.date,
+    venue: _currentSetlist.venue,
+    songs: _currentSetlist.songs
+  };
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const url = location.origin + location.pathname + "?setlist=" + encoded;
+  const result = document.getElementById("slShareResult");
+  result.style.display = "flex";
+  document.getElementById("slShareUrl").value = url;
+}
+function copySlShareUrl() {
+  const url = document.getElementById("slShareUrl").value;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector("#slShareResult .btn");
+    if (btn) { btn.textContent = "✓ Copiado"; setTimeout(() => btn.textContent = "📋 Copiar", 2000); }
+  });
+}
+
+// Leer ?setlist= en readonly mode
+(function checkSetlistParam() {
+  const p = new URLSearchParams(location.search).get("setlist");
+  if (!p) return;
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(p))));
+    // Mostrar como vista readonly sencilla
+    document.body.innerHTML = `
+      <div style="max-width:700px;margin:40px auto;padding:20px;font-family:'IBM Plex Sans',sans-serif;">
+        <h1 style="font-family:'Playfair Display',serif;font-size:2rem;margin-bottom:4px;">${data.name||"Repertorio"}</h1>
+        <p style="color:#888;margin-bottom:24px;">${[data.date ? new Date(data.date+"T00:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : "", data.venue].filter(Boolean).join(" · ")}</p>
+        <ol style="padding-left:20px;">
+          ${(data.songs||[]).map((s,i) => `
+            <li style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #eee;">
+              <strong style="font-size:1.05rem;">${s.title}</strong>
+              <div style="color:#666;font-size:0.85rem;margin-top:2px;">
+                ${[s.artist, s.key, s.bpm ? s.bpm+" bpm" : ""].filter(Boolean).join(" · ")}
+              </div>
+              ${s.notes ? `<div style="color:#999;font-size:0.82rem;font-style:italic;margin-top:3px;">${s.notes}</div>` : ""}
+            </li>`).join("")}
+        </ol>
+      </div>`;
+  } catch(e) {}
+})();
+
+// ══════════════════════════════════════════
+// MODO CONCIERTO
+// ══════════════════════════════════════════
+let _cm = {
+  idx: 0, songs: [],
+  autoAdv: false, autoSecs: 120,
+  timer: null, elapsed: 0, paused: false
+};
+
+function openConcertMode() {
+  if (!_currentSetlist || !(_currentSetlist.songs||[]).length) {
+    alert("El repertorio no tiene canciones."); return;
+  }
+  _cm.songs = _currentSetlist.songs;
+  _cm.idx = 0;
+  _cm.autoAdv = document.getElementById("slAutoAdv").checked;
+  _cm.autoSecs = parseInt(document.getElementById("slAutoSecs").value) || 120;
+  _cm.elapsed = 0; _cm.paused = false;
+  clearInterval(_cm.timer);
+
+  document.getElementById("concertMode").classList.add("open");
+  document.getElementById("cmPauseBtn").style.display = _cm.autoAdv ? "inline-block" : "none";
+  renderConcertSong();
+  if (_cm.autoAdv) startConcertTimer();
+}
+
+function closeConcertMode() {
+  clearInterval(_cm.timer);
+  document.getElementById("concertMode").classList.remove("open");
+}
+
+function renderConcertSong() {
+  const s = _cm.songs[_cm.idx];
+  const statusIcons = ["⬜","🟡","🟢"];
+  document.getElementById("cmCounter").textContent = `${_cm.idx + 1} / ${_cm.songs.length}`;
+  document.getElementById("cmStatusIcon").textContent = statusIcons[s.status||0];
+  document.getElementById("cmTitle").textContent = s.title || "(Sin título)";
+  const subParts = [s.artist, s.key ? "🎵 " + s.key : "", s.bpm ? s.bpm + " bpm" : ""].filter(Boolean);
+  document.getElementById("cmSub").textContent = subParts.join(" · ");
+  document.getElementById("cmNotes").textContent = s.notes || "";
+  document.getElementById("cmMainBtn").textContent = _cm.idx >= _cm.songs.length - 1 ? "✓ Fin" : "Siguiente →";
+
+  // Botón abrir cifrado
+  const scoreBtn = document.getElementById("cmOpenScore");
+  if (s.song_id) { scoreBtn.style.display = "inline-block"; }
+  else { scoreBtn.style.display = "none"; }
+
+  // Barra de progreso
+  const prog = document.getElementById("cmProgress");
+  prog.innerHTML = "";
+  _cm.songs.forEach((_, i) => {
+    const seg = document.createElement("div");
+    seg.className = "cm-progress-seg" + (i < _cm.idx ? " done" : i === _cm.idx ? " current" : "");
+    prog.appendChild(seg);
+  });
+
+  // Timer display
+  const timerEl = document.getElementById("cmTimer");
+  if (_cm.autoAdv) {
+    timerEl.style.display = "block";
+    _cm.elapsed = 0;
+    updateConcertTimerDisplay();
+  } else {
+    timerEl.style.display = "none";
+  }
+}
+
+function cmNext() {
+  if (_cm.idx >= _cm.songs.length - 1) { closeConcertMode(); return; }
+  _cm.idx++;
+  clearInterval(_cm.timer);
+  _cm.elapsed = 0; _cm.paused = false;
+  document.getElementById("cmPauseBtn").textContent = "⏸ Pausar";
+  renderConcertSong();
+  if (_cm.autoAdv) startConcertTimer();
+}
+
+function cmPrev() {
+  if (_cm.idx <= 0) return;
+  _cm.idx--;
+  clearInterval(_cm.timer);
+  _cm.elapsed = 0; _cm.paused = false;
+  renderConcertSong();
+  if (_cm.autoAdv) startConcertTimer();
+}
+
+function startConcertTimer() {
+  clearInterval(_cm.timer);
+  _cm.timer = setInterval(() => {
+    if (_cm.paused) return;
+    _cm.elapsed++;
+    updateConcertTimerDisplay();
+    if (_cm.elapsed >= _cm.autoSecs) cmNext();
+  }, 1000);
+}
+
+function updateConcertTimerDisplay() {
+  const remaining = _cm.autoSecs - _cm.elapsed;
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  const el = document.getElementById("cmTimer");
+  el.textContent = `${m}:${String(s).padStart(2,"0")}`;
+  el.className = "cm-timer" + (remaining <= 10 ? " warning" : "");
+}
+
+function cmTogglePause() {
+  _cm.paused = !_cm.paused;
+  document.getElementById("cmPauseBtn").textContent = _cm.paused ? "▶ Reanudar" : "⏸ Pausar";
+}
+
+function cmOpenLinkedSong() {
+  const s = _cm.songs[_cm.idx];
+  if (!s.song_id) return;
+  closeConcertMode();
+  openSong(s.song_id);
+  document.getElementById("setlistScreen").classList.remove("open");
+}
 
 // ═══════════════════════════════════════════════
 // THEME SWITCHER
