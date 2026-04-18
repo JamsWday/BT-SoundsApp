@@ -1434,6 +1434,19 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   transition: all 0.15s;
 }
 .audio-del-btn:hover { color: #c04040; border-color: rgba(192,64,64,0.4); }
+.audio-dl-btn {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--bg);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.audio-dl-btn:hover { opacity: 0.85; }
 
 .audio-modal-actions {
   display: flex;
@@ -1681,7 +1694,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
         <div class="audio-progress-fill" id="audioProgressFill"></div>
       </div>
       <span class="audio-time" id="audioTimeLabel">0:00</span>
-      <button class="audio-del-btn" onclick="downloadCurrentAudio()" title="Descargar audio">⬇</button>
+      <button class="audio-dl-btn" onclick="downloadCurrentAudio()" title="Descargar audio">⬇ Descargar</button>
       <button class="audio-del-btn" onclick="deleteCurrentAudio()" title="Eliminar audio">🗑</button>
     </div>
 
