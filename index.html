@@ -1694,7 +1694,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
         <div class="audio-progress-fill" id="audioProgressFill"></div>
       </div>
       <span class="audio-time" id="audioTimeLabel">0:00</span>
-      <button class="audio-dl-btn" onclick="downloadCurrentAudio()" title="Descargar audio">⬇ Descargar</button>
+      <button class="audio-dl-btn" onclick="downloadCurrentAudio()" title="Descargar audio">⬇</button>
       <button class="audio-del-btn" onclick="deleteCurrentAudio()" title="Eliminar audio">🗑</button>
     </div>
 
@@ -1724,7 +1724,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
       <textarea id="jsonOutput"></textarea>
       <div class="modal-actions">
         <button class="btn btn-primary" onclick="copyJSON()">📋 Copiar</button>
-        <button class="btn" onclick="downloadJSON()">⬇ Descargar .json</button>
+        <button class="btn" onclick="downloadJSON()">⬇ .json</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFromFile(event)" />
         <button class="btn" onclick="document.getElementById('importFile').click()">📂 Importar fichero</button>
         <button class="btn" onclick="closeModal()">Cerrar</button>
