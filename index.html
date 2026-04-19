@@ -3638,11 +3638,39 @@ function _renderSetlistGrid(list) {
       ? new Date(sl.date + "T00:00:00").toLocaleDateString("es-ES", {day:"2-digit", month:"short", year:"numeric"})
       : (sl.updated_at ? new Date(sl.updated_at).toLocaleDateString("es-ES") : "");
     const venueTxt = sl.venue ? ` · ${sl.venue}` : "";
+
+    // Conteo por estado
+    const nGreen  = songs.filter(s => (s.status || 0) === 2).length;
+    const nYellow = songs.filter(s => (s.status || 0) === 1).length;
+    const nWhite  = songs.filter(s => (s.status || 0) === 0).length;
+
+    // Total minutos
+    const totalMin = songs.reduce((acc, s) => acc + (parseInt(s.duration) || 0), 0);
+    const durHtml = totalMin > 0
+      ? `<span style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);">⏱ ${totalMin} min</span>`
+      : "";
+
+    // Pastillas: solo las que tienen > 0
+    const pillStyle = (bg, border, color) =>
+      `display:inline-flex;align-items:center;gap:4px;font-family:'Space Mono',monospace;font-size:0.6rem;font-weight:700;` +
+      `padding:2px 7px;border-radius:20px;background:${bg};border:1px solid ${border};color:${color};`;
+    const pills = [
+      nGreen  > 0 ? `<span style="${pillStyle("rgba(57,255,20,0.12)","rgba(57,255,20,0.35)","#39ff14")}">● ${nGreen}</span>`   : "",
+      nYellow > 0 ? `<span style="${pillStyle("rgba(255,200,0,0.12)","rgba(255,200,0,0.35)","#ffc800")}">● ${nYellow}</span>` : "",
+      nWhite  > 0 ? `<span style="${pillStyle("rgba(180,180,200,0.10)","rgba(180,180,200,0.25)","#9090aa")}">● ${nWhite}</span>` : "",
+    ].filter(Boolean).join("");
+
+    const sep = pills && durHtml ? `<span style="color:var(--dim);font-size:0.6rem;">·</span>` : "";
+    const pillsHtml = (pills || durHtml)
+      ? `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:4px;">${pills}${sep}${durHtml}</div>`
+      : "";
+
     const card = document.createElement("div");
     card.className = "song-card";
     card.innerHTML = `
       <div class="card-title">${sl.name || "(Sin nombre)"}</div>
       <div class="card-artist">${songs.length} canción${songs.length !== 1 ? "es" : ""}</div>
+      ${pillsHtml}
       <div class="card-meta">${date}${venueTxt}</div>
       <div class="card-actions">
         <button class="card-btn" onclick="openSetlist('${sl.id}')">✏️ Editar</button>
