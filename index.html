@@ -3091,35 +3091,125 @@ async function toggleRecord() {
 }
 
 async function startRecord() {
+  const recBtn    = document.getElementById("recBtn");
+  const recStatus = document.getElementById("recStatus");
+  const recTimer  = document.getElementById("recTimer");
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    recStatus.textContent = "⚠ Tu navegador no soporta grabación de audio."; return;
+  }
+
+  // Detectar Safari (incluye iOS)
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+                || /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  // Safari solo acepta audio/mp4 de forma fiable.
+  // Chrome/Edge: audio/webm;codecs=opus es el más fiable.
+  // Fallback final: dejar que el navegador decida (string vacío).
+  let mimeType = "";
+  if (isSafari) {
+    // En Safari isTypeSupported a veces miente — forzamos mp4 directamente
+    mimeType = "audio/mp4";
+  } else {
+    const candidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/ogg",
+      "audio/mp4"
+    ];
+    mimeType = candidates.find(m => MediaRecorder.isTypeSupported(m)) || "";
+  }
+
+  const ext = mimeType.includes("mp4") ? "m4a"
+            : mimeType.includes("ogg") ? "ogg"
+            : "webm";
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    _recChunks = []; _recSeconds = 0;
-    _recMediaRec = new MediaRecorder(stream);
-    _recMediaRec.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
-    _recMediaRec.onstop = () => {
+    recStatus.textContent = "⏳ Solicitando micrófono...";
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    _recChunks = [];
+    _recSeconds = 0;
+
+    let rec;
+    try {
+      rec = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    } catch(e) {
+      // Si falla con el mimeType elegido, dejar sin opciones
+      try { rec = new MediaRecorder(stream); }
+      catch(e2) {
+        stream.getTracks().forEach(t => t.stop());
+        recStatus.textContent = "⚠ MediaRecorder no disponible en este navegador.";
+        return;
+      }
+    }
+    _recMediaRec = rec;
+
+    // El mimeType real puede diferir del solicitado
+    const usedMime = rec.mimeType || mimeType || "audio/webm";
+    const usedExt  = usedMime.includes("mp4") ? "m4a"
+                   : usedMime.includes("ogg") ? "ogg"
+                   : "webm";
+
+    rec.ondataavailable = e => {
+      if (e.data && e.data.size > 0) _recChunks.push(e.data);
+    };
+
+    rec.onstop = () => {
       stream.getTracks().forEach(t => t.stop());
       clearInterval(_recTimerInt);
-      const blob = new Blob(_recChunks, { type: "audio/webm" });
+      recBtn.classList.remove("recording");
+      recBtn.textContent = "🎙";
+      recTimer.classList.remove("active");
+
+      if (!_recChunks.length) {
+        recStatus.textContent = "⚠ No se capturó audio. Comprueba los permisos del micrófono.";
+        return;
+      }
+
+      const blob = new Blob(_recChunks, { type: usedMime });
+      if (blob.size < 500) {
+        recStatus.textContent = "⚠ Grabación demasiado corta o vacía. Inténtalo de nuevo.";
+        return;
+      }
+
+      const recName = "Grabacion_" + new Date().toLocaleTimeString("es-ES").replace(/[:\s]/g, "-") + "." + usedExt;
       const url = URL.createObjectURL(blob);
-      const recName = "Grabacion_" + new Date().toLocaleTimeString("es-ES").replace(/:/g,"-") + ".webm";
       _pendingAudio = { src: url, type: "blob", name: recName, blob };
-      loadPreviewAudio(url, _pendingAudio.name);
-      const btn = document.getElementById("recBtn");
-      btn.classList.remove("recording"); btn.textContent = "🎙";
-      document.getElementById("recStatus").textContent = "✓ Grabación lista. Pulsa Guardar para subir.";
-      document.getElementById("recTimer").classList.remove("active");
+      loadPreviewAudio(url, recName);
+      recStatus.textContent = "✓ Grabación lista (" + fmtTime(_recSeconds) + "). Pulsa Guardar.";
     };
-    _recMediaRec.start(100);
-    const btn = document.getElementById("recBtn");
-    btn.classList.add("recording"); btn.textContent = "⏹";
-    document.getElementById("recStatus").textContent = "🔴 Grabando...";
-    document.getElementById("recTimer").classList.add("active");
+
+    rec.onerror = e => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(_recTimerInt);
+      recBtn.classList.remove("recording"); recBtn.textContent = "🎙";
+      recStatus.textContent = "⚠ Error de grabación: " + (e.error?.message || "desconocido");
+    };
+
+    // Safari necesita timeslice más grande; Windows/Android van bien con 500ms
+    const timeslice = isSafari ? 1000 : 500;
+    rec.start(timeslice);
+
+    recBtn.classList.add("recording");
+    recBtn.textContent = "⏹";
+    recStatus.textContent = "🔴 Grabando...";
+    recTimer.classList.add("active");
     _recTimerInt = setInterval(() => {
       _recSeconds++;
-      document.getElementById("recTimer").textContent = fmtTime(_recSeconds);
+      recTimer.textContent = fmtTime(_recSeconds);
     }, 1000);
+
   } catch(err) {
-    document.getElementById("recStatus").textContent = "⚠ No se pudo acceder al micrófono: " + err.message;
+    const msgs = {
+      NotAllowedError:       "⚠ Permiso denegado. Actívalo en Ajustes del navegador.",
+      PermissionDeniedError: "⚠ Permiso denegado. Actívalo en Ajustes del navegador.",
+      NotFoundError:         "⚠ No se encontró ningún micrófono.",
+      NotReadableError:      "⚠ El micrófono está en uso por otra aplicación.",
+    };
+    recStatus.textContent = msgs[err.name] || "⚠ " + err.message;
+    recBtn.classList.remove("recording"); recBtn.textContent = "🎙";
   }
 }
 
