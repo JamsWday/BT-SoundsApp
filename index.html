@@ -275,7 +275,63 @@ body {
   text-overflow: ellipsis;
 }
 .artist-input::placeholder { color: #3a3a50; }
-.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.header-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+/* Separador visual entre grupos */
+.hdr-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* Botones solo-icono: cuadrados y compactos */
+.hdr-icon-btn {
+  padding: 8px 10px !important;
+  min-width: 0;
+  font-size: 0.9rem !important;
+}
+
+/* Dropdown exportar */
+.hdr-export-wrap {
+  position: relative;
+}
+.hdr-export-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 9999;
+  min-width: 150px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  flex-direction: column;
+  gap: 2px;
+}
+.hdr-export-menu.open { display: flex; }
+.hdr-export-menu button {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 9px 14px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.hdr-export-menu button:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
 .btn {
   font-family: 'Space Mono', monospace;
   font-size: 0.72rem;
@@ -937,6 +993,8 @@ body.readonly { padding-bottom: 68px !important; }
 
 /* ── READ-ONLY MODE ── */
 body.readonly .header-actions .btn:not(#btnReadonly) { display: none; }
+body.readonly .hdr-sep { display: none; }
+body.readonly .hdr-export-wrap { display: none; }
 body.readonly #btnReadonly { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
 body.readonly .section-insert { display: none !important; }
 body.readonly .add-section-btn { display: none !important; }
@@ -953,6 +1011,7 @@ body.readonly .chord-pill:hover { background: transparent; border-color: transpa
 body.readonly .section-block:hover { border-color: var(--border); }
 body.readonly .collapse-arrow { display: none; }
 body.readonly .section-header { cursor: default; pointer-events: none; }
+body.readonly .section-header .sec-play-btn { pointer-events: all; cursor: pointer; }
 
 /* Replace editable inputs with static text in readonly mode */
 body.readonly .title-input,
@@ -1602,22 +1661,46 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   </div>
   <div class="header-actions">
     <span id="cloudStatus"></span>
-    <!-- Song-level audio player -->
+
+    <!-- Grupo: Navegación -->
+    <button class="btn" onclick="showLibrary()" title="Volver a la biblioteca">📚 Biblioteca</button>
+    <button class="btn" onclick="showSetlists()" title="Ver repertorios">🎭 Repertorios</button>
+
+    <!-- Separador -->
+    <span class="hdr-sep"></span>
+
+    <!-- Grupo: Herramientas -->
+    <button class="btn hdr-icon-btn" id="btnUndo" onclick="undo()" title="Deshacer (Ctrl+Z)" disabled>↩</button>
+    <button class="btn hdr-icon-btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
+    <button class="btn hdr-icon-btn" id="btnTheme" onclick="cycleTheme()" title="Cambiar tema de color">🎨</button>
+
+    <!-- Audio (player o botón según estado) -->
     <div id="songAudioPlayer">
       <span class="sap-label">🎵</span>
       <button class="sap-play" id="sapPlayBtn" onclick="toggleSongAudio()">▶</button>
       <div class="sap-bar"><div class="sap-fill" id="sapFill"></div></div>
       <button class="sap-edit" onclick="openAudioModal('song',null)" title="Cambiar audio">✎</button>
     </div>
-    <button class="btn" id="btnSongAudio" onclick="openAudioModal('song',null)" title="Añadir audio a la canción">🎵 Audio</button>
-    <button class="btn" onclick="showLibrary()">📚 Canciones</button>
-    <button class="btn" id="btnUndo" onclick="undo()" title="Deshacer (Ctrl+Z)" disabled>↩</button>
-    <button class="btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
-    <button class="btn" id="btnTheme" onclick="cycleTheme()" title="Cambiar tema de color">🎨 Tema</button>
-    <button class="btn" onclick="exportJSON()">⬇ JSON</button>
-    <button class="btn" onclick="exportWord()">📄 RTF</button>
+    <button class="btn hdr-icon-btn" id="btnSongAudio" onclick="openAudioModal('song',null)" title="Añadir audio a la canción">🎵</button>
+
+    <!-- Separador -->
+    <span class="hdr-sep"></span>
+
+    <!-- Grupo: Exportar (dropdown) -->
+    <div class="hdr-export-wrap" id="exportWrap">
+      <button class="btn" id="btnExportMenu" onclick="toggleExportMenu()" title="Exportar / Imprimir">⬇ Exportar</button>
+      <div class="hdr-export-menu" id="exportMenu">
+        <button onclick="exportJSON();   closeExportMenu()">⬇ JSON</button>
+        <button onclick="exportWord();   closeExportMenu()">📄 RTF</button>
+        <button onclick="window.print(); closeExportMenu()">🖨 Imprimir</button>
+      </div>
+    </div>
+
+    <!-- Separador -->
+    <span class="hdr-sep"></span>
+
+    <!-- Grupo: Acciones primarias -->
     <button class="btn btn-primary" onclick="saveSongCloud()" title="Guardar en la nube">☁ Guardar</button>
-    <button class="btn btn-primary" onclick="window.print()">🖨 Imprimir</button>
     <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar">👁 Tocar</button>
   </div>
 </div>
@@ -3457,6 +3540,27 @@ function applyTheme(idx) {
   _themeIdx = 0;
   applyTheme(0);
 })();
+
+// ── EXPORT DROPDOWN
+function toggleExportMenu() {
+  const menu = document.getElementById("exportMenu");
+  const isOpen = menu.classList.contains("open");
+  if (isOpen) {
+    closeExportMenu();
+  } else {
+    menu.classList.add("open");
+    setTimeout(() => document.addEventListener("click", _closeExportOutside), 10);
+  }
+}
+function closeExportMenu() {
+  const menu = document.getElementById("exportMenu");
+  if (menu) menu.classList.remove("open");
+  document.removeEventListener("click", _closeExportOutside);
+}
+function _closeExportOutside(e) {
+  const wrap = document.getElementById("exportWrap");
+  if (wrap && !wrap.contains(e.target)) closeExportMenu();
+}
 
 // ── INIT
 // ═══════════════════════════════════════════════
