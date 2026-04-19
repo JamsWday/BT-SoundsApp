@@ -3473,6 +3473,8 @@ function showSetlists() {
   document.getElementById("slUserName").textContent =
     _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || "";
   _showSlList();
+  // Cargar biblioteca en paralelo para poder autolinkar
+  if (!_allSongs.length) loadLibrary();
   loadSetlists();
 }
 
@@ -3633,10 +3635,17 @@ function _renderSongList() {
     return;
   }
   songs.forEach((song, idx) => {
+    const linked = song.song_id ? _allSongs.find(s => s.id === song.song_id) : null;
     const row = document.createElement("div");
     row.className = "sl-song-row";
     row.draggable = true;
     row.style.cssText = "display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;transition:border-color 0.2s;";
+
+    // Badge de vinculación
+    const linkBadge = linked
+      ? `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--green);border:1px solid rgba(57,255,20,0.4);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;" class="sl-open-btn" title="Abrir cifrado">📄 Cifrado</span>`
+      : `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;" class="sl-link-btn" title="Vincular a canción de la biblioteca">🔗 Vincular</span>`;
+
     row.innerHTML = `
       <span style="cursor:grab;color:var(--dim);font-size:1rem;padding:2px 4px;user-select:none;flex-shrink:0;" class="sl-handle">⠿</span>
       <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);min-width:22px;text-align:right;flex-shrink:0;">${idx + 1}</span>
@@ -3644,14 +3653,32 @@ function _renderSongList() {
         <div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${song.title || "(Sin título)"}</div>
         <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${[song.artist, song.key ? "🎵 "+song.key : "", song.bpm ? song.bpm+" bpm" : ""].filter(Boolean).join(" · ")}</div>
       </div>
-      <button class="btn-icon sl-del">✕</button>`;
+      ${linkBadge}
+      <button class="btn-icon sl-del" title="Quitar del repertorio">✕</button>`;
 
+    // Abrir cifrado
+    const openBtn = row.querySelector(".sl-open-btn");
+    if (openBtn) {
+      openBtn.addEventListener("click", () => {
+        openSong(song.song_id);
+        document.getElementById("setlistScreen").style.display = "none";
+      });
+    }
+
+    // Vincular manualmente
+    const linkBtn = row.querySelector(".sl-link-btn");
+    if (linkBtn) {
+      linkBtn.addEventListener("click", () => _linkSongManually(idx));
+    }
+
+    // Quitar
     row.querySelector(".sl-del").addEventListener("click", () => {
       _currentSetlist.songs.splice(idx, 1);
       _slDirty = true;
       _renderSongList();
     });
 
+    // Drag & drop
     const handle = row.querySelector(".sl-handle");
     handle.addEventListener("dragstart", e => {
       _slDragIdx = idx;
@@ -3685,22 +3712,72 @@ function _renderSongList() {
   });
 }
 
+// Vincular manualmente una canción del repertorio a la biblioteca
+async function _linkSongManually(idx) {
+  // Asegurarse de tener la biblioteca cargada
+  if (!_allSongs.length) {
+    await loadLibrary();
+  }
+  if (!_allSongs.length) { alert("No hay canciones en la biblioteca."); return; }
+
+  const song = _currentSetlist.songs[idx];
+  const opts = _allSongs.map((s, i) => `${i + 1}. ${s.titulo || "(Sin título)"}${s.artista ? " — " + s.artista : ""}`).join("\n");
+  const input = prompt(`Elige el número de canción para vincular a "${song.title}":\n\n${opts}`);
+  if (!input) return;
+  const n = parseInt(input) - 1;
+  if (n >= 0 && n < _allSongs.length) {
+    _currentSetlist.songs[idx].song_id = _allSongs[n].id;
+    _slDirty = true;
+    _renderSongList();
+  }
+}
+
 function openAddSongModal() {
   ["slAddTitle","slAddArtist","slAddKey"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("slAddBpm").value = "";
   document.getElementById("slAddSongModal").style.display = "flex";
-  setTimeout(() => document.getElementById("slAddTitle").focus(), 50);
+  setTimeout(() => {
+    const titleInput = document.getElementById("slAddTitle");
+    titleInput.focus();
+    // Autocompletar desde biblioteca al escribir
+    titleInput.oninput = () => {
+      const q = titleInput.value.toLowerCase();
+      if (q.length < 2) return;
+      const match = _allSongs.find(s => (s.titulo||"").toLowerCase().startsWith(q));
+      if (match) {
+        if (!document.getElementById("slAddArtist").value)
+          document.getElementById("slAddArtist").value = match.artista || "";
+        if (!document.getElementById("slAddKey").value)
+          document.getElementById("slAddKey").value = match.data?.key || "";
+        if (!document.getElementById("slAddBpm").value)
+          document.getElementById("slAddBpm").value = match.data?.bpm || "";
+      }
+    };
+  }, 50);
 }
-function closeAddSongModal() { document.getElementById("slAddSongModal").style.display = "none"; }
+function closeAddSongModal() {
+  document.getElementById("slAddSongModal").style.display = "none";
+  const ti = document.getElementById("slAddTitle");
+  if (ti) ti.oninput = null;
+}
 
 function confirmAddSong() {
-  const title = document.getElementById("slAddTitle").value.trim();
+  const title  = document.getElementById("slAddTitle").value.trim();
   if (!title) { alert("El título es obligatorio."); return; }
+  const artist = document.getElementById("slAddArtist").value.trim();
+
+  // Autovinculación: buscar por título y artista en la biblioteca
+  const match = _allSongs.find(s =>
+    (s.titulo||"").toLowerCase() === title.toLowerCase() &&
+    (!artist || (s.artista||"").toLowerCase() === artist.toLowerCase())
+  );
+
   _currentSetlist.songs.push({
     title,
-    artist: document.getElementById("slAddArtist").value.trim(),
-    key:    document.getElementById("slAddKey").value.trim(),
-    bpm:    document.getElementById("slAddBpm").value || ""
+    artist,
+    key:     document.getElementById("slAddKey").value.trim(),
+    bpm:     document.getElementById("slAddBpm").value || "",
+    song_id: match ? match.id : null   // null = canción libre, sin cifrado
   });
   _slDirty = true;
   _renderSongList();
