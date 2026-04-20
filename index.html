@@ -4079,6 +4079,8 @@ function openConcertMode() {
 function closeConcertMode() {
   clearInterval(_cm.timer);
   document.getElementById("concertMode").style.display = "none";
+  navReset();
+  showLibrary();
 }
 
 function _cmRender() {
