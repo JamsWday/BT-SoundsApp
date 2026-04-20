@@ -1688,7 +1688,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 
     <!-- Grupo: Exportar (dropdown) -->
     <div class="hdr-export-wrap" id="exportWrap">
-      <button class="btn" id="btnExportMenu" onclick="toggleExportMenu()" title="Exportar / Imprimir">⬇ Exportar</button>
+      <button class="btn hdr-icon-btn" id="btnExportMenu" onclick="toggleExportMenu()" title="Exportar / Importar" style="font-size:1.1rem;letter-spacing:0;">⇅</button>
       <div class="hdr-export-menu" id="exportMenu">
         <button onclick="exportJSON();   closeExportMenu()">⬇ JSON</button>
         <button onclick="exportWord();   closeExportMenu()">📄 RTF</button>
@@ -1806,11 +1806,15 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
     <!-- JSON tab -->
     <div id="tabJson">
       <textarea id="jsonOutput"></textarea>
+      <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);margin-bottom:6px;line-height:1.5;">
+        Puedes editar el JSON directamente en el área de texto y pulsar <strong style="color:var(--accent);">Cargar</strong> para aplicarlo.
+      </div>
       <div class="modal-actions">
         <button class="btn btn-primary" onclick="copyJSON()">📋 Copiar</button>
         <button class="btn" onclick="downloadJSON()">⬇ .json</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFromFile(event)" />
         <button class="btn" onclick="document.getElementById('importFile').click()">📂 Importar fichero</button>
+        <button class="btn" onclick="importJSON()" style="border-color:var(--accent);color:var(--accent);">✓ Cargar</button>
         <button class="btn" onclick="closeModal()">Cerrar</button>
       </div>
     </div>
