@@ -892,12 +892,36 @@ body {
   background: var(--scrollbar-bg);
   border-top: 1px solid var(--border);
   backdrop-filter: blur(8px);
-  padding: 10px 20px;
+  padding: 10px 14px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
   align-items: center;
-  justify-content: center;
-  gap: 14px;
+  gap: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 body.readonly #scrollBar { display: flex; }
+
+/* Botón "← Concierto" dentro del scrollBar */
+#cmReturnBtn {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.18s;
+}
+#cmReturnBtn:hover { background: rgba(var(--accent), 0.1); }
 
 #btnPlay {
   font-family: 'Space Mono', monospace;
@@ -905,7 +929,7 @@ body.readonly #scrollBar { display: flex; }
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 9px 22px;
+  padding: 9px 14px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
@@ -914,8 +938,10 @@ body.readonly #scrollBar { display: flex; }
   transition: all 0.18s;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 0;
   flex-shrink: 0;
+  min-width: 40px;
+  justify-content: center;
 }
 #btnPlay:hover { background: #f5d84a; }
 #btnPlay.playing { background: var(--accent2); color: #fff; }
@@ -929,12 +955,7 @@ body.readonly #scrollBar { display: flex; }
   flex-shrink: 0;
 }
 .scroll-speed-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.65rem;
-  color: var(--muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
+  display: none;
 }
 #scrollSpeed {
   -webkit-appearance: none;
@@ -1709,20 +1730,20 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 
 <!-- AUTOSCROLL BAR (visible only in readonly/play mode) -->
 <div id="scrollBar">
+  <!-- Botón volver al concierto (solo visible cuando hay concierto en pila) -->
+  <button id="cmReturnBtn" onclick="navBack()" title="Volver al Modo Concierto">← Concierto</button>
+  <!-- Play autoscroll — solo icono -->
   <button id="btnPlay" onclick="toggleScroll()">
     <span class="play-icon" id="playIcon">▶</span>
-    <span id="playLabel">Play</span>
   </button>
-  <!-- Song audio in Tocar mode -->
-  <button id="btnScrollSongAudio" onclick="toggleSongAudio()" title="Reproducir audio de la canción" style="display:none;font-family:'Space Mono',monospace;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:7px 14px;border-radius:6px;border:1.5px solid var(--green);background:transparent;color:var(--green);cursor:pointer;transition:all 0.18s;flex-shrink:0;gap:5px;align-items:center;">
-    🎵 <span id="scrollSongAudioLbl">Audio</span>
-  </button>
+  <!-- Velocidad (slider flexible + número) -->
   <div class="scroll-speed-wrap">
     <span class="scroll-speed-label">Velocidad</span>
     <input type="range" id="scrollSpeed" min="1" max="10" value="3"
       oninput="updateSpeedLabel()" title="Velocidad de autoscroll" />
     <span class="scroll-speed-val" id="speedVal">3</span>
   </div>
+  <!-- Progreso compacto -->
   <div class="scroll-progress" title="Progreso">
     <div class="scroll-progress-fill" id="progressFill"></div>
   </div>
@@ -1895,8 +1916,8 @@ function navReset() {
 }
 
 function _navUpdateBackBtn() {
-  // Muestra u oculta el botón flotante "← Volver" según haya historial
-  let btn = document.getElementById("navBackBtn");
+  // Muestra u oculta #cmReturnBtn dentro del scrollBar según haya historial
+  const btn = document.getElementById("cmReturnBtn");
   if (!btn) return;
   btn.style.display = _navStack.length > 0 ? "flex" : "none";
 }
@@ -2697,10 +2718,8 @@ function startScroll() {
   _scrolling = true;
   const btn  = document.getElementById("btnPlay");
   const icon = document.getElementById("playIcon");
-  const lbl  = document.getElementById("playLabel");
   btn.classList.add("playing");
   icon.textContent = "⏹";
-  lbl.textContent  = "Stop";
 
   let last = null;
   function step(ts) {
@@ -2738,11 +2757,9 @@ function stopScroll() {
   if (_scrollRaf) { cancelAnimationFrame(_scrollRaf); _scrollRaf = null; }
   const btn  = document.getElementById("btnPlay");
   const icon = document.getElementById("playIcon");
-  const lbl  = document.getElementById("playLabel");
   if (btn) {
     btn.classList.remove("playing");
     icon.textContent = "▶";
-    lbl.textContent  = "Play";
   }
 }
 
@@ -3452,13 +3469,8 @@ function updateSongAudioPlayer() {
 }
 
 function updateScrollSongAudioBtn() {
-  const scrollBtn = document.getElementById("btnScrollSongAudio");
-  if (!scrollBtn) return;
-  if (songData.audio) {
-    scrollBtn.style.display = "flex";
-  } else {
-    scrollBtn.style.display = "none";
-  }
+  // Botón de audio eliminado del scrollBar (el audio está en el header)
+  // Función mantenida para no romper llamadas existentes
 }
 
 function toggleSongAudio() {
@@ -4446,11 +4458,6 @@ function copyShareUrl() {
       style="width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.65rem;padding:3px 6px;outline:none;text-align:center;" />
     <span>seg</span>
   </div>
-</div>
-
-<!-- ── BOTÓN FLOTANTE "← Volver" (navegación _navStack) ── -->
-<div id="navBackBtn" onclick="navBack()" style="display:none;position:fixed;bottom:28px;left:20px;z-index:9400;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:all 0.2s;">
-  ← Volver al concierto
 </div>
 
 <!-- Área de impresión PDF (oculta en pantalla) -->
