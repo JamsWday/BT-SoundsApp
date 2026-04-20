@@ -1849,6 +1849,76 @@ const SUPABASE_URL  = "https://dmqtqowmfcasxfzlyhfz.supabase.co";
 const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtcXRxb3dtZmNhc3hmemx5aGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTQ4MjgsImV4cCI6MjA5MTkzMDgyOH0.Pz9u-JwD2vfMZHAtdfuwiN_XX2u5pxRAv7tx35UYgj0";
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ═══════════════════════════════════════════════
+// NAVEGACIÓN — PILA DE PANTALLAS (_navStack)
+// ═══════════════════════════════════════════════
+// La app usa una pila de navegación explícita para soportar
+// flujos con retorno (ej: Concierto → Cifrado → volver al Concierto).
+//
+// Pantallas principales (se apilan):
+//   "library"   → Biblioteca de canciones   (libraryScreen .open)
+//   "setlist"   → Pantalla de repertorios   (setlistScreen visible)
+//   "concert"   → Modo Concierto            (concertMode visible)
+//   "score"     → Cifrado / editor          (libraryScreen .open, sin setlist)
+//
+// API:
+//   navPush(screenName, state?)  → guarda estado y navega
+//   navPop()                     → restaura pantalla anterior
+//   navReset()                   → limpia la pila (login/logout)
+//   navBack()                    → botón "← Volver" contextual
+//
+// Reglas para futuras mejoras:
+//   · Cada función que ABRE una pantalla nueva llama a navPush().
+//   · Cada función que CIERRA y vuelve atrás llama a navPop().
+//   · Las pantallas tipo modal (popups, modales de audio, etc.)
+//     NO se apilan — son capas sobre la pantalla activa.
+//   · navReset() se llama en logout y en el login inicial.
+// ═══════════════════════════════════════════════
+
+let _navStack = [];   // [{screen, state}]
+
+function navPush(screen, state = {}) {
+  _navStack.push({ screen, state });
+  _navUpdateBackBtn();
+}
+
+function navPop() {
+  if (!_navStack.length) return null;
+  const entry = _navStack.pop();
+  _navUpdateBackBtn();
+  return entry;
+}
+
+function navReset() {
+  _navStack = [];
+  _navUpdateBackBtn();
+}
+
+function _navUpdateBackBtn() {
+  // Muestra u oculta el botón flotante "← Volver" según haya historial
+  let btn = document.getElementById("navBackBtn");
+  if (!btn) return;
+  btn.style.display = _navStack.length > 0 ? "flex" : "none";
+}
+
+function navBack() {
+  const entry = navPop();
+  if (!entry) return;
+  if (entry.screen === "concert") {
+    // Restaurar Modo Concierto con el estado guardado
+    Object.assign(_cm, entry.state);
+    document.getElementById("libraryScreen").classList.remove("open");
+    document.getElementById("setlistScreen").style.display = "none";
+    document.getElementById("concertMode").style.display = "flex";
+    document.getElementById("cmPauseBtn").style.display = _cm.auto ? "" : "none";
+    // Pausar el timer automático al volver (el usuario decide si reanuda)
+    clearInterval(_cm.timer);
+    _cm.paused = true;
+    document.getElementById("cmPauseBtn").textContent = "▶ Reanudar";
+    _cmRender();
+  }
+}
+
 let _currentUser = null;
 let _currentSongId = null; // ID en Supabase de la canción en edición
 
@@ -1883,6 +1953,7 @@ async function doLogout() {
   await _sb.auth.signOut();
   _currentUser = null;
   _currentSongId = null;
+  navReset();
   document.getElementById("libraryScreen").classList.remove("open");
   document.getElementById("setlistScreen").classList.remove("open");
   document.getElementById("loginScreen").style.display = "flex";
@@ -3988,6 +4059,7 @@ function openConcertMode() {
   clearInterval(_cm.timer);
   document.getElementById("concertMode").style.display = "flex";
   document.getElementById("cmPauseBtn").style.display = _cm.auto ? "" : "none";
+  navReset(); // El concierto es punto de entrada limpio — no se vuelve más atrás de aquí
   _cmRender();
   if (_cm.auto) _cmStartTimer();
 }
@@ -4086,9 +4158,22 @@ function _cmUpdateTimerDisplay() {
 function cmOpenScore() {
   const s = _cm.songs[_cm.idx];
   if (!s.song_id) return;
-  closeConcertMode();
-  openSong(s.song_id);
+  // Guardar estado del concierto en la pila antes de navegar al cifrado
+  clearInterval(_cm.timer);
+  navPush("concert", {
+    idx:     _cm.idx,
+    songs:   _cm.songs,
+    auto:    _cm.auto,
+    secs:    _cm.secs,
+    elapsed: _cm.elapsed,
+    paused:  _cm.paused
+  });
+  // Ocultar concierto y abrir cifrado en Modo Tocar (readonly)
+  document.getElementById("concertMode").style.display = "none";
   document.getElementById("setlistScreen").style.display = "none";
+  openSong(s.song_id).then(() => {
+    if (!_readonly) toggleReadonly(); // Forzar Modo Tocar
+  });
 }
 // ═══════════════════════════════════════════════
 // EXPORTAR PDF — Paso 5
@@ -4361,6 +4446,11 @@ function copyShareUrl() {
       style="width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.65rem;padding:3px 6px;outline:none;text-align:center;" />
     <span>seg</span>
   </div>
+</div>
+
+<!-- ── BOTÓN FLOTANTE "← Volver" (navegación _navStack) ── -->
+<div id="navBackBtn" onclick="navBack()" style="display:none;position:fixed;bottom:28px;left:20px;z-index:9400;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:all 0.2s;">
+  ← Volver al concierto
 </div>
 
 <!-- Área de impresión PDF (oculta en pantalla) -->
