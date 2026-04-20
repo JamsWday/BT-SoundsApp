@@ -3614,8 +3614,7 @@ async function loadSetlists() {
   const grid = document.getElementById("slGrid");
   grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⏳</div><p>Cargando...</p></div>';
   const { data, error } = await _sb.from("setlists")
-    .select("id, name, songs, updated_at")
-    .eq("user_id", _currentUser.id)
+    .select("id, name, songs, updated_at, date, venue, created_by")
     .order("updated_at", { ascending: false });
   if (error) {
     grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⚠️</div><p>Error cargando repertorios.</p></div>';
@@ -3665,6 +3664,10 @@ function _renderSetlistGrid(list) {
       ? `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:4px;">${pills}${sep}${durHtml}</div>`
       : "";
 
+    const createdByHtml = sl.created_by
+      ? `<div style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:3px;opacity:0.7;">👤 ${sl.created_by}</div>`
+      : "";
+
     const card = document.createElement("div");
     card.className = "song-card";
     card.innerHTML = `
@@ -3672,6 +3675,7 @@ function _renderSetlistGrid(list) {
       <div class="card-artist">${songs.length} canción${songs.length !== 1 ? "es" : ""}</div>
       ${pillsHtml}
       <div class="card-meta">${date}${venueTxt}</div>
+      ${createdByHtml}
       <div class="card-actions">
         <button class="card-btn" onclick="openSetlist('${sl.id}')">✏️ Editar</button>
         <button class="card-btn" onclick="duplicateSetlist('${sl.id}',event)">⧉ Duplicar</button>
