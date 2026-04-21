@@ -1772,7 +1772,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
         <div>Pulsa o arrastra un archivo de audio</div>
         <div style="font-size:0.72rem;margin-top:6px;color:var(--muted)">MP3, WAV, OGG, M4A, AAC...</div>
       </div>
-      <input type="file" id="audioFileInput" accept="audio/*" style="display:none" onchange="handleAudioFile(event)" />
+      <input type="file" id="audioFileInput" accept="audio/*,.m4a,video/mp4" style="display:none" onchange="handleAudioFile(event)" />
     </div>
 
     <!-- URL tab -->
@@ -3178,6 +3178,8 @@ function switchAudioTab(tab) {
 
 function handleAudioFile(e) {
   const file = e.target.files[0]; if (!file) return;
+  const isAudio = file.type.startsWith("audio/") || file.type === "video/mp4" || /\.(m4a|mp3|wav|ogg|aac|flac|opus|webm)$/i.test(file.name);
+  if (!isAudio) { alert("Selecciona un archivo de audio (MP3, WAV, M4A, OGG, AAC…)."); e.target.value = ""; return; }
   const url = URL.createObjectURL(file);
   _pendingAudio = { src: url, type: "blob", name: file.name, blob: file };
   loadPreviewAudio(url, file.name);
@@ -3188,7 +3190,8 @@ function handleAudioDrop(e) {
   e.preventDefault();
   document.getElementById("audioDropZone").classList.remove("drag-over");
   const file = e.dataTransfer.files[0];
-  if (!file || !file.type.startsWith("audio/")) { alert("Selecciona un archivo de audio."); return; }
+  const isAudio = file && (file.type.startsWith("audio/") || file.type === "video/mp4" || /\.(m4a|mp3|wav|ogg|aac|flac|opus|webm)$/i.test(file.name));
+  if (!isAudio) { alert("Selecciona un archivo de audio (MP3, WAV, M4A, OGG, AAC…)."); return; }
   const url = URL.createObjectURL(file);
   _pendingAudio = { src: url, type: "blob", name: file.name, blob: file };
   loadPreviewAudio(url, file.name);
