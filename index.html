@@ -4310,81 +4310,125 @@ function copyShareUrl() {
 })();
 
 // ═══════════════════════════════════════════════
-// IMPRIMIR CIFRADO — vuelca el contenido en
-// #slPrintArea para que el @media print lo muestre
+// IMPRIMIR CIFRADO — genera HTML desde songData
+// directamente para una impresión limpia y fiel
 // ═══════════════════════════════════════════════
 function printScore() {
-  const header = document.querySelector('.header');
-  const chart  = document.getElementById('chart');
-  if (!chart) { window.print(); return; }
+  const meta = [];
+  if (songData.artist)        meta.push(songData.artist);
+  if (songData.key)           meta.push('Tono: ' + songData.key);
+  if (songData.bpm)           meta.push(songData.bpm + ' bpm');
+  if (songData.timeSignature) meta.push(songData.timeSignature);
 
-  const headerHTML = header ? header.outerHTML : '';
-  const chartHTML  = chart.outerHTML;
+  const sectionsHTML = songData.sections.map(sec => {
+    const rowsHTML = sec.rows.map(row => {
+      // Compases con acordes
+      const barsHTML = row.bars.map((bar, bi) => {
+        const divider = bi > 0 ? `<span class="p-bar-div"></span>` : '';
+        const chords = bar.map(c => `<span class="p-chord">${fmtChord(c)}</span>`).join('');
+        return divider + `<div class="p-bar-unit">${chords}</div>`;
+      }).join('');
 
-  // Estilos mínimos para que el volcado se vea correctamente
-  const printStyles = `
+      const repeats = (row.repeats && row.repeats > 1)
+        ? `<span class="p-repeats">× ${row.repeats}</span>` : '';
+
+      const comment = row.comment
+        ? `<div class="p-comment">💬 ${esc(row.comment)}</div>` : '';
+
+      return `
+        <div class="p-row-wrap">
+          <div class="p-bar-line">
+            <span class="p-bracket">𝄆</span>
+            ${barsHTML}
+            <span class="p-bracket">𝄇</span>
+            ${repeats}
+          </div>
+          ${comment}
+        </div>`;
+    }).join('');
+
+    const lyric = sec.lyric
+      ? `<span class="p-lyric">${esc(sec.lyric)}</span>` : '';
+
+    return `
+      <div class="p-section">
+        <div class="p-sec-header">
+          <span class="p-sec-name">${esc(sec.name || 'Sección')}</span>
+          ${lyric}
+        </div>
+        <div class="p-bars-area">${rowsHTML}</div>
+      </div>`;
+  }).join('');
+
+  const html = `
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'IBM Plex Sans', sans-serif; background: white; color: black; }
-      .header { background: white !important; border-bottom: 2px solid #333 !important;
-        padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-      .header-actions, .add-bar-btn, .add-chord-in-bar,
-      .add-row-btn, .add-section-btn, .btn-icon, .drag-handle,
-      .comment-icon, .section-insert, .hdr-export-wrap,
-      .hdr-sep, #btnPlay, #btnReadonly, #scrollBar,
-      #songAudioPlayer, .audio-btn { display: none !important; }
-      .title-input { font-family: 'Playfair Display', serif; font-size: 1.6rem;
-        color: black !important; background: transparent; border: none; width: 100%; }
-      .artist-input { font-family: 'Space Mono', monospace; font-size: 0.75rem;
-        color: #444 !important; background: transparent; border: none; width: 100%;
-        text-transform: uppercase; letter-spacing: 0.12em; }
-      .meta-input { font-family: 'Space Mono', monospace; font-size: 0.78rem;
-        color: #555 !important; background: transparent; border: none;
-        border-bottom: 1px solid #ccc !important; }
-      .meta-label { color: #555 !important; font-size: 0.8rem; }
-      .meta-sep { color: #aaa !important; }
-      .container { max-width: 900px; margin: 0 auto; padding: 12px;
-        display: flex; flex-direction: column; gap: 10px; }
-      .section-block { border: 1px solid #ccc !important; background: white !important;
-        break-inside: avoid; margin-bottom: 8px; border-radius: 8px; overflow: hidden; }
-      .section-header { background: #f5f5f5 !important; padding: 8px 14px;
-        display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #ddd; }
-      .section-name-input { font-family: 'Space Mono', monospace; font-size: 0.8rem;
-        font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-        color: #c45f3a !important; background: transparent !important;
-        border: 1px solid #c45f3a !important; border-radius: 4px; padding: 3px 8px; }
-      .section-lyric-input { display: block; font-family: 'IBM Plex Sans', sans-serif;
-        font-size: 0.82rem; color: #555 !important; background: transparent;
-        border: none; border-bottom: 1px solid #ddd; width: 100%; padding: 4px 0; }
-      .bar-line { background: white !important; border: 1px solid #ddd !important;
-        padding: 10px 12px; border-radius: 4px; margin: 4px 0;
-        display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-      .bar-div { background: #333 !important; width: 2px; height: 32px;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; flex-shrink: 0; }
-      .chord-pill { color: black !important; font-weight: bold; font-size: 1.25rem !important;
-        padding: 4px 10px !important; border-radius: 4px; }
-      .rep-bracket { color: #444 !important; font-size: 1.5rem !important;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .comment-row { background: white !important; border: 1px solid #eee !important;
-        padding: 6px 12px; border-radius: 4px; margin: 2px 0; }
-      .comment-input { color: #666 !important; font-style: italic; background: transparent;
-        border: none; border-bottom: 1px solid #ccc; display: block !important; width: 100%; }
-      .x-label { color: #555 !important; display: inline !important;
-        font-size: 0.75rem; font-weight: bold; }
-      .repeat-input { color: #333 !important; background: transparent !important;
-        border: 1px solid #ccc !important; font-size: 1rem !important; font-weight: bold;
-        border-radius: 4px; padding: 2px 6px; }
-      .row-right { display: flex; align-items: center; gap: 4px; }
-      .title-block { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-      .meta-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    </style>
-  `;
+      .p-wrap { font-family: 'IBM Plex Sans', sans-serif; color: #111;
+        max-width: 860px; margin: 0 auto; padding: 20px 24px; }
 
-  document.getElementById('slPrintArea').innerHTML = printStyles + headerHTML + `<div class="container" id="chart">` + chart.innerHTML + `</div>`;
+      /* ── Cabecera ── */
+      .p-header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; }
+      .p-title  { font-family: 'Playfair Display', serif; font-size: 2rem;
+        font-weight: 700; color: #111; line-height: 1.15; }
+      .p-meta   { font-family: 'Space Mono', monospace; font-size: 0.78rem;
+        color: #555; letter-spacing: 0.08em; margin-top: 4px; }
+
+      /* ── Secciones ── */
+      .p-section { border: 1px solid #ccc; border-radius: 8px;
+        overflow: hidden; margin-bottom: 10px; break-inside: avoid; }
+      .p-sec-header { background: #f2f2f2; padding: 7px 14px;
+        display: flex; align-items: center; gap: 12px;
+        border-bottom: 1px solid #ddd; }
+      .p-sec-name { font-family: 'Space Mono', monospace; font-size: 0.78rem;
+        font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+        color: #c45f3a; background: rgba(196,95,58,0.08);
+        border: 1px solid rgba(196,95,58,0.35); border-radius: 4px;
+        padding: 3px 9px; flex-shrink: 0; }
+      .p-lyric  { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.82rem;
+        color: #666; font-style: italic; }
+
+      /* ── Filas de compases ── */
+      .p-bars-area { padding: 4px 6px; }
+      .p-row-wrap  { margin: 3px 0; }
+      .p-bar-line  { display: flex; align-items: center; flex-wrap: wrap;
+        gap: 4px; padding: 8px 10px; background: #fff;
+        border: 1px solid #e0e0e0; border-radius: 5px; }
+      .p-bracket   { font-size: 1.6rem; color: #444; line-height: 1;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .p-bar-unit  { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+      .p-bar-div   { width: 2px; height: 30px; background: #333; flex-shrink: 0;
+        border-radius: 1px; align-self: stretch;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .p-chord     { font-family: 'Space Mono', monospace; font-size: 1.15rem;
+        font-weight: 700; color: #111; padding: 3px 8px;
+        border: 1px solid #ddd; border-radius: 4px; background: #fafafa;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .p-chord sup { font-size: 0.55em; vertical-align: super; }
+      .p-repeats   { font-family: 'Space Mono', monospace; font-size: 0.88rem;
+        font-weight: 700; color: #c45f3a; margin-left: 8px; }
+      .p-comment   { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8rem;
+        color: #666; font-style: italic; padding: 3px 10px 4px 14px;
+        border-left: 2px solid #ddd; margin: 2px 0 4px 10px; }
+
+      .p-footer    { margin-top: 28px; font-family: 'Space Mono', monospace;
+        font-size: 0.65rem; color: #bbb; text-align: right; }
+    </style>
+    <div class="p-wrap">
+      <div class="p-header">
+        <div class="p-title">${esc(songData.title || '(Sin título)')}</div>
+        ${meta.length ? `<div class="p-meta">${meta.join(' · ')}</div>` : ''}
+      </div>
+      ${sectionsHTML}
+      <div class="p-footer">BT SoundsApp</div>
+    </div>`;
+
+  document.getElementById('slPrintArea').innerHTML = html;
   window.print();
-  // Limpiar después de imprimir
-  setTimeout(() => { document.getElementById('slPrintArea').innerHTML = ''; }, 1000);
+  setTimeout(() => { document.getElementById('slPrintArea').innerHTML = ''; }, 1500);
 }
+
+
 
 </script>
 <!-- ══════════════════════════════════════
