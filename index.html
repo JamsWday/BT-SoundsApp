@@ -1713,7 +1713,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
       <div class="hdr-export-menu" id="exportMenu">
         <button onclick="exportJSON();   closeExportMenu()">⬇ JSON</button>
         <button onclick="exportWord();   closeExportMenu()">📄 RTF</button>
-        <button onclick="window.print(); closeExportMenu()">🖨 Imprimir</button>
+        <button onclick="printScore(); closeExportMenu()">🖨 Imprimir</button>
       </div>
     </div>
 
@@ -4308,6 +4308,83 @@ function copyShareUrl() {
       <p style="margin-top:32px;font-size:0.72rem;color:#ccc;">Compartido con BT SoundsApp</p>
     </div>`;
 })();
+
+// ═══════════════════════════════════════════════
+// IMPRIMIR CIFRADO — vuelca el contenido en
+// #slPrintArea para que el @media print lo muestre
+// ═══════════════════════════════════════════════
+function printScore() {
+  const header = document.querySelector('.header');
+  const chart  = document.getElementById('chart');
+  if (!chart) { window.print(); return; }
+
+  const headerHTML = header ? header.outerHTML : '';
+  const chartHTML  = chart.outerHTML;
+
+  // Estilos mínimos para que el volcado se vea correctamente
+  const printStyles = `
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'IBM Plex Sans', sans-serif; background: white; color: black; }
+      .header { background: white !important; border-bottom: 2px solid #333 !important;
+        padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .header-actions, .add-bar-btn, .add-chord-in-bar,
+      .add-row-btn, .add-section-btn, .btn-icon, .drag-handle,
+      .comment-icon, .section-insert, .hdr-export-wrap,
+      .hdr-sep, #btnPlay, #btnReadonly, #scrollBar,
+      #songAudioPlayer, .audio-btn { display: none !important; }
+      .title-input { font-family: 'Playfair Display', serif; font-size: 1.6rem;
+        color: black !important; background: transparent; border: none; width: 100%; }
+      .artist-input { font-family: 'Space Mono', monospace; font-size: 0.75rem;
+        color: #444 !important; background: transparent; border: none; width: 100%;
+        text-transform: uppercase; letter-spacing: 0.12em; }
+      .meta-input { font-family: 'Space Mono', monospace; font-size: 0.78rem;
+        color: #555 !important; background: transparent; border: none;
+        border-bottom: 1px solid #ccc !important; }
+      .meta-label { color: #555 !important; font-size: 0.8rem; }
+      .meta-sep { color: #aaa !important; }
+      .container { max-width: 900px; margin: 0 auto; padding: 12px;
+        display: flex; flex-direction: column; gap: 10px; }
+      .section-block { border: 1px solid #ccc !important; background: white !important;
+        break-inside: avoid; margin-bottom: 8px; border-radius: 8px; overflow: hidden; }
+      .section-header { background: #f5f5f5 !important; padding: 8px 14px;
+        display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #ddd; }
+      .section-name-input { font-family: 'Space Mono', monospace; font-size: 0.8rem;
+        font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+        color: #c45f3a !important; background: transparent !important;
+        border: 1px solid #c45f3a !important; border-radius: 4px; padding: 3px 8px; }
+      .section-lyric-input { display: block; font-family: 'IBM Plex Sans', sans-serif;
+        font-size: 0.82rem; color: #555 !important; background: transparent;
+        border: none; border-bottom: 1px solid #ddd; width: 100%; padding: 4px 0; }
+      .bar-line { background: white !important; border: 1px solid #ddd !important;
+        padding: 10px 12px; border-radius: 4px; margin: 4px 0;
+        display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+      .bar-div { background: #333 !important; width: 2px; height: 32px;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; flex-shrink: 0; }
+      .chord-pill { color: black !important; font-weight: bold; font-size: 1.25rem !important;
+        padding: 4px 10px !important; border-radius: 4px; }
+      .rep-bracket { color: #444 !important; font-size: 1.5rem !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .comment-row { background: white !important; border: 1px solid #eee !important;
+        padding: 6px 12px; border-radius: 4px; margin: 2px 0; }
+      .comment-input { color: #666 !important; font-style: italic; background: transparent;
+        border: none; border-bottom: 1px solid #ccc; display: block !important; width: 100%; }
+      .x-label { color: #555 !important; display: inline !important;
+        font-size: 0.75rem; font-weight: bold; }
+      .repeat-input { color: #333 !important; background: transparent !important;
+        border: 1px solid #ccc !important; font-size: 1rem !important; font-weight: bold;
+        border-radius: 4px; padding: 2px 6px; }
+      .row-right { display: flex; align-items: center; gap: 4px; }
+      .title-block { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+      .meta-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    </style>
+  `;
+
+  document.getElementById('slPrintArea').innerHTML = printStyles + headerHTML + `<div class="container" id="chart">` + chart.innerHTML + `</div>`;
+  window.print();
+  // Limpiar después de imprimir
+  setTimeout(() => { document.getElementById('slPrintArea').innerHTML = ''; }, 1000);
+}
 
 </script>
 <!-- ══════════════════════════════════════
