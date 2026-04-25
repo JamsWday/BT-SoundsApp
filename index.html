@@ -824,64 +824,129 @@ body {
 .row-wrap.drag-over-bottom { border-bottom: 2px solid var(--green) !important; margin-bottom: -1px; }
 
 /* ── MOBILE ── */
+
+/* Desktop: los wrappers de fila son invisibles — display:contents los elimina del flujo */
+.mhdr-row1, .mhdr-row2, .mhdr-row3 { display: contents; }
+
 @media (max-width: 600px) {
+
   .header {
-    padding: 10px 14px;
-    gap: 8px;
+    padding: 10px 12px 6px;
+    gap: 6px;
     flex-direction: column;
     align-items: stretch;
   }
-  .title-block {
-    width: 100%;
-  }
-  .title-input {
-    font-size: 1.25rem;
-  }
-  .artist-input {
-    font-size: 0.68rem;
-  }
-  .meta-row {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto auto auto auto auto;
-    align-items: center;
-    gap: 4px;
-    row-gap: 6px;
-  }
-  /* Tonalidad ocupa más espacio */
-  .meta-input:not(.meta-input-sm) {
-    width: 100%;
-    min-width: 60px;
-  }
-  .meta-input-sm {
-    width: 40px;
-  }
+  .title-block  { width: 100%; }
+  .title-input  { font-size: 1.2rem; }
+  .artist-input { font-size: 0.65rem; }
+  .meta-row     { display: flex; flex-wrap: wrap; gap: 4px; }
+  .meta-sep     { display: none; }
+  .meta-label   { font-size: 0.75rem; }
+  .meta-input   { font-size: 0.7rem; border-bottom-color: #3a3a50; }
+  .hdr-sep      { display: none; }
+
+  /* header-actions: columna que contiene las 3 filas */
   .header-actions {
-    width: 100%;
-    justify-content: flex-end;
-    gap: 6px;
-  }
-  .btn {
-    font-size: 0.65rem;
-    padding: 7px 10px;
-  }
-  /* Simplify meta row on small screens: stack into two lines */
-  .meta-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+  }
+  #cloudStatus { display: none; }
+
+  /* ── FILA 1: Biblioteca · Repertorios · Tema ── */
+  .mhdr-row1 {
+    display: flex;
+    gap: 5px;
+  }
+  .mhdr-row1 > button:nth-child(1),
+  .mhdr-row1 > button:nth-child(2) { flex: 1; }
+  .mhdr-row1 > #btnTheme           { flex-shrink: 0; }
+
+  /* ── FILA 1: Biblioteca · Repertorios ── */
+  .mhdr-row1 {
+    display: flex;
+    gap: 5px;
+  }
+  .mhdr-row1 > button { flex: 1; }
+
+  /* ── FILA 2: Audio · ↩ · ⇅ · ↪ · Guardar · Tocar ── */
+  .mhdr-row2 {
+    display: flex;
+    gap: 5px;
+    align-items: stretch;
+  }
+  .mhdr-row2 #songAudioPlayer { flex: 1; min-width: 0; }
+  .mhdr-row2 #btnSongAudio    { flex-shrink: 0; }
+  .mhdr-row2 #btnUndo,
+  .mhdr-row2 #btnRedo         { flex-shrink: 0; padding: 7px 9px !important; }
+  .mhdr-row2 .hdr-export-wrap { flex-shrink: 0; }
+  .mhdr-row2 #btnExportMenu   { padding: 7px 9px !important; font-size: 1rem !important; }
+  .mhdr-row2 .btn-primary     { flex: 1; text-align: center; padding: 9px 6px !important; font-size: 0.72rem !important; }
+  .mhdr-row2 #btnReadonly     { flex-shrink: 0; padding: 9px 8px !important; font-size: 0.72rem !important; }
+  .hdr-export-menu            { right: 0; left: auto; }
+
+  /* ── FILA 3: oculta (pills están en inst-filter-bar) ── */
+  .mhdr-row3 { display: none !important; }
+
+  /* Botón Tema: solo visible en móvil, dentro de la barra de pills */
+  .pill-theme-btn {
+    display: inline-flex !important;
+    flex-shrink: 0;
+    padding: 5px 8px !important;
+    font-size: 1rem !important;
+    margin-left: 4px;
+    border-left: 1px solid var(--border);
+  }
+
+  .btn { font-size: 0.65rem; padding: 7px 8px; }
+
+  /* ── FILTROS: scroll horizontal, icono + inicial ── */
+  .inst-filter-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 6px 0 4px;
     gap: 4px;
-    row-gap: 6px;
   }
-  /* Separators hidden on mobile to save space */
-  .meta-sep { display: none; }
-  /* Each meta group wraps naturally */
-  .meta-label { font-size: 0.75rem; }
-  .meta-input {
-    font-size: 0.7rem;
-    border-bottom-color: #3a3a50;
+  .inst-filter-bar::-webkit-scrollbar { display: none; }
+
+  .inst-pill {
+    padding: 5px 7px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    position: relative;
   }
+  .inst-pill .pill-label { display: none; }
+
+  .inst-pill::before { font-size: 0.85rem; line-height: 1; }
+  .inst-pill::after  { font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; }
+
+  .inst-pill-all::before   { content: '💫'; } .inst-pill-all::after   { content: 'T'; }
+  .inst-pill-guit1::before { content: '🎸'; } .inst-pill-guit1::after { content: 'M'; }
+  .inst-pill-guit2::before { content: '🎸'; } .inst-pill-guit2::after { content: 'J'; }
+  .inst-pill-bajo::before  { content: '🎸'; } .inst-pill-bajo::after  { content: 'H'; }
+  .inst-pill-bat::before   { content: '🥁'; } .inst-pill-bat::after   { content: 'S'; }
+  .inst-pill-voz::before   { content: '🎤'; } .inst-pill-voz::after   { content: 'J'; }
 }
 
-/* ── AUTOSCROLL BAR ── */
+
+/* Botón Tema en barra de pills: solo visible en móvil */
+.pill-theme-btn { display: none; }
+
+@media (max-width: 600px) {
+  .pill-theme-btn { display: inline-flex !important; flex-shrink: 0; padding: 5px 8px !important; font-size: 1rem !important; margin-left: 2px; border-left: 1px solid var(--border); }
+  #btnTheme { display: none !important; }
+  /* Audio sin barra de progreso en móvil edición */
+  #songAudioPlayer .sap-bar { display: none !important; }
+  #songAudioPlayer .sap-label { display: none !important; }
+  /* Readonly: mostrar sap-bar completo */
+  body.readonly #songAudioPlayer .sap-bar { display: flex !important; }
+  body.readonly #songAudioPlayer .sap-label { display: inline !important; }
+}
 #scrollBar {
   display: none;
   position: fixed;
@@ -1017,9 +1082,33 @@ body.readonly .header-actions .btn:not(#btnReadonly) { display: none; }
 body.readonly .hdr-sep { display: none; }
 body.readonly .hdr-export-wrap { display: none; }
 body.readonly #btnReadonly { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+
+/* Móvil readonly: layout limpio Audio + Editar / Pills */
+@media (max-width: 600px) {
+  /* Ocultar fila 1 completa (Biblioteca · Repertorios · Audio) */
+  body.readonly .mhdr-row1 { display: none !important; }
+
+  /* Fila 2: mostrar solo Audio + btnReadonly */
+  body.readonly .mhdr-row2 { display: flex !important; gap: 5px; }
+  body.readonly .mhdr-row2 #songAudioPlayer { display: flex !important; flex: 1; min-width: 0; }
+  body.readonly .mhdr-row2 #songAudioPlayer .sap-bar { display: flex !important; }
+  body.readonly .mhdr-row2 #btnSongAudio { flex-shrink: 0; }
+  body.readonly .mhdr-row2 #btnReadonly  { display: inline-flex !important; flex-shrink: 0; padding: 9px 12px !important; }
+  /* Ocultar undo/redo/export en readonly */
+  body.readonly .mhdr-row2 #btnUndo,
+  body.readonly .mhdr-row2 #btnRedo,
+  body.readonly .mhdr-row2 .hdr-export-wrap { display: none !important; }
+
+  /* Fila 3: oculta (vacía) */
+  body.readonly .mhdr-row3 { display: none !important; }
+
+  /* Pills: visibles en readonly */
+  body.readonly .inst-filter-bar { display: flex !important; }
+}
 body.readonly .section-insert { display: none !important; }
 body.readonly .add-section-btn { display: none !important; }
 body.readonly .add-row-btn { display: none !important; }
+body.readonly .add-row-inst-wrap { display: none !important; }
 body.readonly .add-bar-btn { display: none !important; }
 body.readonly .add-chord-in-bar { display: none !important; }
 body.readonly .drag-handle { display: none !important; }
@@ -1038,6 +1127,9 @@ body.readonly .section-header .sec-play-btn { pointer-events: all; cursor: point
 body.readonly .title-input,
 body.readonly .artist-input,
 body.readonly .meta-input { pointer-events: none; border-color: transparent !important; }
+body.readonly #songKeyBar { pointer-events: none; }
+body.readonly #songKeyBar > div { background: transparent; border-color: transparent; padding-left: 0; }
+body.readonly #songKey { color: var(--accent) !important; font-size: 0.85rem; letter-spacing: 0.08em; }
 body.readonly .section-name-input { pointer-events: none; }
 body.readonly .section-lyric-input { pointer-events: none; }
 body.readonly .repeat-input { pointer-events: none; border-color: transparent !important; background: transparent !important; }
@@ -1598,6 +1690,129 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   .audio-btn, #songAudioPlayer { display: none !important; }
 }
 
+/* ── INSTRUMENT SYSTEM ── */
+:root {
+  --inst-guit1: #4a9eff;   /* Marco → azul */
+  --inst-guit2: #f5c842;   /* Juan  → amarillo */
+  --inst-bajo:  #ff6b6b;   /* Hugo  → rojo */
+  --inst-bat:   #4ade80;   /* Sergio → verde */
+  --inst-voz:   #a78bfa;   /* Juan (voz) → violeta */
+}
+
+/* instrument stripe + icon on left of row */
+.row-wrap { position: relative; }
+.bar-line { padding-left: 12px; }
+.inst-stripe {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 2px 0 0 2px;
+  flex-shrink: 0;
+}
+.inst-icon {
+  font-size: 0.85rem;
+  margin-right: 2px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* color per instrument */
+.row-inst-guit1 .inst-stripe { background: var(--inst-guit1); }
+.row-inst-guit1 .inst-icon   { color: var(--inst-guit1); }
+.row-inst-guit2 .inst-stripe { background: var(--inst-guit2); }
+.row-inst-guit2 .inst-icon   { color: var(--inst-guit2); }
+.row-inst-bajo  .inst-stripe { background: var(--inst-bajo); }
+.row-inst-bajo  .inst-icon   { color: var(--inst-bajo); }
+.row-inst-bat   .inst-stripe { background: var(--inst-bat); }
+.row-inst-bat   .inst-icon   { color: var(--inst-bat); }
+.row-inst-voz   .inst-stripe { background: var(--inst-voz); }
+.row-inst-voz   .inst-icon   { color: var(--inst-voz); }
+
+/* hidden by filter */
+.row-wrap.inst-hidden { display: none !important; }
+
+/* vocal text area */
+.voz-text {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed rgba(74,222,128,0.25);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.88rem;
+  font-style: italic;
+  padding: 4px 6px;
+  outline: none;
+  resize: none;
+  min-height: 48px;
+  line-height: 1.5;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.voz-text:focus { border-bottom-color: var(--inst-voz); }
+.voz-text::placeholder { color: var(--dim); font-style: italic; }
+
+body.readonly .voz-text { pointer-events: none; border-color: transparent; }
+
+/* ── INSTRUMENT FILTER PILLS ── */
+.inst-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 6px 0 2px;
+  width: 100%;
+}
+.inst-pill {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+  white-space: nowrap;
+}
+.inst-pill:hover { border-color: var(--accent); color: var(--accent); }
+.inst-pill.active { font-weight: 700; }
+.inst-pill-all.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.inst-pill-guit1.active { background: var(--inst-guit1); color: #000; border-color: var(--inst-guit1); }
+.inst-pill-guit2.active { background: var(--inst-guit2); color: #000; border-color: var(--inst-guit2); }
+.inst-pill-bajo.active  { background: var(--inst-bajo);  color: #fff; border-color: var(--inst-bajo);  }
+.inst-pill-bat.active   { background: var(--inst-bat);   color: #000; border-color: var(--inst-bat);   }
+.inst-pill-voz.active   { background: var(--inst-voz);   color: #fff; border-color: var(--inst-voz);   }
+
+/* Add row with instrument picker */
+.add-row-inst-wrap {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  align-items: center;
+}
+.add-row-inst-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.63rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.add-row-inst-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+.add-row-inst-btn .arib-icon { font-size: 0.9rem; }
+
 @media print {
   .header-actions, .add-bar-btn, .add-chord-in-bar,
   .add-row-btn, .add-section-btn, .btn-icon, .drag-handle,
@@ -1674,55 +1889,67 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
     <div class="meta-row">
       <input class="artist-input" id="songArtist" placeholder="Artista / banda..." spellcheck="false"
         oninput="songData.artist = this.value" />
-      <span class="meta-sep">|</span>
-      <label class="meta-label">🎵</label>
-      <input class="meta-input" id="songKey" placeholder="Tonalidad..." title="Tonalidad (ej: Do Mayor, La menor)"
-        oninput="songData.key = this.value" />
+
     </div>
   </div>
   <div class="header-actions">
     <span id="cloudStatus"></span>
 
-    <!-- Grupo: Navegación -->
-    <button class="btn" onclick="showLibrary()" title="Volver a la biblioteca">📚 Biblioteca</button>
-    <button class="btn" onclick="showSetlists()" title="Ver repertorios">🎭 Repertorios</button>
-
-    <!-- Separador -->
-    <span class="hdr-sep"></span>
-
-    <!-- Grupo: Herramientas -->
-    <button class="btn hdr-icon-btn" id="btnUndo" onclick="undo()" title="Deshacer (Ctrl+Z)" disabled>↩</button>
-    <button class="btn hdr-icon-btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
-    <button class="btn hdr-icon-btn" id="btnTheme" onclick="cycleTheme()" title="Cambiar tema de color">🎨</button>
-
-    <!-- Audio (player o botón según estado) -->
-    <div id="songAudioPlayer">
-      <span class="sap-label">🎵</span>
-      <button class="sap-play" id="sapPlayBtn" onclick="toggleSongAudio()">▶</button>
-      <div class="sap-bar"><div class="sap-fill" id="sapFill"></div></div>
-      <button class="sap-edit" onclick="openAudioModal('song',null)" title="Cambiar audio">✎</button>
+    <!-- MÓVIL FILA 1: Biblioteca · Repertorios (DESKTOP: + Tema) -->
+    <div class="mhdr-row1">
+      <button class="btn" onclick="showLibrary()" title="Volver a la biblioteca">📚 Biblioteca</button>
+      <button class="btn" onclick="showSetlists()" title="Ver repertorios">🎭 Repertorios</button>
+      <button class="btn hdr-icon-btn" id="btnTheme" onclick="cycleTheme()" title="Cambiar tema de color">🌙</button>
     </div>
-    <button class="btn hdr-icon-btn" id="btnSongAudio" onclick="openAudioModal('song',null)" title="Añadir audio a la canción">🎵</button>
 
-    <!-- Separador -->
-    <span class="hdr-sep"></span>
-
-    <!-- Grupo: Exportar (dropdown) -->
-    <div class="hdr-export-wrap" id="exportWrap">
-      <button class="btn hdr-icon-btn" id="btnExportMenu" onclick="toggleExportMenu()" title="Exportar / Importar" style="font-size:1.1rem;letter-spacing:0;">⇅</button>
-      <div class="hdr-export-menu" id="exportMenu">
-        <button onclick="exportJSON();   closeExportMenu()">⬇ JSON</button>
-        <button onclick="exportWord();   closeExportMenu()">📄 RTF</button>
-        <button onclick="printScore(); closeExportMenu()">🖨 Imprimir</button>
+    <!-- MÓVIL FILA 2: Audio · ↩ · ⇅ · ↪ · Guardar · Tocar -->
+    <div class="mhdr-row2">
+      <!-- Audio (player o botón según estado) -->
+      <div id="songAudioPlayer">
+        <span class="sap-label">🎵</span>
+        <button class="sap-play" id="sapPlayBtn" onclick="toggleSongAudio()">▶</button>
+        <div class="sap-bar"><div class="sap-fill" id="sapFill"></div></div>
+        <button class="sap-edit" onclick="openAudioModal('song',null)" title="Cambiar audio">✎</button>
       </div>
+      <button class="btn hdr-icon-btn" id="btnSongAudio" onclick="openAudioModal('song',null)" title="Añadir audio a la canción">🎵</button>
+      <button class="btn hdr-icon-btn" id="btnUndo" onclick="undo()" title="Deshacer (Ctrl+Z)" disabled>↩</button>
+      <div class="hdr-export-wrap" id="exportWrap">
+        <button class="btn hdr-icon-btn" id="btnExportMenu" onclick="toggleExportMenu()" title="Exportar / Importar" style="font-size:1.1rem;letter-spacing:0;">⇅</button>
+        <div class="hdr-export-menu" id="exportMenu">
+          <button onclick="exportJSON();   closeExportMenu()">⬇ JSON</button>
+          <button onclick="exportWord();   closeExportMenu()">📄 RTF</button>
+          <button onclick="printScore(); closeExportMenu()">🖨 Imprimir</button>
+        </div>
+      </div>
+      <button class="btn hdr-icon-btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
+      <button class="btn btn-primary" onclick="saveSongCloud()" title="Guardar en la nube">☁ Guardar</button>
+      <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar">👁 Tocar</button>
     </div>
 
-    <!-- Separador -->
-    <span class="hdr-sep"></span>
+    <!-- MÓVIL FILA 3: Pills filtro (scroll) + icono Tema -->
+    <div class="mhdr-row3"></div>
 
-    <!-- Grupo: Acciones primarias -->
-    <button class="btn btn-primary" onclick="saveSongCloud()" title="Guardar en la nube">☁ Guardar</button>
-    <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar">👁 Tocar</button>
+  </div>
+  <!-- Instrument filter pills -->
+  <div class="inst-filter-bar" id="instFilterBar">
+    <span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;"></span>
+    <button class="inst-pill inst-pill-all active" data-inst="all"   data-short="💫T" onclick="toggleInstFilter('all')"><span class="pill-label">💫 Todos</span></button>
+    <button class="inst-pill inst-pill-guit1"      data-inst="guit1" data-short="🎸M" onclick="toggleInstFilter('guit1')"><span class="pill-label">🎸 Marco</span></button>
+    <button class="inst-pill inst-pill-guit2"      data-inst="guit2" data-short="🎸J" onclick="toggleInstFilter('guit2')"><span class="pill-label">🎸 Juan</span></button>
+    <button class="inst-pill inst-pill-bajo"        data-inst="bajo"  data-short="🎸H" onclick="toggleInstFilter('bajo')"><span class="pill-label">🎸 Hugo</span></button>
+    <button class="inst-pill inst-pill-bat"         data-inst="bat"   data-short="🥁S" onclick="toggleInstFilter('bat')"><span class="pill-label">🥁 Sergito</span></button>
+    <button class="inst-pill inst-pill-voz"         data-inst="voz"   data-short="🎤J" onclick="toggleInstFilter('voz')"><span class="pill-label">🎤 Juan</span></button>
+    <button class="btn hdr-icon-btn pill-theme-btn" id="btnThemePill" onclick="cycleTheme()" title="Cambiar tema de color">🌙</button>
+  </div>
+</div>
+
+<!-- TONALIDAD — cuerpo del editor -->
+<div id="songKeyBar" style="max-width:900px;margin:18px auto 0;padding:0 20px;">
+  <div style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
+    <label for="songKey" style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0;">🎵 Tonalidad</label>
+    <input class="meta-input" id="songKey" placeholder="Do Mayor, La menor..." title="Tonalidad (ej: Do Mayor, La menor)"
+      style="width:140px;"
+      oninput="songData.key = this.value" />
   </div>
 </div>
 
@@ -2018,6 +2245,10 @@ function renderLibrary(songs) {
   songs.forEach(s => {
     const card = document.createElement("div");
     card.className = "song-card";
+    card.style.cursor = "pointer";
+    card.addEventListener("click", (e) => {
+      if (!e.target.closest(".card-actions")) openSong(s.id);
+    });
     const date = s.updated_at ? new Date(s.updated_at).toLocaleDateString("es-ES") : "";
     const isOwner = s.created_by === (_currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''));
     card.innerHTML = `
@@ -2053,7 +2284,7 @@ function newSong() {
   _currentSongId = null;
   songData = {
     title: "", artist: "", key: "", bpm: "", timeSignature: "",
-    sections: [{ id: "s1", name: "Intro", lyric: "", rows: [{ id: "r1", bars: [["C","G"],["Am"],["F"]], repeats: null, comment: "" }] }]
+    sections: [{ id: "s1", name: "Intro", lyric: "", rows: [{ id: "r1", instrument: "guit1", bars: [["C","G"],["Am"],["F"]], repeats: null, comment: "" }] }]
   };
   syncHeaderInputs();
   saveUndo();
@@ -2151,7 +2382,7 @@ let songData = {
       name: "Intro",
       lyric: "",
       rows: [
-        { id: "r1", bars: [["C","G"],["Am"],["F"]], repeats: null, comment: "" }
+        { id: "r1", instrument: "guit1", bars: [["C","G"],["Am"],["F"]], repeats: null, comment: "" }
       ]
     }
   ]
@@ -2373,8 +2604,23 @@ function render() {
     barsArea.className = "bars-area";
 
     sec.rows.forEach((row, ri) => {
+      const inst = row.instrument || "guit1"; // default legacy rows → guit1
+      const instMeta = {
+        guit1: { icon: "🎸", color: "var(--inst-guit1)" },
+        guit2: { icon: "🎸", color: "var(--inst-guit2)" },
+        bajo:  { icon: "🎸", color: "var(--inst-bajo)" },
+        bat:   { icon: "🥁", color: "var(--inst-bat)" },
+        voz:   { icon: "🎤", color: "var(--inst-voz)" },
+      }[inst] || { icon: "🎸", color: "var(--inst-guit1)" };
+
       const rowWrap = document.createElement("div");
-      rowWrap.className = "row-wrap";
+      rowWrap.className = `row-wrap row-inst-${inst}`;
+      rowWrap.dataset.instrument = inst;
+
+      // Instrument color stripe
+      const stripe = document.createElement("div");
+      stripe.className = "inst-stripe";
+      rowWrap.appendChild(stripe);
 
       rowWrap.addEventListener("dragover", e => {
         if (_drag && _drag.type === "row") {
@@ -2432,7 +2678,36 @@ function render() {
       });
       barLine.appendChild(rowHandle);
 
-      // opening bracket
+      // instrument icon — clickable to change instrument (non-voz only)
+      const instIconEl = document.createElement("span");
+      instIconEl.className = "inst-icon";
+      instIconEl.textContent = instMeta.icon;
+      instIconEl.title = inst !== "voz" ? "Clic para cambiar instrumento" : inst.toUpperCase();
+      if (inst !== "voz") {
+        instIconEl.style.cursor = "pointer";
+        instIconEl.style.opacity = "0.85";
+        instIconEl.addEventListener("mouseenter", () => { instIconEl.style.opacity = "1"; instIconEl.style.transform = "scale(1.2)"; });
+        instIconEl.addEventListener("mouseleave", () => { instIconEl.style.opacity = "0.85"; instIconEl.style.transform = ""; });
+        instIconEl.addEventListener("click", e => {
+          e.stopPropagation();
+          if (_readonly) return;
+          openInstPicker(instIconEl, row, sec);
+        });
+      }
+      barLine.appendChild(instIconEl);
+
+      if (inst === "voz") {
+        // ── Vocal row: free multiline textarea
+        const vozTa = document.createElement("textarea");
+        vozTa.className = "voz-text";
+        vozTa.placeholder = "Letra / melodía / indicaciones vocales...";
+        vozTa.value = row.vozText || "";
+        vozTa.rows = 2;
+        vozTa.addEventListener("input", () => { row.vozText = vozTa.value; });
+        barLine.appendChild(vozTa);
+      } else {
+      // ── Instrument rows: bars with chords
+
       const bOpen = document.createElement("span");
       bOpen.className = "rep-bracket";
       bOpen.textContent = "𝄆";
@@ -2483,10 +2758,13 @@ function render() {
       bClose.textContent = "𝄇";
       barLine.appendChild(bClose);
 
-      // right controls
+      } // end else (non-voz)
+
+      // right controls (for all row types)
       const right = document.createElement("div");
       right.className = "row-right";
 
+      if (inst !== "voz") {
       const addBar = document.createElement("button");
       addBar.className = "add-bar-btn";
       addBar.innerHTML = `<span style="font-size:1rem;line-height:1">+</span> compás`;
@@ -2510,6 +2788,7 @@ function render() {
       });
       right.appendChild(xl);
       right.appendChild(repIn);
+      }
 
       const delRow = document.createElement("button");
       delRow.className = "btn-icon";
@@ -2555,16 +2834,39 @@ function render() {
       barsArea.appendChild(rowWrap);
     });
 
-    // + add row
-    const addRowBtn = document.createElement("button");
-    addRowBtn.className = "add-row-btn";
-    addRowBtn.textContent = "+ Añadir línea de compases";
-    addRowBtn.addEventListener("click", () => {
-      saveUndo();
-      sec.rows.push({ id: uid(), bars: [["C"],["G"],["Am"],["F"]], repeats: null, comment: "" });
-      render();
+    // + add row — instrument picker
+    const addRowWrap = document.createElement("div");
+    addRowWrap.className = "add-row-inst-wrap";
+    const instDefs = [
+      { key: "guit1", icon: "🎸", label: "Marco",  color: "var(--inst-guit1)" },
+      { key: "guit2", icon: "🎸", label: "Juan",   color: "var(--inst-guit2)" },
+      { key: "bajo",  icon: "🎸", label: "Hugo",   color: "var(--inst-bajo)" },
+      { key: "bat",   icon: "🥁", label: "Sergito",color: "var(--inst-bat)" },
+      { key: "voz",   icon: "🎤", label: "Juan",   color: "var(--inst-voz)" },
+    ];
+    instDefs.forEach(inst => {
+      const btn = document.createElement("button");
+      btn.className = "add-row-inst-btn";
+      btn.dataset.inst = inst.key;
+      btn.title = `Añadir línea de ${inst.label}`;
+      btn.innerHTML = `<span class="arib-icon">${inst.icon}</span> + ${inst.label}`;
+      btn.style.borderColor = inst.color + "44";
+      btn.style.color = inst.color;
+      btn.addEventListener("mouseenter", () => { btn.style.borderColor = inst.color; });
+      btn.addEventListener("mouseleave", () => { btn.style.borderColor = inst.color + "44"; });
+      btn.addEventListener("click", () => {
+        saveUndo();
+        if (inst.key === "voz") {
+          sec.rows.push({ id: uid(), instrument: "voz", vozText: "", repeats: null, comment: "" });
+        } else {
+          sec.rows.push({ id: uid(), instrument: inst.key, bars: [["C"],["G"],["Am"],["F"]], repeats: null, comment: "" });
+        }
+        render();
+        applyInstFilter();
+      });
+      addRowWrap.appendChild(btn);
     });
-    barsArea.appendChild(addRowBtn);
+    barsArea.appendChild(addRowWrap);
 
     block.appendChild(barsArea);
     chart.appendChild(block);
@@ -2579,20 +2881,68 @@ function render() {
   addSec.textContent = "+ Añadir sección al final";
   addSec.addEventListener("click", () => insertSectionAt(songData.sections.length));
   chart.appendChild(addSec);
+
+  // Apply active instrument filter after render
+  applyInstFilter();
 }
 
 function insertSectionAt(idx) {
   saveUndo();
   songData.sections.splice(idx, 0, {
     id: uid(), name: "Nueva sección", lyric: "", audio: null,
-    rows: [{ id: uid(), bars: [["C"],["G"],["Am"],["F"]], repeats: null, comment: "" }]
+    rows: [{ id: uid(), instrument: "guit1", bars: [["C"],["G"],["Am"],["F"]], repeats: null, comment: "" }]
   });
   render();
+  applyInstFilter();
+}
+
+// ═══════════════════════════════════════════════
+// INSTRUMENT FILTER
+// ═══════════════════════════════════════════════
+let _activeInst = new Set(["all"]);
+
+function toggleInstFilter(inst) {
+  if (inst === "all") {
+    _activeInst = new Set(["all"]);
+  } else {
+    _activeInst.delete("all");
+    if (_activeInst.has(inst)) {
+      _activeInst.delete(inst);
+      if (_activeInst.size === 0) _activeInst = new Set(["all"]);
+    } else {
+      _activeInst.add(inst);
+    }
+  }
+  // Update pill UI
+  document.querySelectorAll(".inst-pill").forEach(pill => {
+    const key = pill.dataset.inst;
+    pill.classList.toggle("active", _activeInst.has(key));
+  });
+  applyInstFilter();
+}
+
+function applyInstFilter() {
+  const showAll = _activeInst.has("all");
+  // Filter row visibility
+  document.querySelectorAll(".row-wrap[data-instrument]").forEach(rw => {
+    const inst = rw.dataset.instrument;
+    rw.classList.toggle("inst-hidden", !showAll && !_activeInst.has(inst));
+  });
+  // Filter add-row buttons: show only buttons matching active filter
+  document.querySelectorAll(".add-row-inst-btn[data-inst]").forEach(btn => {
+    const inst = btn.dataset.inst;
+    btn.style.display = (showAll || _activeInst.has(inst)) ? "" : "none";
+  });
 }
 
 // ═══════════════════════════════════════════════
 // FORMAT CHORD TEXT (superscripts)
 // ═══════════════════════════════════════════════
+function _visibleRows(sec) {
+  if (_activeInst.has("all")) return sec.rows;
+  return sec.rows.filter(row => _activeInst.has(row.instrument || "guit1"));
+}
+
 function fmtChord(s) {
   return s
     .replace(/MA⁷|MA7|maj7/gi, m => 'MA<sup>7</sup>')
@@ -2680,6 +3030,92 @@ function outsideClose(e) {
 function closePopup() {
   if (_popup) { _popup.el.remove(); _popup = null; }
   document.removeEventListener("click", outsideClose);
+}
+
+// ═══════════════════════════════════════════════
+// INSTRUMENT PICKER POPUP
+// ═══════════════════════════════════════════════
+const _instOptions = [
+  { key: "guit1", icon: "🎸", label: "Marco",   color: "var(--inst-guit1)" },
+  { key: "guit2", icon: "🎸", label: "Juan",    color: "var(--inst-guit2)" },
+  { key: "bajo",  icon: "🎸", label: "Hugo",    color: "var(--inst-bajo)"  },
+  { key: "bat",   icon: "🥁", label: "Sergito", color: "var(--inst-bat)"   },
+];
+
+let _instPicker = null;
+
+function openInstPicker(anchor, row, sec) {
+  // Close any existing picker
+  if (_instPicker) { _instPicker.remove(); _instPicker = null; }
+
+  const pop = document.createElement("div");
+  pop.style.cssText = `
+    position:fixed; z-index:9999;
+    background:var(--surface); border:1px solid var(--accent);
+    border-radius:8px; padding:8px; box-shadow:0 8px 32px rgba(0,0,0,0.7);
+    display:flex; flex-direction:column; gap:4px; min-width:140px;
+  `;
+
+  _instOptions.forEach(opt => {
+    const btn = document.createElement("button");
+    const isActive = row.instrument === opt.key;
+    btn.style.cssText = `
+      display:flex; align-items:center; gap:8px;
+      font-family:'Space Mono',monospace; font-size:0.7rem; letter-spacing:0.06em;
+      text-transform:uppercase; padding:7px 12px; border-radius:5px;
+      border:1px solid ${isActive ? opt.color : 'transparent'};
+      background:${isActive ? opt.color + '22' : 'transparent'};
+      color:${isActive ? opt.color : 'var(--muted)'}; cursor:pointer;
+      transition:all 0.12s; text-align:left; width:100%;
+    `;
+    btn.innerHTML = `<span style="font-size:1rem">${opt.icon}</span> ${opt.label}`;
+    btn.addEventListener("mouseenter", () => {
+      btn.style.background = opt.color + "22";
+      btn.style.color = opt.color;
+      btn.style.borderColor = opt.color;
+    });
+    btn.addEventListener("mouseleave", () => {
+      if (row.instrument !== opt.key) {
+        btn.style.background = "transparent";
+        btn.style.color = "var(--muted)";
+        btn.style.borderColor = "transparent";
+      }
+    });
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      if (row.instrument !== opt.key) {
+        saveUndo();
+        row.instrument = opt.key;
+        render();
+        applyInstFilter();
+      }
+      closeInstPicker();
+    });
+    pop.appendChild(btn);
+  });
+
+  document.body.appendChild(pop);
+  _instPicker = pop;
+
+  // Position below the anchor
+  const rect = anchor.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  let left = rect.left;
+  if (left + 150 > window.innerWidth - 8) left = window.innerWidth - 158;
+  if (top + 180 > window.innerHeight - 8) top = rect.top - 186;
+  pop.style.top = top + "px";
+  pop.style.left = left + "px";
+
+  setTimeout(() => document.addEventListener("click", closeInstPickerOutside), 10);
+}
+
+function closeInstPickerOutside(e) {
+  if (_instPicker && !_instPicker.contains(e.target)) closeInstPicker();
+}
+
+function closeInstPicker() {
+  if (_instPicker) { _instPicker.remove(); _instPicker = null; }
+  document.removeEventListener("click", closeInstPickerOutside);
 }
 
 // ═══════════════════════════════════════════════
@@ -2949,7 +3385,7 @@ function exportWord() {
   lines.push(
     '{\\rtf1\\ansi\\deff0',
     '{\\fonttbl{\\f0\\fswiss Arial;}{\\f1\\fmodern Courier New;}}',
-    '{\\colortbl;\\red0\\green0\\blue0;\\red196\\green95\\blue58;\\red136\\green136\\blue136;\\red51\\green51\\blue51;}',
+    '{\\colortbl;\\red0\\green0\\blue0;\\red196\\green95\\blue58;\\red136\\green136\\blue136;\\red51\\green51\\blue51;\\red74\\green158\\blue255;\\red200\\green160\\blue0;\\red224\\green64\\blue64;\\red58\\green176\\blue106;\\red124\\green92\\blue191;}',
     '\\paperw11906\\paperh16838\\margl1080\\margr1080\\margt1080\\margb1080',
     '\\widowctrl\\hyphauto'
   );
@@ -2959,16 +3395,27 @@ function exportWord() {
   lines.push(`\\pard\\sb0\\sa120\\f0\\fs40\\b ${title}\\b0\\par`);
 
   // Artist + meta line
+  const instLabel = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
+  const instIcon  = { guit1:'🎸', guit2:'🎸', bajo:'🎸', bat:'🥁', voz:'🎤' };
+  const instCf    = { guit1:5, guit2:6, bajo:7, bat:8, voz:9 }; // índices colortbl
+
   const metaParts = [];
   if (songData.artist) metaParts.push(songData.artist.toUpperCase());
   if (songData.key) metaParts.push('🎵 ' + songData.key);
   if (songData.bpm) metaParts.push('♩ ' + songData.bpm + ' BPM');
   if (songData.timeSignature) metaParts.push(songData.timeSignature);
+  if (!_activeInst.has('all')) {
+    const names = [..._activeInst].map(k => instLabel[k] || k).join(', ');
+    metaParts.push('Filtro: ' + names);
+  }
   if (metaParts.length) {
     lines.push(`\\pard\\sb0\\sa320\\f0\\fs18\\cf3 ${rtfEsc(metaParts.join('   |   '))}\\cf1\\par`);
   }
 
   songData.sections.forEach((sec) => {
+    const visibleRows = _visibleRows(sec);
+    if (visibleRows.length === 0) return; // omitir sección vacía tras filtro
+
     // Section header line
     const name = rtfEsc(sec.name);
     const lyric = sec.lyric ? '  ' + rtfEsc(sec.lyric) : '';
@@ -2976,18 +3423,30 @@ function exportWord() {
       `\\pard\\sb240\\sa80\\brdrb\\brdrs\\brdrw10\\brdrcf2\\f0\\fs20\\b\\cf2 ${name}\\b0\\cf3\\i${lyric}\\i0\\cf1\\par`
     );
 
-    sec.rows.forEach((row) => {
+    visibleRows.forEach((row) => {
+      const inst = row.instrument || 'guit1';
+      const lbl = rtfEsc((instIcon[inst] || '') + ' ' + (instLabel[inst] || inst));
+      const cf  = instCf[inst] || 4;
+
+      if (inst === 'voz') {
+        const vozText = rtfEsc(row.vozText || '');
+        lines.push(
+          `\\pard\\sb80\\sa120\\li200\\f0\\fs20\\cf${cf}\\b [${lbl}]\\b0\\cf3\\i  ${vozText}\\i0\\cf1\\par`
+        );
+        return;
+      }
+
       // Build chord line: || C  G | Am | F ||  x4
       const parts = row.bars.map(bar => bar.map(plain).join('  '));
       const chordsText = rtfEsc('\u{1D106}  ' + parts.join('   |   ') + '  \u{1D107}');
       const repeatText = row.repeats ? rtfEsc(`   \u00D7${row.repeats}`) : '';
 
       lines.push(
-        `\\pard\\sb80\\sa${row.comment ? 20 : 120}\\li200\\f1\\fs24\\b ${chordsText}\\b0\\f0\\fs20\\cf2${repeatText}\\cf1\\par`
+        `\\pard\\sb80\\sa${row.comment ? 20 : 120}\\li200\\f0\\fs18\\cf${cf}\\b [${lbl}]\\b0\\cf1  \\f1\\fs24\\b ${chordsText}\\b0\\f0\\fs20\\cf2${repeatText}\\cf1\\par`
       );
 
       if (row.comment) {
-        const comm = rtfEsc('  ' + row.comment);
+        const comm = rtfEsc('  💬 ' + row.comment);
         lines.push(`\\pard\\sb0\\sa120\\li280\\f0\\fs17\\cf3\\i ${comm}\\i0\\cf1\\par`);
       }
     });
@@ -3614,7 +4073,9 @@ function applyTheme(idx) {
     html.setAttribute("data-theme", t.key);
   }
   const btnT = document.getElementById("btnTheme");
-  if (btnT) btnT.textContent = t.icon + " Tema";
+  if (btnT) btnT.textContent = t.icon;
+  const btnTP = document.getElementById("btnThemePill");
+  if (btnTP) btnTP.textContent = t.icon;
   try { localStorage.setItem("bt_theme", t.key); } catch(e) {}
 }
 
@@ -4314,15 +4775,38 @@ function copyShareUrl() {
 // directamente para una impresión limpia y fiel
 // ═══════════════════════════════════════════════
 function printScore() {
+  const instLabel = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
+  const instColor = { guit1:'#4a9eff', guit2:'#c8a000', bajo:'#e04040', bat:'#3ab06a', voz:'#7c5cbf' };
+
   const meta = [];
   if (songData.artist)        meta.push(songData.artist);
   if (songData.key)           meta.push('Tono: ' + songData.key);
   if (songData.bpm)           meta.push(songData.bpm + ' bpm');
   if (songData.timeSignature) meta.push(songData.timeSignature);
+  if (!_activeInst.has('all')) {
+    const names = [..._activeInst].map(k => instLabel[k] || k).join(', ');
+    meta.push('Filtro: ' + names);
+  }
 
   const sectionsHTML = songData.sections.map(sec => {
-    const rowsHTML = sec.rows.map(row => {
-      // Compases con acordes
+    const visibleRows = _visibleRows(sec);
+    if (visibleRows.length === 0) return ''; // skip section
+
+    const rowsHTML = visibleRows.map(row => {
+      const inst = row.instrument || 'guit1';
+      const color = instColor[inst] || '#888';
+      const label = instLabel[inst] || inst;
+
+      if (inst === 'voz') {
+        return `
+          <div class="p-row-wrap">
+            <div class="p-bar-line" style="border-left:4px solid ${color};">
+              <span class="p-inst-lbl" style="color:${color}">🎤 ${label}</span>
+              <span class="p-voz-text">${esc(row.vozText || '')}</span>
+            </div>
+          </div>`;
+      }
+
       const barsHTML = row.bars.map((bar, bi) => {
         const divider = bi > 0 ? `<span class="p-bar-div"></span>` : '';
         const chords = bar.map(c => `<span class="p-chord">${fmtChord(c)}</span>`).join('');
@@ -4331,13 +4815,13 @@ function printScore() {
 
       const repeats = (row.repeats && row.repeats > 1)
         ? `<span class="p-repeats">× ${row.repeats}</span>` : '';
-
       const comment = row.comment
         ? `<div class="p-comment">💬 ${esc(row.comment)}</div>` : '';
 
       return `
         <div class="p-row-wrap">
-          <div class="p-bar-line">
+          <div class="p-bar-line" style="border-left:4px solid ${color};">
+            <span class="p-inst-lbl" style="color:${color}">🎸 ${label}</span>
             <span class="p-bracket">𝄆</span>
             ${barsHTML}
             <span class="p-bracket">𝄇</span>
@@ -4366,15 +4850,11 @@ function printScore() {
       * { box-sizing: border-box; margin: 0; padding: 0; }
       .p-wrap { font-family: 'IBM Plex Sans', sans-serif; color: #111;
         max-width: 860px; margin: 0 auto; padding: 20px 24px; }
-
-      /* ── Cabecera ── */
       .p-header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; }
       .p-title  { font-family: 'Playfair Display', serif; font-size: 2rem;
         font-weight: 700; color: #111; line-height: 1.15; }
       .p-meta   { font-family: 'Space Mono', monospace; font-size: 0.78rem;
         color: #555; letter-spacing: 0.08em; margin-top: 4px; }
-
-      /* ── Secciones ── */
       .p-section { border: 1px solid #ccc; border-radius: 8px;
         overflow: hidden; margin-bottom: 10px; break-inside: avoid; }
       .p-sec-header { background: #f2f2f2; padding: 7px 14px;
@@ -4384,16 +4864,21 @@ function printScore() {
         font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
         color: #c45f3a; background: rgba(196,95,58,0.08);
         border: 1px solid rgba(196,95,58,0.35); border-radius: 4px;
-        padding: 3px 9px; flex-shrink: 0; }
+        padding: 3px 9px; flex-shrink: 0;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .p-lyric  { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.82rem;
         color: #666; font-style: italic; }
-
-      /* ── Filas de compases ── */
       .p-bars-area { padding: 4px 6px; }
       .p-row-wrap  { margin: 3px 0; }
       .p-bar-line  { display: flex; align-items: center; flex-wrap: wrap;
         gap: 4px; padding: 8px 10px; background: #fff;
-        border: 1px solid #e0e0e0; border-radius: 5px; }
+        border: 1px solid #e0e0e0; border-radius: 5px;
+        border-left-width: 4px;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .p-inst-lbl  { font-family: 'Space Mono', monospace; font-size: 0.62rem;
+        font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        flex-shrink: 0; margin-right: 4px;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .p-bracket   { font-size: 1.6rem; color: #444; line-height: 1;
         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .p-bar-unit  { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
@@ -4406,11 +4891,13 @@ function printScore() {
         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .p-chord sup { font-size: 0.55em; vertical-align: super; }
       .p-repeats   { font-family: 'Space Mono', monospace; font-size: 0.88rem;
-        font-weight: 700; color: #c45f3a; margin-left: 8px; }
+        font-weight: 700; color: #c45f3a; margin-left: 8px;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .p-voz-text  { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem;
+        color: #333; font-style: italic; white-space: pre-wrap; flex: 1; }
       .p-comment   { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8rem;
         color: #666; font-style: italic; padding: 3px 10px 4px 14px;
         border-left: 2px solid #ddd; margin: 2px 0 4px 10px; }
-
       .p-footer    { margin-top: 28px; font-family: 'Space Mono', monospace;
         font-size: 0.65rem; color: #bbb; text-align: right; }
     </style>
