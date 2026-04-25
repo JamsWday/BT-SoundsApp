@@ -909,9 +909,8 @@ body {
   .pill-theme-btn {
     display: inline-flex !important;
     flex-shrink: 0;
-    padding: 5px 8px !important;
+    padding: 5px 5px !important;
     font-size: 1rem !important;
-    margin-left: 4px;
     border-left: 1px solid var(--border);
   }
 
@@ -925,6 +924,8 @@ body {
     scrollbar-width: none;
     padding: 6px 0 4px;
     gap: 4px;
+    width: 100%;
+    min-width: 0;
   }
   .inst-filter-bar::-webkit-scrollbar { display: none; }
 
@@ -954,7 +955,7 @@ body {
 .pill-theme-btn { display: none; }
 
 @media (max-width: 600px) {
-  .pill-theme-btn { display: inline-flex !important; flex-shrink: 0; padding: 5px 6px !important; font-size: 1rem !important; border-left: 1px solid var(--border); }
+  .pill-theme-btn { display: inline-flex !important; flex-shrink: 0; padding: 5px 5px !important; font-size: 1rem !important; border-left: 1px solid var(--border); }
   #btnTheme { display: none !important; }
   /* Audio sin barra de progreso en móvil edición */
   #songAudioPlayer .sap-bar { display: none !important; }
@@ -1764,6 +1765,8 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   line-height: 1.5;
   transition: border-color 0.2s;
   width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 .voz-text:focus { border-bottom-color: var(--inst-voz); }
 .voz-text::placeholder { color: var(--dim); font-style: italic; }
@@ -2718,9 +2721,11 @@ function render() {
         vozTa.className = "voz-text";
         vozTa.placeholder = "Letra / melodía / indicaciones vocales...";
         vozTa.value = row.vozText || "";
-        vozTa.rows = 2;
-        vozTa.addEventListener("input", () => { row.vozText = vozTa.value; });
+        vozTa.rows = 1;
+        const autoResize = () => { vozTa.style.height = "auto"; vozTa.style.height = vozTa.scrollHeight + "px"; };
+        vozTa.addEventListener("input", () => { row.vozText = vozTa.value; autoResize(); });
         barLine.appendChild(vozTa);
+        setTimeout(autoResize, 0);
       } else {
       // ── Instrument rows: bars with chords
 
