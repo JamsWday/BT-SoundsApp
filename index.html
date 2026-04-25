@@ -1916,7 +1916,7 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
 
     <!-- MÓVIL FILA 1: Biblioteca · Repertorios (DESKTOP: + Tema) -->
     <div class="mhdr-row1">
-      <button class="btn" onclick="showLibrary()" title="Volver a la biblioteca">📚 Biblioteca</button>
+      <button class="btn" onclick="showLibrary()" title="Volver a la biblioteca">🎶 Biblioteca</button>
       <button class="btn" onclick="showSetlists()" title="Ver repertorios">🎭 Repertorios</button>
       <button class="btn hdr-icon-btn" id="btnTheme" onclick="cycleTheme()" title="Cambiar tema de color">🌙</button>
     </div>
@@ -2722,10 +2722,14 @@ function render() {
         vozTa.placeholder = "Letra / melodía / indicaciones vocales...";
         vozTa.value = row.vozText || "";
         vozTa.rows = 1;
-        const autoResize = () => { vozTa.style.height = "auto"; vozTa.style.height = vozTa.scrollHeight + "px"; };
+        const autoResize = () => {
+          vozTa.style.height = "auto";
+          vozTa.style.height = vozTa.scrollHeight + "px";
+        };
         vozTa.addEventListener("input", () => { row.vozText = vozTa.value; autoResize(); });
         barLine.appendChild(vozTa);
-        setTimeout(autoResize, 0);
+        // Use rAF to ensure layout is painted before measuring scrollHeight
+        requestAnimationFrame(() => requestAnimationFrame(autoResize));
       } else {
       // ── Instrument rows: bars with chords
 
@@ -3143,6 +3147,16 @@ function closeInstPicker() {
 // READ-ONLY / PERFORMANCE MODE
 // ═══════════════════════════════════════════════
 let _readonly = false;
+
+function resizeAllVozTextareas() {
+  requestAnimationFrame(() => {
+    document.querySelectorAll(".voz-text").forEach(ta => {
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    });
+  });
+}
+
 function toggleReadonly() {
   _readonly = !_readonly;
   document.body.classList.toggle("readonly", _readonly);
@@ -3159,6 +3173,8 @@ function toggleReadonly() {
     stopAllSectionAudio();
     stopSongAudio();
   }
+  // Recalculate voz textarea heights after layout change
+  resizeAllVozTextareas();
 }
 
 // ═══════════════════════════════════════════════
@@ -4961,8 +4977,8 @@ function printScore() {
     <button class="btn btn-primary" id="slSaveBtn" onclick="saveCurrentSetlist()" style="display:none">☁ Guardar</button>
     <button class="btn" id="slConcertBtn" onclick="openConcertMode()" style="display:none">🎤 Concierto</button>
     <button class="btn" id="slPdfBtn" onclick="exportSetlistPDF()" style="display:none">🖨 PDF</button>
-    <button class="btn" id="slShareBtn" onclick="openShareModal()" style="display:none">🔗 Compartir</button>
-    <button class="btn" onclick="closeSetlists()">← Biblioteca</button>
+    <button class="btn hdr-icon-btn" id="slShareBtn" onclick="openShareModal()" title="Compartir repertorio" style="display:none">🔗</button>
+    <button class="btn" onclick="closeSetlists()">🎶 Biblioteca</button>
   </div>
   <!-- Lista de repertorios -->
   <div id="slList" class="lib-body" style="display:flex;flex-direction:column;">
