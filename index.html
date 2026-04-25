@@ -1030,11 +1030,40 @@ body.readonly #scrollBar { display: flex; }
 #btnPlay.playing:hover { background: #d96940; }
 #btnPlay .play-icon { font-size: 1rem; line-height: 1; }
 
+#btnSaveScroll {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 9px 11px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--bg);
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+#btnSaveScroll:hover { background: #f5d84a; }
+#btnSaveScroll.saved { background: var(--green); color: #fff; }
+
 .scroll-speed-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+.scroll-speed-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  font-weight: 700;
+  min-width: 14px;
+  text-align: right;
+  margin-right: 2px;
 }
 .scroll-speed-label {
   display: none;
@@ -1067,14 +1096,7 @@ body.readonly #scrollBar { display: flex; }
   cursor: pointer;
   border: none;
 }
-.scroll-speed-val {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.72rem;
-  color: var(--accent);
-  font-weight: 700;
-  min-width: 28px;
-  text-align: left;
-}
+
 .scroll-progress {
   flex: 1;
   max-width: 200px;
@@ -1987,7 +2009,7 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
     <span class="scroll-speed-label">Velocidad</span>
     <input type="range" id="scrollSpeed" min="1" max="10" value="3"
       oninput="updateSpeedLabel()" title="Velocidad de autoscroll" />
-    <span class="scroll-speed-val" id="speedVal">3</span>
+    <span class="scroll-speed-val" id="speedVal">3</span><button id="btnSaveScroll" onclick="saveScrollSpeed()" title="Guardar velocidad para esta canción">☁</button>
   </div>
   <!-- Progreso compacto -->
   <div class="scroll-progress" title="Progreso">
@@ -2395,6 +2417,7 @@ let songData = {
   key: "",
   bpm: "",
   timeSignature: "",
+  scrollSpeed: 3,
   sections: [
     {
       id: "s1",
@@ -3178,35 +3201,54 @@ function toggleReadonly() {
 }
 
 // ═══════════════════════════════════════════════
-// AUTOSCROLL
+// AUTOSCROLL — delta-time accumulator, px/s model
 // ═══════════════════════════════════════════════
-let _scrollRaf = null;
-let _scrolling  = false;
+let _scrollRaf   = null;
+let _scrolling   = false;
+let _scrollAccum = 0;   // sub-pixel accumulator
+
+// Exponential speed curve: very usable slow end, reasonable fast end.
+// Level 1 → ~4 px/s  |  Level 5 → ~22 px/s  |  Level 10 → ~80 px/s
+function _speedToPxPerSec(level) {
+  const A = 2.83, B = 0.329; // anchors: 1→4, 10→80
+  return A * Math.exp(B * level);
+}
 
 function toggleScroll() {
   _scrolling ? stopScroll() : startScroll();
 }
 
 function startScroll() {
-  _scrolling = true;
+  _scrolling   = true;
+  _scrollAccum = 0;
   const btn  = document.getElementById("btnPlay");
   const icon = document.getElementById("playIcon");
   btn.classList.add("playing");
   icon.textContent = "⏹";
 
-  let last = null;
+  let lastTs = null;
+
   function step(ts) {
     if (!_scrolling) return;
 
-    const speed = parseInt(document.getElementById("scrollSpeed").value);
-    // px per second: speed 1 = 10 px/s … speed 10 = 150 px/s (mitad de velocidad)
-    const pxPerSec = 10 + (speed - 1) * (140 / 9);
+    // Skip first frame (no delta yet), cap delta at 100ms to avoid jumps after tab-switch
+    if (lastTs === null) { lastTs = ts; _scrollRaf = requestAnimationFrame(step); return; }
+    const rawDelta = ts - lastTs;
+    lastTs = ts;
+    const delta = Math.min(rawDelta, 100) / 1000; // seconds
 
-    if (last !== null) {
-      const delta = (ts - last) / 1000;
-      window.scrollBy(0, pxPerSec * delta);
+    const speed    = parseInt(document.getElementById("scrollSpeed").value, 10);
+    const pxPerSec = _speedToPxPerSec(speed);
+
+    // Accumulate fractional pixels — fixes "no movement" at slow speeds on Android/PC
+    _scrollAccum += pxPerSec * delta;
+    const intPx   = Math.floor(_scrollAccum);
+    _scrollAccum -= intPx;
+
+    if (intPx > 0) {
+      // scrollTo with absolute position avoids Safari overscroll-bounce glitches
+      window.scrollTo({ top: window.scrollY + intPx, behavior: "instant" });
     }
-    last = ts;
 
     // Update progress bar
     const scrolled = window.scrollY;
@@ -3214,31 +3256,44 @@ function startScroll() {
     const pct      = total > 0 ? Math.min(100, (scrolled / total) * 100) : 0;
     document.getElementById("progressFill").style.width = pct + "%";
 
-    // Auto-stop at the bottom
-    if (scrolled + window.innerHeight >= document.body.scrollHeight - 4) {
-      stopScroll();
-      return;
-    }
+    // Auto-stop at bottom
+    if (total > 0 && scrolled >= total - 2) { stopScroll(); return; }
 
     _scrollRaf = requestAnimationFrame(step);
   }
+
   _scrollRaf = requestAnimationFrame(step);
 }
 
 function stopScroll() {
-  _scrolling = false;
+  _scrolling   = false;
+  _scrollAccum = 0;
   if (_scrollRaf) { cancelAnimationFrame(_scrollRaf); _scrollRaf = null; }
   const btn  = document.getElementById("btnPlay");
   const icon = document.getElementById("playIcon");
-  if (btn) {
-    btn.classList.remove("playing");
-    icon.textContent = "▶";
-  }
+  if (btn) { btn.classList.remove("playing"); icon.textContent = "▶"; }
 }
 
 function updateSpeedLabel() {
-  const v = document.getElementById("scrollSpeed").value;
+  const v = parseInt(document.getElementById("scrollSpeed").value, 10);
   document.getElementById("speedVal").textContent = v;
+  if (songData) songData.scrollSpeed = v;
+}
+
+function saveScrollSpeed() {
+  const v = parseInt(document.getElementById("scrollSpeed").value, 10);
+  if (songData) songData.scrollSpeed = v;
+  try {
+    const key = "scrollSpeed:" + (_currentSongId || "unsaved");
+    localStorage.setItem(key, v);
+  } catch(e) {}
+  // Visual feedback
+  const btn = document.getElementById("btnSaveScroll");
+  if (btn) {
+    btn.textContent = "✓";
+    btn.classList.add("saved");
+    setTimeout(() => { btn.textContent = "☁"; btn.classList.remove("saved"); }, 1200);
+  }
 }
 
 // Space bar toggles play/stop in readonly mode
@@ -3372,6 +3427,19 @@ function loadSong(d) {
   saveUndo();
   render();
   updateSongAudioPlayer();
+  // Restore per-song scroll speed: localStorage takes priority (set in Tocar mode),
+  // then the value saved in the cloud JSON, then default 3.
+  let spd = 3;
+  try {
+    const stored = localStorage.getItem("scrollSpeed:" + (_currentSongId || "unsaved"));
+    if (stored) spd = parseInt(stored, 10);
+    else if (songData.scrollSpeed) spd = songData.scrollSpeed;
+  } catch(e) {
+    if (songData.scrollSpeed) spd = songData.scrollSpeed;
+  }
+  spd = Math.max(1, Math.min(10, spd));
+  const el = document.getElementById("scrollSpeed");
+  if (el) { el.value = spd; document.getElementById("speedVal").textContent = spd; }
 }
 
 function copyJSON() {
