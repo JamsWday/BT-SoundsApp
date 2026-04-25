@@ -77,6 +77,22 @@
 [data-theme="neon"] body.readonly .repeat-input { color: #00ffe7; }
 [data-theme="neon"] body.readonly #btnReadonly { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
 
+/* ── Neón: índigo en lugar de grises apagados ── */
+[data-theme="neon"] .meta-sep { color: #2a1a6a; }
+[data-theme="neon"] .meta-input { border-bottom-color: #2a1a6a; }
+[data-theme="neon"] .meta-input::placeholder { color: #3a2a7a; }
+[data-theme="neon"] .artist-input::placeholder { color: #3a2a7a; }
+[data-theme="neon"] .title-input::placeholder { color: #2a1a6a; }
+[data-theme="neon"] .add-chord-in-bar { border-color: #2a1a6a; color: #6655ff; }
+[data-theme="neon"] .add-bar-btn { border-color: #2a1a6a; color: #6655ff; }
+[data-theme="neon"] .add-row-btn { border-color: #2a1a6a; color: #6655ff; }
+[data-theme="neon"] .add-section-btn { border-color: #2a1a6a; color: #6655ff; }
+[data-theme="neon"] .comment-icon { color: #3a2a7a; }
+[data-theme="neon"] .comment-input::placeholder { color: #3a2a7a; }
+[data-theme="neon"] .drag-handle { color: #3a2a7a; }
+[data-theme="neon"] .section-insert { border-color: transparent; }
+[data-theme="neon"] .section-insert::after { color: #6655ff; }
+
 /* Tema Claro */
 [data-theme="light"] {
   --bg: #f5f5f0;
@@ -938,7 +954,7 @@ body {
 .pill-theme-btn { display: none; }
 
 @media (max-width: 600px) {
-  .pill-theme-btn { display: inline-flex !important; flex-shrink: 0; padding: 5px 8px !important; font-size: 1rem !important; margin-left: 2px; border-left: 1px solid var(--border); }
+  .pill-theme-btn { display: inline-flex !important; flex-shrink: 0; padding: 5px 6px !important; font-size: 1rem !important; border-left: 1px solid var(--border); }
   #btnTheme { display: none !important; }
   /* Audio sin barra de progreso en móvil edición */
   #songAudioPlayer .sap-bar { display: none !important; }
@@ -1288,7 +1304,7 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   transition: all 0.2s;
   display: flex; flex-direction: column; gap: 6px;
 }
-.song-card:hover { border-color: var(--accent); background: var(--surface2); }
+.song-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
 .song-card .card-title {
   font-family: 'Playfair Display', serif;
   color: var(--accent);
@@ -4221,6 +4237,7 @@ function _renderSetlistGrid(list) {
 
     const card = document.createElement("div");
     card.className = "song-card";
+    card.style.cursor = "pointer";
     card.innerHTML = `
       <div class="card-title">${sl.name || "(Sin nombre)"}</div>
       <div class="card-artist">${songs.length} canción${songs.length !== 1 ? "es" : ""}</div>
@@ -4232,6 +4249,11 @@ function _renderSetlistGrid(list) {
         <button class="card-btn" onclick="duplicateSetlist('${sl.id}',event)">⧉ Duplicar</button>
         <button class="card-btn danger" onclick="deleteSetlist('${sl.id}',event)">🗑 Borrar</button>
       </div>`;
+    card.addEventListener("click", e => {
+      // No activar si el clic fue en uno de los botones de acción
+      if (e.target.closest(".card-actions")) return;
+      openSetlist(sl.id);
+    });
     grid.appendChild(card);
   });
 }
@@ -4348,26 +4370,26 @@ function _renderSongList() {
     mainRow.style.cssText = "display:flex;align-items:center;gap:10px;";
 
     const linkBadge = linked
-      ? `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--green);border:1px solid rgba(57,255,20,0.4);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;" class="sl-open-btn">📄 Cifrado</span>`
-      : `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;" class="sl-link-btn">🔗 Vincular</span>`;
+      ? `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--green);border:1px solid rgba(57,255,20,0.4);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;white-space:nowrap;" class="sl-open-btn">📄 Cifrado</span>`
+      : `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;white-space:nowrap;" class="sl-link-btn">🔗 Vincular</span>`;
 
     const dur = song.duration ? `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);flex-shrink:0;">⏱ ${song.duration}m</span>` : "";
 
+    mainRow.style.cssText = "display:flex;align-items:center;gap:5px;";
     mainRow.innerHTML = `
-      <span style="cursor:grab;color:var(--dim);font-size:1rem;padding:2px 4px;user-select:none;flex-shrink:0;" class="sl-handle">⠿</span>
-      <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);min-width:22px;text-align:right;flex-shrink:0;">${idx + 1}</span>
-      <button class="sl-status-btn" title="Cambiar estado (clic para ciclar)" style="background:transparent;border:none;cursor:pointer;font-size:1.1rem;padding:0 2px;flex-shrink:0;line-height:1;">${statusIcons[song.status || 0]}</button>
+      <span style="cursor:grab;color:var(--dim);font-size:1rem;padding:2px 2px;user-select:none;flex-shrink:0;" class="sl-handle">⠿</span>
+      <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);text-align:right;flex-shrink:0;">${idx + 1}</span>
+      <button class="sl-status-btn" title="Cambiar estado (clic para ciclar)" style="background:transparent;border:none;cursor:pointer;font-size:1.1rem;padding:0 1px;flex-shrink:0;line-height:1;">${statusIcons[song.status || 0]}</button>
       <div style="flex:1;min-width:0;">
         <div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${song.title || "(Sin título)"}</div>
         <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${[song.artist, song.key ? "🎵 "+song.key : "", song.bpm ? song.bpm+" bpm" : ""].filter(Boolean).join(" · ")}</div>
       </div>
       ${dur}
-      ${linkBadge}
       <button class="btn-icon sl-del" title="Quitar del repertorio">✕</button>`;
 
-    // Notas inline editables
+    // Notas inline editables + badge vincular/cifrado a la derecha
     const notesRow = document.createElement("div");
-    notesRow.style.cssText = "display:flex;align-items:center;gap:6px;padding-left:70px;";
+    notesRow.style.cssText = "display:flex;align-items:center;gap:6px;padding-left:52px;";
     const notesInput = document.createElement("input");
     notesInput.value = song.notes || "";
     notesInput.placeholder = "Notas, observaciones...";
@@ -4376,6 +4398,10 @@ function _renderSongList() {
     notesInput.addEventListener("blur",  () => { notesInput.style.borderBottomColor = "transparent"; notesInput.style.color = "var(--muted)"; });
     notesInput.addEventListener("input", () => { song.notes = notesInput.value; _slDirty = true; });
     notesRow.appendChild(notesInput);
+    // Badge al final de la fila de notas
+    const badgeEl = document.createElement("span");
+    badgeEl.innerHTML = linkBadge;
+    notesRow.appendChild(badgeEl.firstElementChild);
 
     row.appendChild(mainRow);
     row.appendChild(notesRow);
@@ -4388,14 +4414,14 @@ function _renderSongList() {
     });
 
     // Abrir cifrado
-    const openBtn = mainRow.querySelector(".sl-open-btn");
+    const openBtn = notesRow.querySelector(".sl-open-btn");
     if (openBtn) openBtn.addEventListener("click", () => {
       openSong(song.song_id);
       document.getElementById("setlistScreen").style.display = "none";
     });
 
     // Vincular
-    const linkBtn = mainRow.querySelector(".sl-link-btn");
+    const linkBtn = notesRow.querySelector(".sl-link-btn");
     if (linkBtn) linkBtn.addEventListener("click", () => _linkSongManually(idx));
 
     // Quitar
