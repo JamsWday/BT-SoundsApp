@@ -3226,28 +3226,44 @@ function startScroll() {
   btn.classList.add("playing");
   icon.textContent = "⏹";
 
-  let lastTs = null;
+  let lastTs       = null;
+  let useAccum     = false;  // start in float mode
+  let stuckFrames  = 0;      // consecutive frames where scrollY didn't change
+  const STUCK_THRESHOLD = 4; // frames before switching to accumulator mode
 
   function step(ts) {
     if (!_scrolling) return;
 
-    // Skip first frame (no delta yet), cap delta at 100ms to avoid jumps after tab-switch
     if (lastTs === null) { lastTs = ts; _scrollRaf = requestAnimationFrame(step); return; }
-    const rawDelta = ts - lastTs;
+    const delta = Math.min(ts - lastTs, 100) / 1000;
     lastTs = ts;
-    const delta = Math.min(rawDelta, 100) / 1000; // seconds
 
     const speed    = parseInt(document.getElementById("scrollSpeed").value, 10);
     const pxPerSec = _speedToPxPerSec(speed);
+    const move     = pxPerSec * delta;
 
-    // Accumulate fractional pixels — fixes "no movement" at slow speeds on Android/PC
-    _scrollAccum += pxPerSec * delta;
-    const intPx   = Math.floor(_scrollAccum);
-    _scrollAccum -= intPx;
+    const before = window.scrollY;
 
-    if (intPx > 0) {
-      // scrollTo with absolute position avoids Safari overscroll-bounce glitches
-      window.scrollTo({ top: window.scrollY + intPx, behavior: "instant" });
+    if (!useAccum) {
+      // ── Float mode: smooth, native sub-pixel scrolling
+      window.scrollTo({ top: before + move, behavior: "instant" });
+      const after = window.scrollY;
+
+      if (Math.abs(after - before) < 0.01 && move > 0.01) {
+        stuckFrames++;
+        if (stuckFrames >= STUCK_THRESHOLD) {
+          useAccum = true;   // switch to accumulator mode silently
+          _scrollAccum = 0;
+        }
+      } else {
+        stuckFrames = 0;
+      }
+    } else {
+      // ── Accumulator mode: integer-pixel fallback for devices that ignore fractional scrollTo
+      _scrollAccum += move;
+      const intPx = Math.floor(_scrollAccum);
+      _scrollAccum -= intPx;
+      if (intPx > 0) window.scrollTo({ top: before + intPx, behavior: "instant" });
     }
 
     // Update progress bar
