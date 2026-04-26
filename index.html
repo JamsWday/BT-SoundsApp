@@ -2058,6 +2058,7 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
         <div class="hdr-export-menu" id="exportMenu">
           <button onclick="exportJSON();   closeExportMenu()">⬇ JSON</button>
           <button onclick="exportWord();   closeExportMenu()">📄 RTF</button>
+          <button onclick="exportScorePDF(); closeExportMenu()">📄 PDF</button>
           <button onclick="printScore(); closeExportMenu()">🖨 Imprimir</button>
         </div>
       </div>
@@ -5047,7 +5048,8 @@ function copyShareUrl() {
 // IMPRIMIR CIFRADO — genera HTML desde songData
 // directamente para una impresión limpia y fiel
 // ═══════════════════════════════════════════════
-function printScore() {
+// Shared HTML builder — used by both printScore() and exportScorePDF()
+function buildScoreHTML() {
   const instLabel = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
   const instColor = { guit1:'#4a9eff', guit2:'#c8a000', bajo:'#e04040', bat:'#3ab06a', voz:'#7c5cbf' };
 
@@ -5061,28 +5063,30 @@ function printScore() {
     meta.push('Filtro: ' + names);
   }
 
+  // CSS-only repeat brackets (no Unicode music chars — poor font support)
+  const bkOpen  = '<span class="p-rep-open" ><span class="p-rep-bar"></span><span class="p-rep-dots"><span></span><span></span></span></span>';
+  const bkClose = '<span class="p-rep-close"><span class="p-rep-dots"><span></span><span></span></span><span class="p-rep-bar"></span></span>';
+
   const sectionsHTML = songData.sections.map(sec => {
     const visibleRows = _visibleRows(sec);
-    if (visibleRows.length === 0) return ''; // skip section
+    if (visibleRows.length === 0) return '';
 
     const rowsHTML = visibleRows.map(row => {
-      const inst = row.instrument || 'guit1';
+      const inst  = row.instrument || 'guit1';
       const color = instColor[inst] || '#888';
       const label = instLabel[inst] || inst;
 
       if (inst === 'voz') {
-        return `
-          <div class="p-row-wrap">
-            <div class="p-bar-line" style="border-left:4px solid ${color};">
-              <span class="p-inst-lbl" style="color:${color}">🎤 ${label}</span>
-              <span class="p-voz-text">${esc(row.vozText || '')}</span>
-            </div>
-          </div>`;
+        return `<div class="p-row-wrap">
+          <div class="p-bar-line" style="border-left:4px solid ${color};">
+            <span class="p-inst-lbl" style="color:${color}">🎤 ${label}</span>
+            <span class="p-voz-text">${esc(row.vozText || '')}</span>
+          </div></div>`;
       }
 
       const barsHTML = row.bars.map((bar, bi) => {
         const divider = bi > 0 ? `<span class="p-bar-div"></span>` : '';
-        const chords = bar.map(c => `<span class="p-chord">${fmtChord(c)}</span>`).join('');
+        const chords  = bar.map(c => `<span class="p-chord">${fmtChord(c)}</span>`).join('');
         return divider + `<div class="p-bar-unit">${chords}</div>`;
       }).join('');
 
@@ -5091,101 +5095,116 @@ function printScore() {
       const comment = row.comment
         ? `<div class="p-comment">💬 ${esc(row.comment)}</div>` : '';
 
-      return `
-        <div class="p-row-wrap">
-          <div class="p-bar-line" style="border-left:4px solid ${color};">
-            <span class="p-inst-lbl" style="color:${color}">🎸 ${label}</span>
-            <span class="p-bracket">𝄆</span>
-            ${barsHTML}
-            <span class="p-bracket">𝄇</span>
-            ${repeats}
-          </div>
-          ${comment}
-        </div>`;
+      return `<div class="p-row-wrap">
+        <div class="p-bar-line" style="border-left:4px solid ${color};">
+          <span class="p-inst-lbl" style="color:${color}">🎸 ${label}</span>
+          ${bkOpen}${barsHTML}${bkClose}${repeats}
+        </div>${comment}</div>`;
     }).join('');
 
-    const lyric = sec.lyric
-      ? `<span class="p-lyric">${esc(sec.lyric)}</span>` : '';
+    const lyric = sec.lyric ? `<span class="p-lyric">${esc(sec.lyric)}</span>` : '';
 
-    return `
-      <div class="p-section">
-        <div class="p-sec-header">
-          <span class="p-sec-name">${esc(sec.name || 'Sección')}</span>
-          ${lyric}
-        </div>
-        <div class="p-bars-area">${rowsHTML}</div>
-      </div>`;
+    return `<div class="p-section">
+      <div class="p-sec-header">
+        <span class="p-sec-name">${esc(sec.name || 'Sección')}</span>${lyric}
+      </div>
+      <div class="p-bars-area">${rowsHTML}</div>
+    </div>`;
   }).join('');
 
-  const html = `
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      .p-wrap { font-family: 'IBM Plex Sans', sans-serif; color: #111;
-        max-width: 860px; margin: 0 auto; padding: 20px 24px; }
-      .p-header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; }
-      .p-title  { font-family: 'Playfair Display', serif; font-size: 2rem;
-        font-weight: 700; color: #111; line-height: 1.15; }
-      .p-meta   { font-family: 'Space Mono', monospace; font-size: 0.78rem;
-        color: #555; letter-spacing: 0.08em; margin-top: 4px; }
-      .p-section { border: 1px solid #ccc; border-radius: 8px;
-        overflow: hidden; margin-bottom: 10px; break-inside: avoid; }
-      .p-sec-header { background: #f2f2f2; padding: 7px 14px;
-        display: flex; align-items: center; gap: 12px;
-        border-bottom: 1px solid #ddd; }
-      .p-sec-name { font-family: 'Space Mono', monospace; font-size: 0.78rem;
-        font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-        color: #c45f3a; background: rgba(196,95,58,0.08);
-        border: 1px solid rgba(196,95,58,0.35); border-radius: 4px;
-        padding: 3px 9px; flex-shrink: 0;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .p-lyric  { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.82rem;
-        color: #666; font-style: italic; }
-      .p-bars-area { padding: 4px 6px; }
-      .p-row-wrap  { margin: 3px 0; }
-      .p-bar-line  { display: flex; align-items: center; flex-wrap: wrap;
-        gap: 4px; padding: 8px 10px; background: #fff;
-        border: 1px solid #e0e0e0; border-radius: 5px;
-        border-left-width: 4px;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .p-inst-lbl  { font-family: 'Space Mono', monospace; font-size: 0.62rem;
-        font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-        flex-shrink: 0; margin-right: 4px;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .p-bracket   { font-size: 1.6rem; color: #444; line-height: 1;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .p-bar-unit  { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
-      .p-bar-div   { width: 2px; height: 30px; background: #333; flex-shrink: 0;
-        border-radius: 1px; align-self: stretch;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .p-chord     { font-family: 'Space Mono', monospace; font-size: 1.15rem;
-        font-weight: 700; color: #111; padding: 3px 8px;
-        border: 1px solid #ddd; border-radius: 4px; background: #fafafa;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .p-chord sup { font-size: 0.55em; vertical-align: super; }
-      .p-repeats   { font-family: 'Space Mono', monospace; font-size: 0.88rem;
-        font-weight: 700; color: #c45f3a; margin-left: 8px;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .p-voz-text  { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem;
-        color: #333; font-style: italic; white-space: pre-wrap; flex: 1; }
-      .p-comment   { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8rem;
-        color: #666; font-style: italic; padding: 3px 10px 4px 14px;
-        border-left: 2px solid #ddd; margin: 2px 0 4px 10px; }
-      .p-footer    { margin-top: 28px; font-family: 'Space Mono', monospace;
-        font-size: 0.65rem; color: #bbb; text-align: right; }
-    </style>
-    <div class="p-wrap">
-      <div class="p-header">
-        <div class="p-title">${esc(songData.title || '(Sin título)')}</div>
-        ${meta.length ? `<div class="p-meta">${meta.join(' · ')}</div>` : ''}
-      </div>
-      ${sectionsHTML}
-      <div class="p-footer">BT SoundsApp</div>
-    </div>`;
+  const css = `
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    .p-wrap      { font-family: 'IBM Plex Sans', sans-serif; color: #111; max-width: 860px; margin: 0 auto; padding: 20px 24px; }
+    .p-header    { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; }
+    .p-title     { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: #111; line-height: 1.15; }
+    .p-meta      { font-family: 'Space Mono', monospace; font-size: 0.78rem; color: #555; letter-spacing: 0.08em; margin-top: 4px; }
+    .p-section   { border: 1px solid #ccc; border-radius: 8px; overflow: hidden; margin-bottom: 10px; break-inside: avoid; }
+    .p-sec-header{ background: #f2f2f2; padding: 7px 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; }
+    .p-sec-name  { font-family: 'Space Mono', monospace; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+                   color: #c45f3a; background: rgba(196,95,58,0.08); border: 1px solid rgba(196,95,58,0.35); border-radius: 4px; padding: 3px 9px; flex-shrink: 0;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-lyric     { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.82rem; color: #666; font-style: italic; }
+    .p-bars-area { padding: 4px 6px; }
+    .p-row-wrap  { margin: 3px 0; }
+    .p-bar-line  { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; padding: 8px 10px; background: #fff;
+                   border: 1px solid #e0e0e0; border-radius: 5px; border-left-width: 4px;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-inst-lbl  { font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+                   flex-shrink: 0; margin-right: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-rep-open, .p-rep-close { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; height: 30px;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-rep-bar   { display: inline-block; width: 4px; height: 30px; background: #333; border-radius: 1px; flex-shrink: 0;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-rep-dots  { display: inline-flex; flex-direction: column; justify-content: center; gap: 5px; height: 30px;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-rep-dots span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #333;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-bar-unit  { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+    .p-bar-div   { width: 2px; height: 30px; background: #333; flex-shrink: 0; border-radius: 1px; align-self: stretch;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-chord     { font-family: 'Space Mono', monospace; font-size: 1.15rem; font-weight: 700; color: #111;
+                   padding: 3px 8px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-chord sup { font-size: 0.55em; vertical-align: super; }
+    .p-repeats   { font-family: 'Space Mono', monospace; font-size: 0.88rem; font-weight: 700; color: #c45f3a; margin-left: 8px;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-voz-text  { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem; color: #333; font-style: italic; white-space: pre-wrap; flex: 1; }
+    .p-comment   { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8rem; color: #666; font-style: italic;
+                   padding: 3px 10px 4px 14px; border-left: 2px solid #ddd; margin: 2px 0 4px 10px; }
+    .p-footer    { margin-top: 28px; font-family: 'Space Mono', monospace; font-size: 0.65rem; color: #bbb; text-align: right; }`;
 
-  document.getElementById('slPrintArea').innerHTML = html;
+  return `<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+    ${css}
+  </style>
+  <div class="p-wrap">
+    <div class="p-header">
+      <div class="p-title">${esc(songData.title || '(Sin título)')}</div>
+      ${meta.length ? `<div class="p-meta">${meta.join(' · ')}</div>` : ''}
+    </div>
+    ${sectionsHTML}
+    <div class="p-footer">BT SoundsApp</div>
+  </div>`;
+}
+
+function printScore() {
+  document.getElementById('slPrintArea').innerHTML = buildScoreHTML();
   window.print();
   setTimeout(() => { document.getElementById('slPrintArea').innerHTML = ''; }, 1500);
+}
+
+function exportScorePDF() {
+  const safeName = (songData.title || 'cifrado').replace(/[^a-zA-Z0-9_\u00C0-\u024F -]/g, '').trim() || 'cifrado';
+
+  function doGenerate() {
+    // Inject the exact same HTML that printScore uses into a temporary container
+    const container = document.getElementById('slPrintArea');
+    container.innerHTML = buildScoreHTML();
+    // Temporarily make it visible off-screen so html2pdf can measure/render it
+    container.style.cssText = 'display:block;position:fixed;left:-9999px;top:0;width:210mm;background:#fff;z-index:-1;';
+
+    html2pdf().set({
+      margin:      [12, 12, 12, 12],
+      filename:    safeName + '.pdf',
+      image:       { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+      jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:   { mode: ['avoid-all', 'css'] }
+    }).from(container).save().then(() => {
+      container.innerHTML = '';
+      container.style.cssText = '';
+    });
+  }
+
+  if (window.html2pdf) {
+    doGenerate();
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = doGenerate;
+    script.onerror = () => alert('No se pudo cargar la librería de PDF. Comprueba tu conexión.');
+    document.head.appendChild(script);
+  }
 }
 
 
