@@ -957,13 +957,104 @@ body {
 @media (max-width: 600px) {
   .pill-theme-btn { display: inline-flex !important; flex-shrink: 0; padding: 5px 5px !important; font-size: 1rem !important; border-left: 1px solid var(--border); }
   #btnTheme { display: none !important; }
-  /* Audio sin barra de progreso en móvil edición */
-  #songAudioPlayer .sap-bar { display: none !important; }
+
+  /* Sin audio: ocultar barra y label */
+  #songAudioPlayer .sap-bar   { display: none !important; }
   #songAudioPlayer .sap-label { display: none !important; }
+
+  /* Mientras el audio está en PLAY: mhdr-row2 recibe clase is-playing */
+  .mhdr-row2.is-playing #songAudioPlayer .sap-bar {
+    display: block !important;
+    flex: 1;
+    width: auto;
+    height: 5px;
+    align-self: center;
+    min-width: 60px;
+    overflow: hidden;
+  }
+  /* Guardar → solo icono ☁ */
+  .mhdr-row2.is-playing .btn-save-cloud {
+    flex: 0 0 auto !important;
+    padding: 9px 11px !important;
+    font-size: 0 !important;
+    letter-spacing: 0 !important;
+    min-width: 0 !important;
+  }
+  .mhdr-row2.is-playing .btn-save-cloud::before {
+    content: '☁';
+    font-size: 1rem;
+  }
+  /* Tocar → solo icono 👁 */
+  .mhdr-row2.is-playing #btnReadonly {
+    flex: 0 0 auto !important;
+    padding: 9px 11px !important;
+    font-size: 0 !important;
+    letter-spacing: 0 !important;
+    min-width: 0 !important;
+  }
+  .mhdr-row2.is-playing #btnReadonly::before {
+    content: '👁';
+    font-size: 1rem;
+  }
+
   /* Readonly: mostrar sap-bar completo */
-  body.readonly #songAudioPlayer .sap-bar { display: flex !important; }
+  body.readonly #songAudioPlayer .sap-bar   { display: flex !important; }
   body.readonly #songAudioPlayer .sap-label { display: inline !important; }
 }
+
+/* ══════════════════════════════════════════════════════
+   MÓVIL HORIZONTAL — mismo comportamiento de audio
+   colapsado que en vertical: barra oculta, se expande
+   solo al reproducir; Guardar y Tocar → solo icono
+══════════════════════════════════════════════════════ */
+@media (max-height: 500px) and (orientation: landscape) {
+
+  /* Sin audio reproduciéndose: ocultar barra y label */
+  #songAudioPlayer .sap-bar   { display: none !important; }
+  #songAudioPlayer .sap-label { display: none !important; }
+
+  /* Mientras el audio está en PLAY: mostrar barra */
+  .mhdr-row2.is-playing #songAudioPlayer .sap-bar {
+    display: block !important;
+    flex: 1;
+    width: auto;
+    height: 5px;
+    align-self: center;
+    min-width: 60px;
+    overflow: hidden;
+  }
+
+  /* Guardar → solo icono ☁ */
+  .mhdr-row2.is-playing .btn-save-cloud {
+    flex: 0 0 auto !important;
+    padding: 9px 11px !important;
+    font-size: 0 !important;
+    letter-spacing: 0 !important;
+    min-width: 0 !important;
+  }
+  .mhdr-row2.is-playing .btn-save-cloud::before {
+    content: '☁';
+    font-size: 1rem;
+  }
+
+  /* Tocar → solo icono 👁 */
+  .mhdr-row2.is-playing #btnReadonly {
+    flex: 0 0 auto !important;
+    padding: 9px 11px !important;
+    font-size: 0 !important;
+    letter-spacing: 0 !important;
+    min-width: 0 !important;
+  }
+  .mhdr-row2.is-playing #btnReadonly::before {
+    content: '👁';
+    font-size: 1rem;
+  }
+
+  /* Readonly: siempre mostrar barra de audio */
+  body.readonly #songAudioPlayer .sap-bar   { display: flex !important; }
+  body.readonly #songAudioPlayer .sap-label { display: inline !important; }
+}
+
 #scrollBar {
   display: none;
   position: fixed;
@@ -1707,12 +1798,20 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   background: var(--border);
   border-radius: 2px;
   overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: height 0.15s, opacity 0.15s;
+}
+#songAudioPlayer .sap-bar:hover {
+  height: 6px;
+  opacity: 0.9;
 }
 #songAudioPlayer .sap-fill {
   height: 100%;
   background: var(--accent);
   width: 0%;
   border-radius: 2px;
+  pointer-events: none;
 }
 #songAudioPlayer .sap-edit {
   background: transparent;
@@ -1963,7 +2062,7 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
         </div>
       </div>
       <button class="btn hdr-icon-btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
-      <button class="btn btn-primary" onclick="saveSongCloud()" title="Guardar en la nube">☁ Guardar</button>
+      <button class="btn btn-primary btn-save-cloud" onclick="saveSongCloud()" title="Guardar en la nube">☁ Guardar</button>
       <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar">👁 Tocar</button>
     </div>
 
@@ -4073,16 +4172,19 @@ function toggleSongAudio() {
   const btn = document.getElementById("sapPlayBtn");
   const scrollBtn = document.getElementById("btnScrollSongAudio");
   const lbl = document.getElementById("scrollSongAudioLbl");
+  const row2 = document.querySelector(".mhdr-row2");
   if (_activeAudioEl.paused) {
     _activeAudioEl.play().catch(() => {});
     if (btn) { btn.textContent = "⏸"; btn.classList.add("playing"); }
     if (scrollBtn) { scrollBtn.style.borderColor = "var(--accent2)"; scrollBtn.style.color = "var(--accent2)"; }
     if (lbl) lbl.textContent = "⏸ Audio";
+    if (row2) row2.classList.add("is-playing");
   } else {
     _activeAudioEl.pause();
     if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
     if (scrollBtn) { scrollBtn.style.borderColor = "var(--green)"; scrollBtn.style.color = "var(--green)"; }
     if (lbl) lbl.textContent = "Audio";
+    if (row2) row2.classList.remove("is-playing");
   }
 }
 
@@ -4096,7 +4198,47 @@ function stopSongAudio() {
   if (scrollBtn) { scrollBtn.style.borderColor = "var(--green)"; scrollBtn.style.color = "var(--green)"; }
   const lbl = document.getElementById("scrollSongAudioLbl");
   if (lbl) lbl.textContent = "Audio";
+  const row2 = document.querySelector(".mhdr-row2");
+  if (row2) row2.classList.remove("is-playing");
 }
+
+// ── Click en sap-bar para posicionar el audio ──
+document.addEventListener("click", function(e) {
+  const bar = e.target.closest(".sap-bar");
+  if (!bar) return;
+
+  // Identificar fill y audioEl según la barra clicada
+  const fillEl = bar.querySelector(".sap-fill");
+  if (!fillEl) return;
+
+  // ¿Es la barra principal del header (#sapFill)?
+  const isMain = !!bar.querySelector("#sapFill");
+  let audioEl = isMain ? _activeAudioEl : null;
+
+  // Soporte futuro para sap-bar de sección con data-sec-id
+  if (!isMain) {
+    const secId = bar.dataset.secId;
+    if (secId && _secAudioId === secId && _secAudioEl) {
+      audioEl = _secAudioEl;
+    }
+  }
+
+  if (!audioEl || !audioEl.duration) return;
+
+  const rect = bar.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  audioEl.currentTime = ratio * audioEl.duration;
+  fillEl.style.width = (ratio * 100) + "%";
+
+  // Si estaba pausado, arrancar reproducción
+  if (audioEl.paused) {
+    audioEl.play().catch(() => {});
+    if (isMain) {
+      const btn = document.getElementById("sapPlayBtn");
+      if (btn) { btn.textContent = "⏸"; btn.classList.add("playing"); }
+    }
+  }
+});
 
 document.getElementById("audioModal").addEventListener("click", e => {
   if (e.target === document.getElementById("audioModal")) closeAudioModal();
