@@ -5177,33 +5177,171 @@ function exportScorePDF() {
   const safeName = (songData.title || 'cifrado').replace(/[^a-zA-Z0-9_\u00C0-\u024F -]/g, '').trim() || 'cifrado';
 
   function doGenerate() {
-    // Inject the exact same HTML that printScore uses into a temporary container
-    const container = document.getElementById('slPrintArea');
-    container.innerHTML = buildScoreHTML();
-    // Temporarily make it visible off-screen so html2pdf can measure/render it
-    container.style.cssText = 'display:block;position:fixed;left:-9999px;top:0;width:210mm;background:#fff;z-index:-1;';
+    // 1. Inject print styles into <head> if not already there
+    if (!document.getElementById('_pdfStyles')) {
+      const st = document.createElement('style');
+      st.id = '_pdfStyles';
+      st.textContent = `
+        .pdf-wrap      { font-family: 'IBM Plex Sans', Arial, sans-serif; color: #111; background:#fff; padding: 20px 24px; width:794px; }
+        .pdf-header    { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; }
+        .pdf-title     { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 700; color: #111; line-height: 1.15; }
+        .pdf-meta      { font-family: 'Space Mono', monospace; font-size: 11px; color: #555; letter-spacing: 1px; margin-top: 4px; }
+        .pdf-section   { border: 1px solid #ccc; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+        .pdf-sec-hdr   { background: #f2f2f2; padding: 6px 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; }
+        .pdf-sec-name  { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+                         color: #c45f3a; background: rgba(196,95,58,0.1); border: 1px solid rgba(196,95,58,0.4);
+                         border-radius: 4px; padding: 2px 8px; flex-shrink: 0; }
+        .pdf-lyric     { font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 12px; color: #666; font-style: italic; }
+        .pdf-bars-area { padding: 4px 6px; }
+        .pdf-row-wrap  { margin: 3px 0; }
+        .pdf-bar-line  { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; padding: 7px 10px;
+                         background: #fff; border: 1px solid #e0e0e0; border-radius: 5px; border-left-width: 4px; }
+        .pdf-inst-lbl  { font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+                         letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; margin-right: 4px; }
+        .pdf-rep-open, .pdf-rep-close { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; height: 28px; }
+        .pdf-rep-bar   { display: inline-block; width: 4px; height: 28px; background: #333; border-radius: 1px; flex-shrink: 0; }
+        .pdf-rep-dots  { display: inline-flex; flex-direction: column; justify-content: center; gap: 5px; height: 28px; }
+        .pdf-rep-dots span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #333; }
+        .pdf-bar-unit  { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+        .pdf-bar-div   { width: 2px; height: 28px; background: #333; flex-shrink: 0; border-radius: 1px; }
+        .pdf-chord     { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; color: #111;
+                         padding: 3px 8px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; }
+        .pdf-chord sup { font-size: 9px; vertical-align: super; }
+        .pdf-repeats   { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: #c45f3a; margin-left: 6px; }
+        .pdf-voz-text  { font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 13px; color: #333; font-style: italic; flex: 1; }
+        .pdf-comment   { font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 11px; color: #666; font-style: italic;
+                         padding: 2px 10px 3px 14px; border-left: 2px solid #ddd; margin: 1px 0 3px 10px; }
+        .pdf-footer    { margin-top: 24px; font-family: 'Space Mono', monospace; font-size: 9px; color: #bbb; text-align: right; }
+      `;
+      document.head.appendChild(st);
+    }
 
-    html2pdf().set({
-      margin:      [12, 12, 12, 12],
-      filename:    safeName + '.pdf',
-      image:       { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
-      jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak:   { mode: ['avoid-all', 'css'] }
-    }).from(container).save().then(() => {
-      container.innerHTML = '';
-      container.style.cssText = '';
+    // 2. Build content HTML (no <style> tag — styles are in <head>)
+    const instLabel = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
+    const instColor = { guit1:'#4a9eff', guit2:'#c8a000', bajo:'#e04040', bat:'#3ab06a', voz:'#7c5cbf' };
+
+    const meta = [];
+    if (songData.artist)        meta.push(songData.artist);
+    if (songData.key)           meta.push('Tono: ' + songData.key);
+    if (songData.bpm)           meta.push(songData.bpm + ' bpm');
+    if (songData.timeSignature) meta.push(songData.timeSignature);
+    if (!_activeInst.has('all')) {
+      const names = [..._activeInst].map(k => instLabel[k] || k).join(', ');
+      meta.push('Filtro: ' + names);
+    }
+
+    const bkO = '<span class="pdf-rep-open"><span class="pdf-rep-bar"></span><span class="pdf-rep-dots"><span></span><span></span></span></span>';
+    const bkC = '<span class="pdf-rep-close"><span class="pdf-rep-dots"><span></span><span></span></span><span class="pdf-rep-bar"></span></span>';
+
+    const sectionsHTML = songData.sections.map(sec => {
+      const visibleRows = _visibleRows(sec);
+      if (!visibleRows.length) return '';
+      const rowsHTML = visibleRows.map(row => {
+        const inst  = row.instrument || 'guit1';
+        const color = instColor[inst] || '#888';
+        const label = instLabel[inst] || inst;
+        if (inst === 'voz') {
+          return `<div class="pdf-row-wrap"><div class="pdf-bar-line" style="border-left:4px solid ${color}">` +
+            `<span class="pdf-inst-lbl" style="color:${color}">${label}</span>` +
+            `<span class="pdf-voz-text">${esc(row.vozText||'')}</span></div></div>`;
+        }
+        const barsHTML = row.bars.map((bar,bi) =>
+          (bi>0?'<span class="pdf-bar-div"></span>':'') +
+          `<div class="pdf-bar-unit">${bar.map(c=>`<span class="pdf-chord">${fmtChord(c)}</span>`).join('')}</div>`
+        ).join('');
+        const rep = (row.repeats&&row.repeats>1) ? `<span class="pdf-repeats">× ${row.repeats}</span>` : '';
+        const cmt = row.comment ? `<div class="pdf-comment">${esc(row.comment)}</div>` : '';
+        return `<div class="pdf-row-wrap"><div class="pdf-bar-line" style="border-left:4px solid ${color}">` +
+          `<span class="pdf-inst-lbl" style="color:${color}">${label}</span>` +
+          bkO + barsHTML + bkC + rep + `</div>${cmt}</div>`;
+      }).join('');
+      const lyric = sec.lyric ? `<span class="pdf-lyric">${esc(sec.lyric)}</span>` : '';
+      return `<div class="pdf-section">` +
+        `<div class="pdf-sec-hdr"><span class="pdf-sec-name">${esc(sec.name||'Sección')}</span>${lyric}</div>` +
+        `<div class="pdf-bars-area">${rowsHTML}</div></div>`;
+    }).join('');
+
+    const contentHTML = `<div class="pdf-wrap">
+      <div class="pdf-header">
+        <div class="pdf-title">${esc(songData.title||'(Sin título)')}</div>
+        ${meta.length ? `<div class="pdf-meta">${meta.join(' · ')}</div>` : ''}
+      </div>
+      ${sectionsHTML}
+      <div class="pdf-footer">BT SoundsApp</div>
+    </div>`;
+
+    // 3. Render into a real visible-but-offscreen div (required for html2canvas)
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:0;left:-900px;width:794px;background:#fff;z-index:99999;';
+    div.innerHTML = contentHTML;
+    document.body.appendChild(div);
+
+    // 4. Capture with html2canvas → jsPDF
+    html2canvas(div, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: 794,
+      windowWidth: 794
+    }).then(canvas => {
+      document.body.removeChild(div);
+      const imgData = canvas.toDataURL('image/jpeg', 0.97);
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pageW = 210, pageH = 297;
+      const margin = 10;
+      const imgW = pageW - margin * 2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let yPos = margin;
+      let remaining = imgH;
+      let srcY = 0;
+      const srcH = canvas.height;
+      const srcW = canvas.width;
+      const sliceH = (pageH - margin * 2) * srcW / imgW;  // canvas px per page
+
+      while (remaining > 0) {
+        const drawH = Math.min(pageH - margin * 2, remaining);
+        const slicePx = Math.round(drawH * srcW / imgW);
+
+        // Slice canvas for this page
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = srcW;
+        sliceCanvas.height = slicePx;
+        sliceCanvas.getContext('2d').drawImage(canvas, 0, srcY, srcW, slicePx, 0, 0, srcW, slicePx);
+        const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.97);
+
+        pdf.addImage(sliceData, 'JPEG', margin, margin, imgW, drawH);
+        srcY += slicePx;
+        remaining -= drawH;
+        if (remaining > 0.5) pdf.addPage();
+      }
+
+      pdf.save(safeName + '.pdf');
+    }).catch(err => {
+      document.body.removeChild(div);
+      console.error('PDF error:', err);
+      alert('Error al generar el PDF: ' + err.message);
     });
   }
 
-  if (window.html2pdf) {
+  // Load html2canvas + jsPDF on demand
+  function loadScript(src, cb) {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = cb;
+    s.onerror = () => alert('No se pudo cargar librería PDF. Comprueba tu conexión.');
+    document.head.appendChild(s);
+  }
+
+  if (window.html2canvas && window.jspdf) {
     doGenerate();
+  } else if (window.html2canvas) {
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', doGenerate);
   } else {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-    script.onload = doGenerate;
-    script.onerror = () => alert('No se pudo cargar la librería de PDF. Comprueba tu conexión.');
-    document.head.appendChild(script);
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', () => {
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', doGenerate);
+    });
   }
 }
 
