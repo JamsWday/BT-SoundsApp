@@ -2,7 +2,7 @@
 <html lang="es" data-theme="neon">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BT SoundsApp </title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -597,6 +597,13 @@ body {
   padding-left: 10px;
   flex-shrink: 0;
 }
+.row-right.drum-right {
+  flex-direction: column;
+  gap: 3px;
+  padding-left: 6px;
+  align-items: center;
+  justify-content: center;
+}
 .repeat-badge {
   display: flex;
   align-items: center;
@@ -1009,6 +1016,58 @@ body {
 ══════════════════════════════════════════════════════ */
 @media (max-height: 500px) and (orientation: landscape) {
 
+  /* Header en fila: título a la izquierda, botones a la derecha */
+  .header {
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 6px 10px !important;
+    gap: 8px !important;
+  }
+  .title-block {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto !important;
+  }
+  .title-input  { font-size: 1rem !important; }
+  .artist-input { font-size: 0.6rem !important; }
+
+  /* header-actions: solo muestra fila 2, en fila */
+  .header-actions {
+    flex-direction: row !important;
+    gap: 4px !important;
+    width: auto !important;
+    flex-shrink: 0;
+  }
+  /* Mostrar fila 1 pero en icono — NO ocultarla */
+  .mhdr-row1 {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+  }
+  /* Biblioteca → solo 🎶 */
+  .mhdr-row1 button:nth-child(1) {
+    font-size: 0 !important;
+    padding: 7px 9px !important;
+    min-width: 0 !important;
+  }
+  .mhdr-row1 button:nth-child(1)::before { content: '🎶'; font-size: 1rem; }
+  /* Repertorios → solo 🎭 */
+  .mhdr-row1 button:nth-child(2) {
+    font-size: 0 !important;
+    padding: 7px 9px !important;
+    min-width: 0 !important;
+  }
+  .mhdr-row1 button:nth-child(2)::before { content: '🎭'; font-size: 1rem; }
+
+  /* Tocar → solo 👁 SIEMPRE en landscape */
+  #btnReadonly {
+    font-size: 0 !important;
+    padding: 9px 11px !important;
+    min-width: 0 !important;
+    letter-spacing: 0 !important;
+  }
+  #btnReadonly::before { content: '👁'; font-size: 1rem; }
+
   /* Sin audio reproduciéndose: ocultar barra y label */
   #songAudioPlayer .sap-bar   { display: none !important; }
   #songAudioPlayer .sap-label { display: none !important; }
@@ -1024,15 +1083,15 @@ body {
     overflow: hidden;
   }
 
-  /* Guardar → solo icono ☁ */
-  .mhdr-row2.is-playing .btn-save-cloud {
+  /* Guardar → solo icono ☁ SIEMPRE en landscape */
+  .btn-save-cloud {
     flex: 0 0 auto !important;
     padding: 9px 11px !important;
     font-size: 0 !important;
     letter-spacing: 0 !important;
     min-width: 0 !important;
   }
-  .mhdr-row2.is-playing .btn-save-cloud::before {
+  .btn-save-cloud::before {
     content: '☁';
     font-size: 1rem;
   }
@@ -1827,6 +1886,641 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 @media print {
   .audio-btn, #songAudioPlayer { display: none !important; }
 }
+
+/* ══════════════════════════════════════════════
+   DRUM PATTERN — preview + editor
+══════════════════════════════════════════════ */
+
+/* ── Mini-preview en el row ── */
+.drum-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+}
+.drum-preview-bars {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.drum-preview-bars::-webkit-scrollbar { display: none; }
+@media (max-width: 600px) {
+  .drum-preview-bars { flex-direction: column; }
+}
+.drum-preview-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex-shrink: 0;
+  overflow: visible;
+}
+.drum-preview-bar-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  padding-left: 28px;
+}
+.drum-preview-voice {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-top: 6px;
+  position: relative;
+}
+.drum-preview-voice:first-child { margin-top: 0; }
+.drum-preview-voice-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem;
+  font-weight: 700;
+  width: 26px;
+  text-align: right;
+  padding-right: 4px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.drum-preview-cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+}
+.drum-preview-cell.active { border-color: transparent; }
+.drum-preview-cell.active.v-HH { background: transparent; border: 2px solid var(--inst-HH,#00ffe7); }
+.drum-preview-cell.active.v-HH.hh-open { position:relative; }
+.drum-preview-cell.active.v-HH.hh-open::after { content:'×'; font-size:0.6rem; color:var(--inst-HH,#00ffe7); font-weight:700; }
+.drum-preview-cell.active.v-C  { background: transparent; border: 2px solid #a78bfa; border-radius:50%; }
+.drum-preview-cell.active.v-BD { background: #ff6b6b; box-shadow: 0 0 4px rgba(255,107,107,0.5); }
+.drum-preview-cell.active.v-SD { background: #ffc300; box-shadow: 0 0 4px rgba(255,195,0,0.5); }
+.drum-preview-cell.active.v-T1 { background: #f97316; border-radius: 3px; }
+.drum-preview-cell.active.v-T2 { background: #22d3ee; border-radius: 3px; }
+.drum-preview-cell.active.v-T3 { background: #4ade80; border-radius: 3px; }
+
+/* Flam: tiny dot above — ::after */
+.drum-preview-cell.active.note-flam { position: relative; overflow: visible; }
+.drum-preview-cell.active.note-flam::after {
+  content:''; position:absolute; width:4px; height:4px; border-radius:50%;
+  bottom:calc(100% + 1px); left:50%; transform:translateX(-50%); z-index:2;
+}
+.drum-preview-cell.active.note-flam.v-HH::after { background:#00ffe7; }
+.drum-preview-cell.active.note-flam.v-C::after  { background:#a78bfa; }
+.drum-preview-cell.active.note-flam.v-SD::after { background:#ffc300; }
+.drum-preview-cell.active.note-flam.v-BD::after { background:#ff6b6b; }
+.drum-preview-cell.active.note-flam.v-T1::after { background:#f97316; border-radius:1px; }
+.drum-preview-cell.active.note-flam.v-T2::after { background:#22d3ee; border-radius:1px; }
+.drum-preview-cell.active.note-flam.v-T3::after { background:#4ade80; border-radius:1px; }
+
+/* Roll: 〰 above, width of cell, tight */
+.drum-preview-cell.active.note-roll { position: relative; overflow: visible; }
+.drum-preview-cell.active.note-roll::after {
+  content:'〰'; position:absolute; font-size:0.62rem; line-height:1;
+  bottom:calc(100% - 1px); left:50%; transform:translateX(-50%); z-index:2;
+  text-shadow: 0 0 1px currentColor, 0 0 2px currentColor;
+}
+/* Roll + accent: slightly smaller */
+.drum-preview-cell.active.note-roll.accent::after { font-size:0.45rem; }
+.drum-preview-cell.active.note-roll.v-HH::after { color:#00ffe7; }
+.drum-preview-cell.active.note-roll.v-C::after  { color:#a78bfa; }
+.drum-preview-cell.active.note-roll.v-SD::after { color:#ffc300; }
+.drum-preview-cell.active.note-roll.v-BD::after { color:#ff6b6b; }
+.drum-preview-cell.active.note-roll.v-T1::after { color:#f97316; }
+.drum-preview-cell.active.note-roll.v-T2::after { color:#22d3ee; }
+.drum-preview-cell.active.note-roll.v-T3::after { color:#4ade80; }
+
+/* Accent: tiny > above — ::before */
+.drum-preview-cell.active.accent { position: relative; overflow: visible; }
+.drum-preview-cell.active.accent::before {
+  content:'>'; position:absolute; font-size:0.35rem; font-weight:700; line-height:1;
+  font-family:'Space Mono',monospace;
+  bottom:calc(100% + 1px); left:50%; transform:translateX(-50%); z-index:3;
+}
+.drum-preview-cell.active.accent.v-HH::before { color:#00ffe7; }
+.drum-preview-cell.active.accent.v-C::before  { color:#a78bfa; }
+.drum-preview-cell.active.accent.v-SD::before { color:#ffc300; }
+.drum-preview-cell.active.accent.v-BD::before { color:#ff6b6b; }
+.drum-preview-cell.active.accent.v-T1::before { color:#f97316; }
+.drum-preview-cell.active.accent.v-T2::before { color:#22d3ee; }
+.drum-preview-cell.active.accent.v-T3::before { color:#4ade80; }
+/* Accent + flam/roll: shift > to the right */
+.drum-preview-cell.active.accent.note-flam::before,
+.drum-preview-cell.active.accent.note-roll::before {
+  left:calc(50% + 5px); transform:none;
+}
+
+.drum-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--inst-bat);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+  align-self: flex-start;
+}
+.drum-add-btn:hover { border-color: var(--inst-bat); background: rgba(74,222,128,0.06); }
+.drum-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid rgba(74,222,128,0.3);
+  background: transparent;
+  color: var(--inst-bat);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.drum-edit-btn:hover { border-color: var(--inst-bat); background: rgba(74,222,128,0.08); }
+body.readonly .drum-edit-btn { display: none !important; }
+body.readonly .drum-add-btn  { display: none !important; }
+
+/* ── DRUM EDITOR MODAL ── */
+.drum-editor-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 7000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.drum-editor-overlay.open { display: flex; }
+.drum-editor-modal {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: calc(100vh - 32px);
+  box-shadow: 0 0 80px rgba(0,255,231,0.07), 0 20px 60px rgba(0,0,0,0.8);
+}
+@media (max-width: 600px) {
+  .drum-editor-overlay { padding: 0; }
+  .drum-editor-modal   { border-radius: 0; border: none; max-height: none; }
+}
+.de-header {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  position: relative;
+}
+.de-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  color: var(--accent);
+  flex: 1;
+}
+.de-subtitle {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.de-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.de-close:hover { border-color: var(--accent2); color: var(--accent2); }
+
+/* Toolbar */
+.de-toolbar {
+  background: #0c0c1a;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.de-toolbar-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+.de-toolbar-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.de-note-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 44px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.de-note-btn:hover { border-color: var(--accent); color: var(--accent); }
+.de-note-btn.active { background: rgba(0,255,231,0.1); border-color: var(--accent); color: var(--accent); }
+.de-note-btn.active-pink { background: rgba(255,45,120,0.08); border-color: var(--accent2); color: var(--accent2); }
+.de-note-btn.active-green { background: rgba(57,255,20,0.08); border-color: var(--green); color: var(--green); }
+.de-note-sym { font-size: 1rem; line-height: 1; font-family: serif; }
+.de-erase-btn {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(192,64,64,0.4);
+  background: transparent;
+  color: #c04040;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.de-erase-btn:hover, .de-erase-btn.active { background: rgba(192,64,64,0.1); border-color: #c04040; }
+.de-sel {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 4px 6px;
+  outline: none;
+  cursor: pointer;
+}
+.de-sel:focus { border-color: var(--accent); }
+
+/* Grid */
+.de-grid-wrap {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 10px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+.de-grid-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
+.de-grid-wrap::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+.de-subdiv-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0 6px 52px;
+}
+.de-sdiv-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  padding: 3px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.12s;
+}
+.de-sdiv-btn:hover { border-color: var(--accent); color: var(--accent); }
+.de-sdiv-btn.active { background: rgba(0,255,231,0.1); border-color: var(--accent); color: var(--accent); }
+.de-beat-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 3px;
+  padding-left: 52px;
+}
+.de-beat-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--dim);
+  text-align: center;
+  flex: 0 0 26px;
+  letter-spacing: 0.04em;
+}
+.de-beat-lbl.down { color: var(--accent); font-weight: 700; }
+.de-bar-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 0 3px 52px;
+  border-top: 1px solid var(--border);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.de-bar-lbl .de-bar-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.de-bar-repeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.de-bar-repeat .x-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+.de-bar-repeat .repeat-input {
+  width: 28px;
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(232,200,64,0.08);
+  border: 1px solid rgba(232,200,64,0.25);
+  border-radius: 4px;
+  padding: 1px 2px;
+}
+.de-bar-del {
+  background: transparent;
+  border: none;
+  color: #c04040;
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0 4px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.de-bar-del:hover { opacity: 1; }
+.de-voice-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 4px;
+}
+.de-voice-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  width: 52px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 8px;
+  line-height: 1;
+}
+.de-cell {
+  flex: 0 0 26px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  border-radius: 3px;
+  transition: background 0.08s;
+  user-select: none;
+}
+.de-cell.beat-start { border-left: 1px solid rgba(255,255,255,0.12); }
+.de-cell.bar-start  { border-left: 2px solid rgba(255,255,255,0.22); }
+.de-cell.sub-1      { border-left: 1px solid rgba(255,255,255,0.05); }
+.de-cell-inner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.1s;
+}
+.de-cell:hover .de-cell-inner {
+  border-color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.04);
+}
+/* Active note colors per voice */
+.de-vrow-HH .de-cell.active .de-cell-inner {
+  background: transparent; border: 2px solid #00ffe7; box-shadow: 0 0 5px rgba(0,255,231,0.3); position:relative;
+}
+/* HH closed: plain circle (no pseudo-elements) */
+.de-vrow-HH .de-cell.active:not(.hh-open) .de-cell-inner::before,
+.de-vrow-HH .de-cell.active:not(.hh-open) .de-cell-inner::after { display: none; }
+/* HH open: circle with × */
+.de-vrow-HH .de-cell.active.hh-open .de-cell-inner::before,
+.de-vrow-HH .de-cell.active.hh-open .de-cell-inner::after {
+  content:''; position:absolute; width:9px; height:2px; background:#00ffe7; border-radius:1px; top:6px; left:3px;
+}
+.de-vrow-HH .de-cell.active.hh-open .de-cell-inner::before { transform:rotate(45deg); }
+.de-vrow-HH .de-cell.active.hh-open .de-cell-inner::after  { transform:rotate(-45deg); }
+.de-vrow-C .de-cell.active .de-cell-inner  { background:transparent; border:2px solid #a78bfa; box-shadow:0 0 5px rgba(167,139,250,0.3); }
+.de-vrow-BD .de-cell.active .de-cell-inner { background:#ff6b6b; border-color:#ff6b6b; box-shadow:0 0 6px rgba(255,107,107,0.4); }
+.de-vrow-SD .de-cell.active .de-cell-inner { background:#ffc300; border-color:#ffc300; box-shadow:0 0 6px rgba(255,195,0,0.4); }
+.de-vrow-T1 .de-cell.active .de-cell-inner { background:#f97316; border-color:#f97316; border-radius:3px; box-shadow:0 0 6px rgba(249,115,22,0.4); }
+.de-vrow-T2 .de-cell.active .de-cell-inner { background:#22d3ee; border-color:#22d3ee; border-radius:3px; box-shadow:0 0 6px rgba(34,211,238,0.4); }
+.de-vrow-T3 .de-cell.active .de-cell-inner { background:#4ade80; border-color:#4ade80; border-radius:3px; box-shadow:0 0 6px rgba(74,222,128,0.4); }
+/* Flam & Roll: both use ::before, positioned just above the note */
+.de-cell.active.note-flam .de-cell-inner::before { display:none; }
+.de-cell.active.note-flam .de-cell-inner::after  { display:none; }
+.de-cell.active.note-roll  .de-cell-inner::before { display:none; }
+.de-cell.active.note-roll  .de-cell-inner::after  { display:none; }
+
+/* Flam: small dot above */
+.de-cell.active.note-flam::before {
+  content:''; position:absolute; width:6px; height:6px;
+  border-radius:50%; bottom:calc(100% - 4px); left:50%; transform:translateX(-50%);
+  opacity:0.85; z-index:2;
+}
+.de-vrow-HH .de-cell.active.note-flam::before { background:#00ffe7; }
+.de-vrow-C  .de-cell.active.note-flam::before { background:#a78bfa; }
+.de-vrow-SD .de-cell.active.note-flam::before { background:#ffc300; }
+.de-vrow-BD .de-cell.active.note-flam::before { background:#ff6b6b; }
+.de-vrow-T1 .de-cell.active.note-flam::before { background:#f97316; border-radius:2px; }
+.de-vrow-T2 .de-cell.active.note-flam::before { background:#22d3ee; border-radius:2px; }
+.de-vrow-T3 .de-cell.active.note-flam::before { background:#4ade80; border-radius:2px; }
+
+/* Roll: 〰 symbol above, aligned with flam dot */
+/* Roll: 〰 above, width of cell, tight */
+.de-cell.active.note-roll::before {
+  content:'〰'; position:absolute; bottom:calc(100% - 2px); left:50%; transform:translateX(-50%);
+  font-size:1.05rem; opacity:0.9; line-height:1; z-index:2;
+  text-shadow: 0 0 1px currentColor, 0 0 2px currentColor;
+}
+/* Roll + accent: slightly smaller to leave room for > */
+.de-cell.active.note-roll.accent::before { font-size:0.75rem; }
+.de-vrow-HH .de-cell.active.note-roll::before { color:#00ffe7; }
+.de-vrow-C  .de-cell.active.note-roll::before { color:#a78bfa; }
+.de-vrow-SD .de-cell.active.note-roll::before { color:#ffc300; }
+.de-vrow-BD .de-cell.active.note-roll::before { color:#ff6b6b; }
+.de-vrow-T1 .de-cell.active.note-roll::before { color:#f97316; }
+.de-vrow-T2 .de-cell.active.note-roll::before { color:#22d3ee; }
+.de-vrow-T3 .de-cell.active.note-roll::before { color:#4ade80; }
+
+/* Accent: > above via ::after */
+.de-cell.active.accent::after {
+  content:'>'; position:absolute; bottom:calc(100% - 3px); left:50%; transform:translateX(-50%);
+  font-family:'Space Mono',monospace; font-size:0.6rem; font-weight:700;
+  opacity:0.95; line-height:1; z-index:2;
+}
+/* Accent + Flam or Roll: > shifts right of the symbol, same height */
+.de-cell.active.accent.note-flam::after,
+.de-cell.active.accent.note-roll::after {
+  bottom:calc(100% - 6px); left:calc(50% + 8px); transform:none;
+}
+.de-vrow-HH .de-cell.active.accent::after { color:#00ffe7; }
+.de-vrow-C  .de-cell.active.accent::after { color:#a78bfa; }
+.de-vrow-SD .de-cell.active.accent::after { color:#ffc300; }
+.de-vrow-BD .de-cell.active.accent::after { color:#ff6b6b; }
+.de-vrow-T1 .de-cell.active.accent::after { color:#f97316; }
+.de-vrow-T2 .de-cell.active.accent::after { color:#22d3ee; }
+.de-vrow-T3 .de-cell.active.accent::after { color:#4ade80; }
+/* Voice label colors */
+.de-vrow-HH .de-voice-lbl { color:#00ffe7; }
+.de-vrow-C  .de-voice-lbl { color:#a78bfa; }
+.de-vrow-T1 .de-voice-lbl { color:#f97316; }
+.de-vrow-T2 .de-voice-lbl { color:#22d3ee; }
+.de-vrow-T3 .de-voice-lbl { color:#4ade80; }
+.de-vrow-SD .de-voice-lbl { color:#ffc300; }
+.de-vrow-BD .de-voice-lbl { color:#ff6b6b; }
+
+/* Legend */
+.de-legend {
+  background: #0c0c1a;
+  border-top: 1px solid var(--border);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.de-legend-item {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'Space Mono', monospace; font-size: 0.55rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* Footer */
+.de-footer {
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.de-footer .spacer { flex: 1; }
+.de-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  padding: 7px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  transition: all 0.15s;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.de-btn:hover { border-color: var(--accent); color: var(--accent); }
+.de-btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+.de-btn-primary:hover { opacity: 0.88; }
+.de-btn-danger { color: #c04040; border-color: rgba(192,64,64,0.4); }
+.de-btn-danger:hover { background: rgba(192,64,64,0.1); border-color: #c04040; }
+
+/* Print: ocultar editor */
+@media print { .drum-editor-overlay { display: none !important; } }
+
+/* Help button — solo visible en móvil */
+.de-help-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  margin-right: 4px;
+}
+.de-help-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.de-help-tooltip {
+  display: none;
+  position: absolute;
+  top: 56px;
+  left: 12px;
+  right: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 14px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  flex-direction: column;
+  gap: 7px;
+}
+.de-help-tooltip.open { display: flex; }
+.de-help-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.3;
+}
+.de-help-row strong { color: var(--accent); }
+
+@media (max-width: 600px) {
+  .de-help-btn  { display: inline-flex; }
+  .de-legend    { display: none; }
+}
+.de-help-btn { display: inline-flex; }
+.de-legend   { display: none; }
 
 /* ── INSTRUMENT SYSTEM ── */
 :root {
@@ -2838,7 +3532,21 @@ function render() {
       }
       barLine.appendChild(instIconEl);
 
-      if (inst === "voz") {
+      if (inst === "bat") {
+        // ── Drum row: preview or add-pattern button
+        if (row.drumPattern) {
+          renderDrumPreview(barLine, row);
+        } else if (!_readonly) {
+          const addDrumBtn = document.createElement("button");
+          addDrumBtn.className = "drum-add-btn";
+          addDrumBtn.innerHTML = "🥁 Añadir patrón de batería";
+          addDrumBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            openDrumEditor(row, sec);
+          });
+          barLine.appendChild(addDrumBtn);
+        }
+      } else if (inst === "voz") {
         // ── Vocal row: free multiline textarea
         const vozTa = document.createElement("textarea");
         vozTa.className = "voz-text";
@@ -2910,9 +3618,9 @@ function render() {
 
       // right controls (for all row types)
       const right = document.createElement("div");
-      right.className = "row-right";
+      right.className = "row-right" + (inst === "bat" ? " drum-right" : "");
 
-      if (inst !== "voz") {
+      if (inst !== "voz" && inst !== "bat") {
       const addBar = document.createElement("button");
       addBar.className = "add-bar-btn";
       addBar.innerHTML = `<span style="font-size:1rem;line-height:1">+</span> compás`;
@@ -2956,6 +3664,19 @@ function render() {
         sec.rows.splice(ri + 1, 0, copy);
         render();
       });
+
+      // Drum edit button (bat rows only)
+      if (inst === "bat" && !_readonly) {
+        const drumEditBtn = document.createElement("button");
+        drumEditBtn.className = "drum-edit-btn";
+        drumEditBtn.innerHTML = row.drumPattern ? "✏" : "🥁";
+        drumEditBtn.title = row.drumPattern ? "Editar patrón" : "Añadir patrón";
+        drumEditBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          openDrumEditor(row, sec);
+        });
+        right.appendChild(drumEditBtn);
+      }
 
       right.appendChild(dupRow);
       right.appendChild(delRow);
@@ -3649,11 +4370,26 @@ function exportWord() {
       const lbl = rtfEsc((instIcon[inst] || '') + ' ' + (instLabel[inst] || inst));
       const cf  = instCf[inst] || 4;
 
+      if (inst === 'bat') {
+        const drumTxt = row.drumPattern ? drumPatternToText(row.drumPattern) : '(sin patrón)';
+        lines.push(`\\pard\\sb80\\sa40\\li200\\f0\\fs20\\cf${cf}\\b [${lbl}]\\b0\\cf1\\par`);
+        drumTxt.split('\n').forEach(ln => {
+          lines.push(`\\pard\\sb0\\sa20\\li400\\f1\\fs16\\cf3 ${rtfEsc(ln)}\\cf1\\par`);
+        });
+        if (row.comment) {
+          const comm = rtfEsc('  💬 ' + row.comment);
+          lines.push(`\\pard\\sb0\\sa120\\li280\\f0\\fs17\\cf3\\i ${comm}\\i0\\cf1\\par`);
+        }
+        return;
+      }
+
       if (inst === 'voz') {
-        const vozText = rtfEsc(row.vozText || '');
-        lines.push(
-          `\\pard\\sb80\\sa120\\li200\\f0\\fs20\\cf${cf}\\b [${lbl}]\\b0\\cf3\\i  ${vozText}\\i0\\cf1\\par`
-        );
+        const vozLines = (row.vozText || '').split('\n');
+        lines.push(`\\pard\\sb80\\sa40\\li200\\f0\\fs20\\cf${cf}\\b [${lbl}]\\b0\\cf1\\par`);
+        vozLines.forEach((ln, i) => {
+          const sa = i === vozLines.length - 1 ? 120 : 20;
+          lines.push(`\\pard\\sb0\\sa${sa}\\li400\\f0\\fs20\\cf3\\i ${rtfEsc(ln)}\\i0\\cf1\\par`);
+        });
         return;
       }
 
@@ -5076,9 +5812,19 @@ function buildScoreHTML() {
       const color = instColor[inst] || '#888';
       const label = instLabel[inst] || inst;
 
+      if (inst === 'bat') {
+        const drumHTML = row.drumPattern ? drumPatternToHTML(row.drumPattern) : '<em style="color:#aaa;">(sin patrón)</em>';
+        const cmt = row.comment ? `<div class="p-comment">💬 ${esc(row.comment)}</div>` : '';
+        return `<div class="p-row-wrap">
+          <div class="p-bar-line" style="border-left:4px solid ${color};display:block;">
+            <span class="p-inst-lbl" style="color:${color};display:inline-block;margin-bottom:6px;">🥁 ${label}</span>
+            ${drumHTML}
+          </div>${cmt}</div>`;
+      }
+
       if (inst === 'voz') {
         return `<div class="p-row-wrap">
-          <div class="p-bar-line" style="border-left:4px solid ${color};">
+          <div class="p-bar-line p-voz-line" style="border-left:4px solid ${color};">
             <span class="p-inst-lbl" style="color:${color}">🎤 ${label}</span>
             <span class="p-voz-text">${esc(row.vozText || '')}</span>
           </div></div>`;
@@ -5149,6 +5895,7 @@ function buildScoreHTML() {
     .p-repeats   { font-family: 'Space Mono', monospace; font-size: 0.88rem; font-weight: 700; color: #c45f3a; margin-left: 8px;
                    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-voz-text  { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem; color: #333; font-style: italic; white-space: pre-wrap; flex: 1; }
+    .p-voz-line  { display: block !important; }
     .p-comment   { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8rem; color: #666; font-style: italic;
                    padding: 3px 10px 4px 14px; border-left: 2px solid #ddd; margin: 2px 0 4px 10px; }
     .p-footer    { margin-top: 28px; font-family: 'Space Mono', monospace; font-size: 0.65rem; color: #bbb; text-align: right; }`;
@@ -5208,7 +5955,8 @@ function exportScorePDF() {
                          padding: 3px 8px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; }
         .pdf-chord sup { font-size: 9px; vertical-align: super; }
         .pdf-repeats   { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: #c45f3a; margin-left: 6px; }
-        .pdf-voz-text  { font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 13px; color: #333; font-style: italic; flex: 1; }
+        .pdf-voz-text  { font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 13px; color: #333; font-style: italic; flex: 1; white-space: pre-wrap; }
+        .pdf-voz-line  { display: block !important; }
         .pdf-comment   { font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 11px; color: #666; font-style: italic;
                          padding: 2px 10px 3px 14px; border-left: 2px solid #ddd; margin: 1px 0 3px 10px; }
         .pdf-footer    { margin-top: 24px; font-family: 'Space Mono', monospace; font-size: 9px; color: #bbb; text-align: right; }
@@ -5240,8 +5988,16 @@ function exportScorePDF() {
         const inst  = row.instrument || 'guit1';
         const color = instColor[inst] || '#888';
         const label = instLabel[inst] || inst;
+        if (inst === 'bat') {
+          const drumH = row.drumPattern ? drumPatternToHTML(row.drumPattern) : '<em style="color:#aaa;">(sin patrón)</em>';
+          const cmt = row.comment ? `<div class="pdf-comment">${esc(row.comment)}</div>` : '';
+          return `<div class="pdf-row-wrap"><div class="pdf-bar-line" style="border-left:4px solid ${color};display:block;">` +
+            `<span class="pdf-inst-lbl" style="color:${color};display:inline-block;margin-bottom:5px;">🥁 ${label}</span>` +
+            drumH + `</div>${cmt}</div>`;
+        }
+
         if (inst === 'voz') {
-          return `<div class="pdf-row-wrap"><div class="pdf-bar-line" style="border-left:4px solid ${color}">` +
+          return `<div class="pdf-row-wrap"><div class="pdf-bar-line pdf-voz-line" style="border-left:4px solid ${color}">` +
             `<span class="pdf-inst-lbl" style="color:${color}">${label}</span>` +
             `<span class="pdf-voz-text">${esc(row.vozText||'')}</span></div></div>`;
         }
@@ -5344,6 +6100,504 @@ function exportScorePDF() {
     });
   }
 }
+
+// ═══════════════════════════════════════════════
+// DRUM PATTERN EDITOR
+// ═══════════════════════════════════════════════
+
+// All voices, ordered top to bottom in the grid
+const DE_VOICES = [
+  { id:'T3', label:'T3' },
+  { id:'T2', label:'T2' },
+  { id:'T1', label:'T1' },
+  { id:'C',  label:'C'  },
+  { id:'HH', label:'HH' },
+  { id:'SD', label:'SD' },
+  { id:'BD', label:'BD' },
+];
+
+// Returns number of steps per bar for a given subdivision + time sig
+function deStepsPerBar(timeSig, subdiv) {
+  const beats = parseInt(timeSig.split('/')[0]) || 4;
+  if (subdiv === '4th')  return beats;
+  if (subdiv === '16th') return beats * 4;
+  return beats * 2; // 8th default
+}
+
+// Create empty bars array
+function deEmptyBars(count, timeSig, subdiv) {
+  const steps = deStepsPerBar(timeSig, subdiv);
+  const bars = [];
+  for (let b = 0; b < count; b++) {
+    const voices = {};
+    DE_VOICES.forEach(v => { voices[v.id] = []; });
+    bars.push({ id: 'bar_' + (b+1), voices });
+  }
+  return bars;
+}
+
+// State
+let _de = {
+  row: null,
+  pattern: null,
+  modifier: null,   // 'flam' | 'roll' | 'accent' | null
+  eraseMode: false,
+};
+
+function openDrumEditor(row, sec) {
+  _de.row = row;
+  // Deep clone so cancel truly discards changes
+  _de.pattern = row.drumPattern
+    ? JSON.parse(JSON.stringify(row.drumPattern))
+    : { timeSignature: '4/4', subdivision: '8th', bars: deEmptyBars(2, '4/4', '8th') };
+
+  // Reset toolbar UI
+  _de.modifier = null;
+  _de.eraseMode = false;
+  document.querySelectorAll('.de-note-btn').forEach(b => b.classList.remove('active','active-pink','active-green'));
+  const eraseBtn = document.getElementById('deEraseBtn');
+  if (eraseBtn) eraseBtn.classList.remove('active');
+  document.getElementById('deTimeSig').value = _de.pattern.timeSignature || '4/4';
+
+  // Subdiv buttons
+  const sdiv = _de.pattern.subdivision || '8th';
+  document.getElementById('deSubDiv4').classList.toggle('active', sdiv === '4th');
+  document.getElementById('deSubDiv8').classList.toggle('active', sdiv === '8th');
+  document.getElementById('deSubDiv16').classList.toggle('active', sdiv === '16th');
+
+  // Subtitle
+  const secName = sec?.name || '';
+  document.getElementById('deSubtitle').textContent =
+    (secName ? secName + ' · ' : '') + _de.pattern.bars.length + ' compás/compases · ' + _de.pattern.timeSignature;
+
+  document.getElementById('drumEditorOverlay').classList.add('open');
+  deFixModalHeight();
+  deRenderGrid();
+}
+
+function deFixModalHeight() {
+  const modal = document.querySelector('.drum-editor-modal');
+  if (!modal) return;
+  // window.innerHeight is the actual visible viewport, excluding browser chrome
+  const h = window.innerHeight;
+  modal.style.maxHeight = h + 'px';
+  modal.style.height    = h + 'px';
+}
+
+// Keep height correct if browser chrome resizes (scroll, orientation change)
+window.addEventListener('resize', () => {
+  if (document.getElementById('drumEditorOverlay').classList.contains('open')) {
+    deFixModalHeight();
+  }
+});
+
+function closeDrumEditor() {
+  document.getElementById('drumEditorOverlay').classList.remove('open');
+  document.getElementById('deHelpTooltip').classList.remove('open');
+  _de.row = null;
+  _de.pattern = null;
+}
+
+function deToggleHelp(e) {
+  e.stopPropagation();
+  const tip = document.getElementById('deHelpTooltip');
+  tip.classList.toggle('open');
+  if (tip.classList.contains('open')) {
+    setTimeout(() => document.addEventListener('click', deCloseHelp), 10);
+  }
+}
+function deCloseHelp() {
+  document.getElementById('deHelpTooltip').classList.remove('open');
+  document.removeEventListener('click', deCloseHelp);
+}
+
+function deSavePattern() {
+  if (!_de.row) return;
+  saveUndo();
+  _de.row.drumPattern = JSON.parse(JSON.stringify(_de.pattern));
+  closeDrumEditor();
+  render();
+}
+
+function deClearPattern() {
+  if (!confirm('¿Limpiar todas las notas?')) return;
+  const { timeSignature, subdivision, bars } = _de.pattern;
+  const steps = deStepsPerBar(timeSignature, subdivision);
+  bars.forEach(bar => {
+    DE_VOICES.forEach(v => { bar.voices[v.id] = []; });
+  });
+  deRenderGrid();
+}
+
+function deSelectNote(type, btn) {
+  // All three are exclusive — selecting one deselects the others
+  if (_de.modifier === type) {
+    _de.modifier = null;
+    document.querySelectorAll('.de-note-btn').forEach(b => b.classList.remove('active','active-pink'));
+  } else {
+    _de.modifier = type;
+    document.querySelectorAll('.de-note-btn').forEach(b => b.classList.remove('active','active-pink'));
+    btn.classList.add('active-pink');
+  }
+}
+
+function deToggleErase(btn) {
+  _de.eraseMode = !_de.eraseMode;
+  btn.classList.toggle('active', _de.eraseMode);
+}
+
+function deChangeTimeSig() {
+  const ts = document.getElementById('deTimeSig').value;
+  _de.pattern.timeSignature = ts;
+  // Rebuild bars with correct step count, preserving notes that fit
+  const sdiv = _de.pattern.subdivision || '8th';
+  const newSteps = deStepsPerBar(ts, sdiv);
+  _de.pattern.bars.forEach(bar => {
+    DE_VOICES.forEach(v => {
+      bar.voices[v.id] = (bar.voices[v.id] || []).filter(n => n.step < newSteps);
+    });
+  });
+  document.getElementById('deSubtitle').textContent =
+    _de.pattern.bars.length + ' compás/compases · ' + ts;
+  deRenderGrid();
+}
+
+function deChangeSubdiv(sdiv, btn) {
+  _de.pattern.subdivision = sdiv;
+  document.getElementById('deSubDiv4').classList.toggle('active', sdiv === '4th');
+  document.getElementById('deSubDiv8').classList.toggle('active', sdiv === '8th');
+  document.getElementById('deSubDiv16').classList.toggle('active', sdiv === '16th');
+  // Filter notes that exceed new step count
+  const ts = _de.pattern.timeSignature || '4/4';
+  const newSteps = deStepsPerBar(ts, sdiv);
+  _de.pattern.bars.forEach(bar => {
+    DE_VOICES.forEach(v => {
+      bar.voices[v.id] = (bar.voices[v.id] || []).filter(n => n.step < newSteps);
+    });
+  });
+  deRenderGrid();
+}
+
+function deAddBar() {
+  const { timeSignature, subdivision } = _de.pattern;
+  const voices = {};
+  DE_VOICES.forEach(v => { voices[v.id] = []; });
+  _de.pattern.bars.push({ id: 'bar_' + (_de.pattern.bars.length + 1), voices });
+  document.getElementById('deSubtitle').textContent =
+    _de.pattern.bars.length + ' compás/compases · ' + timeSignature;
+  deRenderGrid();
+}
+
+function deRemoveBar() {
+  if (_de.pattern.bars.length <= 1) return;
+  _de.pattern.bars.pop();
+  document.getElementById('deSubtitle').textContent =
+    _de.pattern.bars.length + ' compás/compases · ' + _de.pattern.timeSignature;
+  deRenderGrid();
+}
+
+function deRenderGrid() {
+  const wrap = document.getElementById('deGridWrap');
+  wrap.innerHTML = '';
+  document.getElementById('deBarCount').textContent = _de.pattern.bars.length;
+
+  const ts   = _de.pattern.timeSignature || '4/4';
+  const sdiv = _de.pattern.subdivision  || '8th';
+  const steps = deStepsPerBar(ts, sdiv);
+  const beatsPerBar = parseInt(ts.split('/')[0]) || 4;
+  const stepsPerBeat = sdiv === '16th' ? 4 : sdiv === '4th' ? 1 : 2;
+
+  // Beat header (shared, shown once)
+  const hdr = document.createElement('div');
+  hdr.className = 'de-beat-header';
+  for (let i = 0; i < steps; i++) {
+    const lbl = document.createElement('div');
+    lbl.className = 'de-beat-lbl' + (i % stepsPerBeat === 0 ? ' down' : '');
+    lbl.textContent = i % stepsPerBeat === 0 ? (Math.floor(i / stepsPerBeat) + 1) : (sdiv === '16th' && i % 2 === 1 ? 'e' : '+');
+    hdr.appendChild(lbl);
+  }
+  wrap.appendChild(hdr);
+
+  _de.pattern.bars.forEach((bar, bi) => {
+    // Bar label with repeat + delete
+    const barLbl = document.createElement('div');
+    barLbl.className = 'de-bar-lbl';
+
+    const barTitle = document.createElement('span');
+    barTitle.textContent = 'Compás ' + (bi + 1);
+    barLbl.appendChild(barTitle);
+
+    // Expanding line
+    const barLine = document.createElement('span');
+    barLine.className = 'de-bar-line';
+    barLbl.appendChild(barLine);
+
+    // Repeat badge (x + input)
+    const repeatBadge = document.createElement('span');
+    repeatBadge.className = 'de-bar-repeat';
+    const xl = document.createElement('span');
+    xl.className = 'x-label';
+    xl.textContent = '×';
+    const repIn = document.createElement('input');
+    repIn.className = 'repeat-input';
+    repIn.type = 'number';
+    repIn.min = 1;
+    repIn.max = 99;
+    repIn.value = bar.repeat || 1;
+    repIn.addEventListener('change', () => {
+      bar.repeat = Math.max(1, parseInt(repIn.value) || 1);
+      repIn.value = bar.repeat;
+    });
+    repeatBadge.appendChild(xl);
+    repeatBadge.appendChild(repIn);
+    barLbl.appendChild(repeatBadge);
+
+    // Delete button — far right
+    if (_de.pattern.bars.length > 1) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'de-bar-del';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Eliminar este compás';
+      delBtn.addEventListener('click', () => {
+        if (!confirm('¿Eliminar el Compás ' + (bi + 1) + '?')) return;
+        _de.pattern.bars.splice(bi, 1);
+        deRenderGrid();
+      });
+      barLbl.appendChild(delBtn);
+    }
+    wrap.appendChild(barLbl);
+
+    // Voice rows
+    DE_VOICES.forEach(voice => {
+      const notes = bar.voices[voice.id] || [];
+
+      const row = document.createElement('div');
+      row.className = 'de-voice-row de-vrow-' + voice.id;
+
+      const lbl = document.createElement('div');
+      lbl.className = 'de-voice-lbl';
+      lbl.textContent = voice.label;
+      row.appendChild(lbl);
+
+      for (let s = 0; s < steps; s++) {
+        const note = notes.find(n => n.step === s);
+        const cell = document.createElement('div');
+        cell.className = 'de-cell';
+        if (s === 0)                           cell.classList.add('bar-start');
+        else if (s % stepsPerBeat === 0)       cell.classList.add('beat-start');
+        else                                   cell.classList.add('sub-1');
+
+        const inner = document.createElement('div');
+        inner.className = 'de-cell-inner';
+        // CSS classes for HH open state
+        if (note) {
+          cell.classList.add('active');
+          if (note.type === 'flam')        cell.classList.add('note-flam');
+          if (note.type === 'roll')        cell.classList.add('note-roll');
+          if (note.accent)                 cell.classList.add('accent');
+          if (voice.id === 'HH' && note.hhOpen) cell.classList.add('hh-open');
+        }
+        cell.appendChild(inner);
+
+        // Click — unified modifier logic
+        cell.addEventListener('click', () => {
+          const mod = _de.modifier; // 'flam' | 'roll' | 'accent' | null
+          const idx = notes.findIndex(n => n.step === s);
+
+          if (_de.eraseMode) {
+            // Erase mode: always remove
+            if (idx >= 0) notes.splice(idx, 1);
+
+          } else if (mod === 'flam' || mod === 'roll') {
+            if (idx < 0) {
+              // Create note with this type
+              const n = { step: s, type: mod };
+              if (voice.id === 'HH') n.hhOpen = false;
+              notes.push(n);
+            } else if (notes[idx].type === mod) {
+              // Same modifier already — remove it (revert to normal)
+              notes[idx].type = 'normal';
+            } else {
+              // Different type — overwrite
+              notes[idx].type = mod;
+            }
+
+          } else if (mod === 'accent') {
+            if (idx < 0) {
+              // Create normal note with accent
+              const n = { step: s, type: 'normal', accent: true };
+              if (voice.id === 'HH') n.hhOpen = false;
+              notes.push(n);
+            } else {
+              // Toggle accent on existing note
+              notes[idx].accent = !notes[idx].accent;
+            }
+
+          } else {
+            // No modifier — plain toggle
+            if (idx < 0) {
+              const n = { step: s, type: 'normal' };
+              if (voice.id === 'HH') n.hhOpen = false;
+              notes.push(n);
+            } else if (voice.id === 'HH') {
+              // HH: cycle closed → open → remove
+              if (!notes[idx].hhOpen) notes[idx].hhOpen = true;
+              else notes.splice(idx, 1);
+            } else {
+              notes.splice(idx, 1);
+            }
+          }
+
+          bar.voices[voice.id] = notes;
+          deRenderGrid();
+        });
+
+        row.appendChild(cell);
+      }
+      wrap.appendChild(row);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════
+// DRUM MINI-PREVIEW (rendered inside the row)
+// ═══════════════════════════════════════════════
+function renderDrumPreview(container, row) {
+  const dp = row.drumPattern;
+  if (!dp || !dp.bars || !dp.bars.length) return;
+
+  const ts    = dp.timeSignature || '4/4';
+  const sdiv  = dp.subdivision  || '8th';
+  const steps = deStepsPerBar(ts, sdiv);
+
+  // Which voices have at least one note across all bars?
+  const usedVoices = DE_VOICES.filter(v =>
+    dp.bars.some(bar => (bar.voices[v.id] || []).length > 0)
+  );
+  if (!usedVoices.length) {
+    const empty = document.createElement('span');
+    empty.style.cssText = 'font-family:"Space Mono",monospace;font-size:0.6rem;color:var(--dim);';
+    empty.textContent = '(patrón vacío)';
+    container.appendChild(empty);
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'drum-preview-wrap';
+
+  const barsWrap = document.createElement('div');
+  barsWrap.className = 'drum-preview-bars';
+
+  dp.bars.forEach((bar, bi) => {
+    const barDiv = document.createElement('div');
+    barDiv.className = 'drum-preview-bar';
+
+    const barLbl = document.createElement('div');
+    barLbl.className = 'drum-preview-bar-label';
+    barLbl.textContent = 'C' + (bi + 1);
+    barDiv.appendChild(barLbl);
+
+    usedVoices.forEach(voice => {
+      const notes = bar.voices[voice.id] || [];
+      const vRow = document.createElement('div');
+      vRow.className = 'drum-preview-voice';
+
+      const vLbl = document.createElement('div');
+      vLbl.className = 'drum-preview-voice-lbl';
+      vLbl.style.color = {HH:'#00ffe7',C:'#a78bfa',T1:'#f97316',T2:'#22d3ee',T3:'#4ade80',SD:'#ffc300',BD:'#ff6b6b'}[voice.id] || '#aaa';
+      vLbl.textContent = voice.label;
+      vRow.appendChild(vLbl);
+
+      for (let s = 0; s < steps; s++) {
+        const note = notes.find(n => n.step === s);
+        const cell = document.createElement('div');
+        cell.className = 'drum-preview-cell' + (note ? ' active v-' + voice.id : '');
+        if (note && voice.id === 'HH' && note.hhOpen) cell.classList.add('hh-open');
+        if (note && note.type === 'flam')  cell.classList.add('note-flam');
+        if (note && note.type === 'roll')  cell.classList.add('note-roll');
+        if (note && note.accent)           cell.classList.add('accent');
+        vRow.appendChild(cell);
+      }
+      barDiv.appendChild(vRow);
+    });
+    barsWrap.appendChild(barDiv);
+  });
+
+  wrap.appendChild(barsWrap);
+  container.appendChild(wrap);
+}
+
+// ═══════════════════════════════════════════════
+// DRUM TEXT EXPORT (for RTF and print/PDF)
+// Returns a compact text representation
+// ═══════════════════════════════════════════════
+function drumPatternToText(dp) {
+  if (!dp || !dp.bars || !dp.bars.length) return '';
+  const ts    = dp.timeSignature || '4/4';
+  const sdiv  = dp.subdivision  || '8th';
+  const steps = deStepsPerBar(ts, sdiv);
+
+  const usedVoices = DE_VOICES.filter(v =>
+    dp.bars.some(bar => (bar.voices[v.id] || []).length > 0)
+  );
+
+  const lines = [];
+  usedVoices.forEach(v => {
+    const barParts = dp.bars.map(bar => {
+      const notes = bar.voices[v.id] || [];
+      let s = '';
+      for (let i = 0; i < steps; i++) {
+        const n = notes.find(x => x.step === i);
+        if (n) s += n.type === 'flam' ? 'F' : n.type === 'roll' ? 'R' : (n.accent ? 'A' : (v.id === 'HH' && n.hhOpen ? 'O' : '●'));
+        else   s += '·';
+        if (i < steps - 1) s += ' ';
+      }
+      return s;
+    });
+    lines.push(v.label.padEnd(3) + ':  ' + barParts.join('  ||  '));
+  });
+  return lines.join('\n');
+}
+
+// ═══════════════════════════════════════════════
+// DRUM HTML PREVIEW for print/PDF
+// ═══════════════════════════════════════════════
+function drumPatternToHTML(dp, colorClass) {
+  if (!dp || !dp.bars || !dp.bars.length) return '';
+  const ts    = dp.timeSignature || '4/4';
+  const sdiv  = dp.subdivision  || '8th';
+  const steps = deStepsPerBar(ts, sdiv);
+
+  const usedVoices = DE_VOICES.filter(v =>
+    dp.bars.some(bar => (bar.voices[v.id] || []).length > 0)
+  );
+  if (!usedVoices.length) return '<em style="color:#aaa;">(patrón vacío)</em>';
+
+  const vColors = {HH:'#00a090',C:'#6040b0',T1:'#b05010',T2:'#006090',T3:'#207040',SD:'#907000',BD:'#a03030'};
+  const cellSz = 14;
+
+  let html = '<div style="overflow-x:auto;">';
+  dp.bars.forEach((bar, bi) => {
+    html += `<div style="margin-bottom:4px;"><span style="font-family:Space Mono,monospace;font-size:9px;color:#888;letter-spacing:1px;text-transform:uppercase;">Compás ${bi+1}</span><div style="display:flex;flex-direction:column;gap:2px;margin-top:2px;">`;
+    usedVoices.forEach(v => {
+      const notes = bar.voices[v.id] || [];
+      const col = vColors[v.id] || '#666';
+      html += `<div style="display:flex;align-items:center;gap:1px;">`;
+      html += `<span style="font-family:Space Mono,monospace;font-size:8px;font-weight:700;color:${col};width:22px;text-align:right;padding-right:3px;">${v.label}</span>`;
+      for (let s = 0; s < steps; s++) {
+        const n = notes.find(x => x.step === s);
+        const bg = n ? col : '#e8e8e8';
+        const br = ['T1','T2','T3'].includes(v.id) ? '2px' : (v.id === 'HH' || v.id === 'C') ? '50%' : '50%';
+        html += `<div style="width:${cellSz}px;height:${cellSz}px;border-radius:${br};background:${bg};border:1px solid ${n ? col : '#ddd'};flex-shrink:0;"></div>`;
+      }
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  return html;
+}
+
 
 
 
@@ -5500,6 +6754,70 @@ function exportScorePDF() {
     <input type="number" id="cmAutoSecs" value="120" min="10" max="3600"
       style="width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.65rem;padding:3px 6px;outline:none;text-align:center;" />
     <span>seg</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DRUM PATTERN EDITOR MODAL
+══════════════════════════════════════ -->
+<div class="drum-editor-overlay" id="drumEditorOverlay">
+  <div class="drum-editor-modal">
+    <div class="de-header">
+      <div>
+        <div class="de-title">🥁 Editor de Batería</div>
+        <div class="de-subtitle" id="deSubtitle">Patrón</div>
+      </div>
+      <button class="de-help-btn" id="deHelpBtn" onclick="deToggleHelp(event)" title="Ayuda">?</button>
+      <div class="de-help-tooltip" id="deHelpTooltip">
+        <div class="de-help-row">👆 <span><strong>Clic</strong> — añadir / quitar nota</span></div>
+        <div class="de-help-row">🥁 <span><strong>HH:</strong> clic repetido — cerrado ○ → abierto ⊗ → quitar</span></div>
+        <div class="de-help-row">⁻♩ <span><strong>Flam</strong> — activa y clica · punto arriba</span></div>
+        <div class="de-help-row">〰 <span><strong>Roll</strong> — activa y clica · onda arriba</span></div>
+        <div class="de-help-row">&gt; <span><strong>Acento</strong> — activa y clica · símbolo arriba</span></div>
+        <div class="de-help-row">‹ › <span><strong>Flechas</strong> — añadir / quitar compás</span></div>
+        <div class="de-help-row">4ª 8ª 16ª <span><strong>Subdivisión</strong> del grid</span></div>
+      </div>
+      <button class="de-close" onclick="closeDrumEditor()">✕</button>
+    </div>
+    <div class="de-toolbar">
+      <span class="de-toolbar-label">Tipo</span>
+      <button class="de-note-btn active" id="deNoteF"  onclick="deSelectNote('flam',this)"><span class="de-note-sym" style="font-size:0.85rem">⁻♩</span><span>Flam</span></button>
+      <button class="de-note-btn"        id="deNoteR"  onclick="deSelectNote('roll',this)"><span class="de-note-sym" style="font-size:0.85rem">〰</span><span>Roll</span></button>
+      <button class="de-note-btn"        id="deNoteA"  onclick="deSelectNote('accent',this)"><span class="de-note-sym" style="font-size:0.85rem">></span><span>Acento</span></button>
+      <div class="de-toolbar-sep"></div>
+      <span class="de-toolbar-label">Compás</span>
+      <select class="de-sel" id="deTimeSig" onchange="deChangeTimeSig()">
+        <option value="4/4">4/4</option><option value="3/4">3/4</option>
+        <option value="6/8">6/8</option><option value="5/4">5/4</option>
+      </select>
+      <div class="de-toolbar-sep"></div>
+      <button class="de-sdiv-btn" style="padding:3px 6px;" onclick="deRemoveBar()" title="Quitar compás">‹</button>
+      <span id="deBarCount" style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--text);padding:0 2px;min-width:14px;text-align:center;"></span>
+      <button class="de-sdiv-btn" style="padding:3px 6px;" onclick="deAddBar()" title="Añadir compás">›</button>
+      <div class="de-toolbar-sep"></div>
+      <span class="de-toolbar-label">Subdiv</span>
+      <button class="de-sdiv-btn"        id="deSubDiv4"  onclick="deChangeSubdiv('4th',this)">4ª</button>
+      <button class="de-sdiv-btn active" id="deSubDiv8"  onclick="deChangeSubdiv('8th',this)">8ª</button>
+      <button class="de-sdiv-btn"        id="deSubDiv16" onclick="deChangeSubdiv('16th',this)">16ª</button>
+    </div>
+    <div class="de-grid-wrap" id="deGridWrap"></div>
+    <div class="de-legend">
+      <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff6b6b;"></span><span style="color:#ff6b6b">BD</span> Bombo</div>
+      <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffc300;"></span><span style="color:#ffc300">SD</span> Caja</div>
+      <div class="de-legend-item"><span style="color:#00ffe7;font-weight:700;font-size:0.8rem;">×</span><span style="color:#00ffe7">HH</span> Hi-Hat</div>
+      <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid #a78bfa;"></span><span style="color:#a78bfa">C</span> Crash</div>
+      <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f97316;"></span><span style="color:#f97316">T1</span></div>
+      <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#22d3ee;"></span><span style="color:#22d3ee">T2</span></div>
+      <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#4ade80;"></span><span style="color:#4ade80">T3</span></div>
+      <div style="flex:1"></div>
+      <div class="de-legend-item" style="font-size:0.5rem;">Clic=nota · HH: clic=cerrado→abierto→quitar · Doble clic=acento · ⁻♩=flam</div>
+    </div>
+    <div class="de-footer">
+      <button class="de-btn de-btn-danger" onclick="deClearPattern()">🗑 Limpiar</button>
+      <div class="spacer"></div>
+      <button class="de-btn" onclick="closeDrumEditor()">Cancelar</button>
+      <button class="de-btn de-btn-primary" onclick="deSavePattern()">✓ Guardar patrón</button>
+    </div>
   </div>
 </div>
 
