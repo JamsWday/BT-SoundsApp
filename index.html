@@ -2614,6 +2614,14 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
 .inst-pill:hover { border-color: var(--accent); color: var(--accent); }
 .inst-pill.active { font-weight: 700; }
 .inst-pill-all.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+/* Borde de color constante por instrumento (activo e inactivo) */
+.inst-pill-guit1 { border-color: var(--inst-guit1); }
+.inst-pill-guit2 { border-color: var(--inst-guit2); }
+.inst-pill-bajo  { border-color: var(--inst-bajo);  }
+.inst-pill-bat   { border-color: var(--inst-bat);   }
+.inst-pill-voz   { border-color: var(--inst-voz);   }
+
 .inst-pill-guit1.active { background: var(--inst-guit1); color: #000; border-color: var(--inst-guit1); }
 .inst-pill-guit2.active { background: var(--inst-guit2); color: #000; border-color: var(--inst-guit2); }
 .inst-pill-bajo.active  { background: var(--inst-bajo);  color: #fff; border-color: var(--inst-bajo);  }
@@ -4874,6 +4882,8 @@ function stopAllSectionAudio() {
 }
 
 function updateSongAudioPlayer() {
+  // Siempre detener y descargar el audio anterior al cambiar de canción
+  stopSongAudio();
   const player = document.getElementById("songAudioPlayer");
   const songBtn = document.getElementById("btnSongAudio");
   if (songData.audio) {
@@ -4882,7 +4892,6 @@ function updateSongAudioPlayer() {
   } else {
     player.classList.remove("visible");
     if (songBtn) songBtn.style.display = "";
-    stopSongAudio();
   }
   updateScrollSongAudioBtn();
 }
