@@ -42,9 +42,9 @@
 [data-theme="neon"] .section-name-input:focus { border-color: #ff2d78; }
 [data-theme="neon"] .btn-primary { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
 [data-theme="neon"] .btn-primary:hover { background: #33fff0; }
-[data-theme="neon"] #btnPlay { background: #00ffe7; color: #09090f; }
-[data-theme="neon"] #btnPlay:hover { background: #33fff0; }
-[data-theme="neon"] #btnPlay.playing { background: #ff2d78; color: #fff; }
+[data-theme="neon"] #hdrBtnPlay { background: #00ffe7; color: #09090f; }
+[data-theme="neon"] #hdrBtnPlay:hover { background: #33fff0; }
+[data-theme="neon"] #hdrBtnPlay.playing { background: #ff2d78; color: #fff; }
 [data-theme="neon"] .pbtn.ok { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
 [data-theme="neon"] .pbtn.ok:hover { background: #33fff0; }
 [data-theme="neon"] .etab.active { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
@@ -63,11 +63,11 @@
 [data-theme="neon"] .repeat-input { color: #00ffe7; background: rgba(0,255,231,0.08); border-color: rgba(0,255,231,0.25); }
 [data-theme="neon"] .repeat-input:focus { border-color: #00ffe7; background: rgba(0,255,231,0.14); }
 [data-theme="neon"] #btnReadonly.readonly-active { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
-[data-theme="neon"] .scroll-speed-val { color: #00ffe7; }
+[data-theme="neon"] #speedVal { color: #00ffe7; }
 [data-theme="neon"] #scrollSpeed { accent-color: #00ffe7; }
 [data-theme="neon"] #scrollSpeed::-webkit-slider-thumb { background: #00ffe7; box-shadow: 0 0 0 3px rgba(0,255,231,0.2); }
 [data-theme="neon"] #scrollSpeed::-moz-range-thumb { background: #00ffe7; }
-[data-theme="neon"] .scroll-progress-fill { background: #00ffe7; }
+[data-theme="neon"] .hdr-scroll-fill { background: #00ffe7; }
 [data-theme="neon"] .drag-handle:hover { color: #00ffe7; }
 [data-theme="neon"] .title-input:focus { border-bottom-color: #00ffe7; }
 [data-theme="neon"] .meta-input:focus { border-bottom-color: #00ffe7; color: var(--text); }
@@ -126,15 +126,14 @@
 [data-theme="light"] .btn:hover { border-color: #b07a10; color: #b07a10; }
 [data-theme="light"] .btn-primary { background: #b07a10; color: #fff; border-color: #b07a10; }
 [data-theme="light"] .btn-primary:hover { background: #c88c18; }
-[data-theme="light"] #btnPlay { background: #b07a10; color: #fff; }
-[data-theme="light"] #btnPlay:hover { background: #c88c18; }
-[data-theme="light"] #btnPlay.playing { background: #c0401a; color: #fff; }
-[data-theme="light"] #scrollBar { background: #f5f5f0ee; border-top-color: #d0d0c8; }
-[data-theme="light"] .scroll-speed-val { color: #b07a10; }
+[data-theme="light"] #hdrBtnPlay { background: #b07a10; color: #fff; }
+[data-theme="light"] #hdrBtnPlay:hover { background: #c88c18; }
+[data-theme="light"] #hdrBtnPlay.playing { background: #c0401a; color: #fff; }
+[data-theme="light"] #speedVal { color: #b07a10; }
 [data-theme="light"] #scrollSpeed { accent-color: #b07a10; }
 [data-theme="light"] #scrollSpeed::-webkit-slider-thumb { background: #b07a10; box-shadow: 0 0 0 3px rgba(176,122,16,0.2); }
 [data-theme="light"] #scrollSpeed::-moz-range-thumb { background: #b07a10; }
-[data-theme="light"] .scroll-progress-fill { background: #b07a10; }
+[data-theme="light"] .hdr-scroll-fill { background: #b07a10; }
 [data-theme="light"] .pbtn { background: #eeeeea; border-color: #d0d0c8; color: #606070; }
 [data-theme="light"] .pbtn:hover { border-color: #b0b0b8; color: #1a1a20; }
 [data-theme="light"] .pbtn.ok { background: #b07a10; color: #fff; border-color: #b07a10; }
@@ -182,14 +181,14 @@
 [data-theme="bluered"] .btn:hover { border-color: #3a9fd4; color: #3a9fd4; }
 [data-theme="bluered"] .btn-primary { background: #3a9fd4; color: #080c14; border-color: #3a9fd4; }
 [data-theme="bluered"] .btn-primary:hover { background: #5ab8e8; }
-[data-theme="bluered"] #btnPlay { background: #3a9fd4; color: #080c14; }
-[data-theme="bluered"] #btnPlay:hover { background: #5ab8e8; }
-[data-theme="bluered"] #btnPlay.playing { background: #8b1a3a; color: #fff; }
-[data-theme="bluered"] .scroll-speed-val { color: #3a9fd4; }
+[data-theme="bluered"] #hdrBtnPlay { background: #3a9fd4; color: #080c14; }
+[data-theme="bluered"] #hdrBtnPlay:hover { background: #5ab8e8; }
+[data-theme="bluered"] #hdrBtnPlay.playing { background: #8b1a3a; color: #fff; }
+[data-theme="bluered"] #speedVal { color: #3a9fd4; }
 [data-theme="bluered"] #scrollSpeed { accent-color: #3a9fd4; }
 [data-theme="bluered"] #scrollSpeed::-webkit-slider-thumb { background: #3a9fd4; box-shadow: 0 0 0 3px rgba(58,159,212,0.2); }
 [data-theme="bluered"] #scrollSpeed::-moz-range-thumb { background: #3a9fd4; }
-[data-theme="bluered"] .scroll-progress-fill { background: #3a9fd4; }
+[data-theme="bluered"] .hdr-scroll-fill { background: #3a9fd4; }
 [data-theme="bluered"] .pbtn.ok { background: #3a9fd4; color: #080c14; border-color: #3a9fd4; }
 [data-theme="bluered"] .pbtn.ok:hover { background: #5ab8e8; }
 [data-theme="bluered"] .etab.active { background: #3a9fd4; color: #080c14; border-color: #3a9fd4; }
@@ -968,51 +967,10 @@ body {
   /* Sin audio: ocultar barra y label */
   #songAudioPlayer .sap-bar   { display: none !important; }
   #songAudioPlayer .sap-label { display: none !important; }
-
-  /* Mientras el audio está en PLAY: mhdr-row2 recibe clase is-playing */
-  .mhdr-row2.is-playing #songAudioPlayer .sap-bar {
-    display: block !important;
-    flex: 1;
-    width: auto;
-    height: 5px;
-    align-self: center;
-    min-width: 60px;
-    overflow: hidden;
-  }
-  /* Guardar → solo icono ☁ */
-  .mhdr-row2.is-playing .btn-save-cloud {
-    flex: 0 0 auto !important;
-    padding: 9px 11px !important;
-    font-size: 0 !important;
-    letter-spacing: 0 !important;
-    min-width: 0 !important;
-  }
-  .mhdr-row2.is-playing .btn-save-cloud::before {
-    content: '☁';
-    font-size: 1rem;
-  }
-  /* Tocar → solo icono 👁 */
-  .mhdr-row2.is-playing #btnReadonly {
-    flex: 0 0 auto !important;
-    padding: 9px 11px !important;
-    font-size: 0 !important;
-    letter-spacing: 0 !important;
-    min-width: 0 !important;
-  }
-  .mhdr-row2.is-playing #btnReadonly::before {
-    content: '👁';
-    font-size: 1rem;
-  }
-
-  /* Readonly: mostrar sap-bar completo */
-  body.readonly #songAudioPlayer .sap-bar   { display: flex !important; }
-  body.readonly #songAudioPlayer .sap-label { display: inline !important; }
 }
 
 /* ══════════════════════════════════════════════════════
-   MÓVIL HORIZONTAL — mismo comportamiento de audio
-   colapsado que en vertical: barra oculta, se expande
-   solo al reproducir; Guardar y Tocar → solo icono
+   MÓVIL HORIZONTAL — header en una sola fila compacta
 ══════════════════════════════════════════════════════ */
 @media (max-height: 500px) and (orientation: landscape) {
 
@@ -1031,197 +989,91 @@ body {
   .title-input  { font-size: 1rem !important; }
   .artist-input { font-size: 0.6rem !important; }
 
-  /* header-actions: solo muestra fila 2, en fila */
+  /* header-actions: en fila, todo compacto */
   .header-actions {
     flex-direction: row !important;
     gap: 4px !important;
     width: auto !important;
     flex-shrink: 0;
   }
-  /* Mostrar fila 1 pero en icono — NO ocultarla */
+  /* Fila 1: iconos compactos */
   .mhdr-row1 {
     display: flex !important;
     flex-direction: row !important;
     gap: 4px !important;
   }
-  /* Biblioteca → solo 🎶 */
-  .mhdr-row1 button:nth-child(1) {
-    font-size: 0 !important;
-    padding: 7px 9px !important;
-    min-width: 0 !important;
-  }
+  .mhdr-row1 button:nth-child(1) { font-size: 0 !important; padding: 7px 9px !important; min-width: 0 !important; }
   .mhdr-row1 button:nth-child(1)::before { content: '🎶'; font-size: 1rem; }
-  /* Repertorios → solo 🎭 */
-  .mhdr-row1 button:nth-child(2) {
-    font-size: 0 !important;
-    padding: 7px 9px !important;
-    min-width: 0 !important;
-  }
+  .mhdr-row1 button:nth-child(2) { font-size: 0 !important; padding: 7px 9px !important; min-width: 0 !important; }
   .mhdr-row1 button:nth-child(2)::before { content: '🎭'; font-size: 1rem; }
 
-  /* Tocar → solo 👁 SIEMPRE en landscape */
-  #btnReadonly {
-    font-size: 0 !important;
-    padding: 9px 11px !important;
-    min-width: 0 !important;
-    letter-spacing: 0 !important;
-  }
+  /* Tocar/Editar → solo icono en landscape */
+  #btnReadonly { font-size: 0 !important; padding: 9px 11px !important; min-width: 0 !important; letter-spacing: 0 !important; }
+  #btnReadonly .lbl-tocar  { display: none !important; }
+  #btnReadonly .lbl-editar { display: none !important; }
   #btnReadonly::before { content: '👁'; font-size: 1rem; }
+  body.readonly #btnReadonly::before { content: '✎'; font-size: 1rem; }
+
+  /* Guardar → solo ☁ en landscape */
+  .btn-save-cloud { flex: 0 0 auto !important; padding: 9px 11px !important; font-size: 0 !important; letter-spacing: 0 !important; min-width: 0 !important; }
+  .btn-save-cloud::before { content: '☁'; font-size: 1rem; }
 
   /* Sin audio reproduciéndose: ocultar barra y label */
   #songAudioPlayer .sap-bar   { display: none !important; }
   #songAudioPlayer .sap-label { display: none !important; }
-
-  /* Mientras el audio está en PLAY: mostrar barra */
-  .mhdr-row2.is-playing #songAudioPlayer .sap-bar {
-    display: block !important;
-    flex: 1;
-    width: auto;
-    height: 5px;
-    align-self: center;
-    min-width: 60px;
-    overflow: hidden;
-  }
-
-  /* Guardar → solo icono ☁ SIEMPRE en landscape */
-  .btn-save-cloud {
-    flex: 0 0 auto !important;
-    padding: 9px 11px !important;
-    font-size: 0 !important;
-    letter-spacing: 0 !important;
-    min-width: 0 !important;
-  }
-  .btn-save-cloud::before {
-    content: '☁';
-    font-size: 1rem;
-  }
-
-  /* Tocar → solo icono 👁 */
-  .mhdr-row2.is-playing #btnReadonly {
-    flex: 0 0 auto !important;
-    padding: 9px 11px !important;
-    font-size: 0 !important;
-    letter-spacing: 0 !important;
-    min-width: 0 !important;
-  }
-  .mhdr-row2.is-playing #btnReadonly::before {
-    content: '👁';
-    font-size: 1rem;
-  }
-
-  /* Readonly: siempre mostrar barra de audio */
-  body.readonly #songAudioPlayer .sap-bar   { display: flex !important; }
-  body.readonly #songAudioPlayer .sap-label { display: inline !important; }
 }
 
-#scrollBar {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
-  background: var(--scrollbar-bg);
-  border-top: 1px solid var(--border);
-  backdrop-filter: blur(8px);
-  padding: 10px 14px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
+/* ══════════════════════════════════════════════
+   HDR SCROLL — autoscroll widget en el header
+   Visible únicamente en modo Tocar (body.readonly)
+══════════════════════════════════════════════ */
+#hdrScroll {
+  display: none; /* se muestra en body.readonly */
   align-items: center;
-  gap: 10px;
-  box-sizing: border-box;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 9px;
   overflow: hidden;
 }
-body.readonly #scrollBar { display: flex; }
+body.readonly #hdrScroll { display: flex; }
 
-/* Botón "← Concierto" dentro del scrollBar */
-#cmReturnBtn {
-  display: none;
-  align-items: center;
-  gap: 5px;
+#hdrBtnPlay {
   font-family: 'Space Mono', monospace;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 7px 11px;
-  border-radius: 6px;
-  border: 1px solid var(--accent);
-  background: transparent;
-  color: var(--accent);
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.18s;
-}
-#cmReturnBtn:hover { background: rgba(var(--accent), 0.1); }
-
-#btnPlay {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 9px 14px;
-  border-radius: 6px;
+  padding: 6px 11px;
+  border-radius: 5px;
   border: none;
   cursor: pointer;
   background: var(--accent);
   color: var(--bg);
-  transition: all 0.18s;
-  display: flex;
-  align-items: center;
-  gap: 0;
   flex-shrink: 0;
-  min-width: 40px;
-  justify-content: center;
-}
-#btnPlay:hover { background: #f5d84a; }
-#btnPlay.playing { background: var(--accent2); color: #fff; }
-#btnPlay.playing:hover { background: #d96940; }
-#btnPlay .play-icon { font-size: 1rem; line-height: 1; }
-
-#btnSaveScroll {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 9px 11px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  background: var(--accent);
-  color: var(--bg);
-  transition: all 0.18s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  transition: background 0.18s;
+  display: flex; align-items: center; justify-content: center;
   line-height: 1;
 }
-#btnSaveScroll:hover { background: #f5d84a; }
-#btnSaveScroll.saved { background: var(--green); color: #fff; }
+#hdrBtnPlay:hover { opacity: 0.88; }
+#hdrBtnPlay.playing { background: var(--accent2); color: #fff; }
 
-.scroll-speed-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.hdr-scroll-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
   flex-shrink: 0;
 }
-.scroll-speed-val {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.72rem;
-  color: var(--accent);
-  font-weight: 700;
-  min-width: 14px;
-  text-align: right;
-  margin-right: 2px;
-}
-.scroll-speed-label {
-  display: none;
-}
+
 #scrollSpeed {
   -webkit-appearance: none;
   appearance: none;
-  width: 120px;
+  flex: 1;
+  min-width: 44px;
+  max-width: 110px;
   height: 4px;
   border-radius: 2px;
   background: var(--border);
@@ -1231,31 +1083,57 @@ body.readonly #scrollBar { display: flex; }
 }
 #scrollSpeed::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px; height: 16px;
+  width: 15px; height: 15px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
-  box-shadow: 0 0 0 3px rgba(232,200,64,0.2);
+  box-shadow: 0 0 0 3px rgba(232,200,64,0.18);
   transition: box-shadow 0.15s;
 }
 #scrollSpeed::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(232,200,64,0.25); }
 #scrollSpeed::-moz-range-thumb {
-  width: 16px; height: 16px;
+  width: 15px; height: 15px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
   border: none;
 }
 
-.scroll-progress {
+#speedVal {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-weight: 700;
+  min-width: 13px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+#hdrBtnSave {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.82rem;
+  padding: 5px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.18s;
+  line-height: 1;
+}
+#hdrBtnSave:hover { border-color: var(--accent); color: var(--accent); }
+#hdrBtnSave.saved { background: var(--green); color: #fff; border-color: var(--green); }
+
+.hdr-scroll-progress {
   flex: 1;
-  max-width: 200px;
+  min-width: 28px;
   height: 3px;
   background: var(--border);
   border-radius: 2px;
   overflow: hidden;
 }
-.scroll-progress-fill {
+.hdr-scroll-fill {
   height: 100%;
   background: var(--accent);
   width: 0%;
@@ -1263,36 +1141,219 @@ body.readonly #scrollBar { display: flex; }
   transition: width 0.3s linear;
 }
 
-/* extra bottom padding in readonly so bar doesn't cover content */
-body.readonly { padding-bottom: 68px !important; }
+/* extra bottom padding when song player bar is visible */
+body.has-song-player { padding-bottom: 110px !important; }
 
-/* ── READ-ONLY MODE ── */
+/* ══════════════════════════════════════════════
+   SONG PLAYER BAR — barra unificada fija abajo
+══════════════════════════════════════════════ */
+#songPlayerBar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 190;
+  background: var(--surface);
+  border-top: 1px solid var(--accent);
+  padding: 10px 16px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+}
+#songPlayerBar.visible { display: flex; }
+/* En modo drum editor la barra se muestra dentro del modal, no fija */
+.drum-editor-overlay.open ~ #songPlayerBar { display: none !important; }
+
+.spb-row1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.spb-play {
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.spb-play:hover { background: var(--green); }
+.spb-play.playing { background: var(--accent2); color: #fff; }
+.spb-seek {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.spb-seek:hover { border-color: var(--accent); color: var(--accent); }
+.spb-progress {
+  flex: 1;
+  height: 4px;
+  background: var(--dim);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+  transition: height 0.15s;
+}
+.spb-progress:hover { height: 7px; }
+.spb-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  border-radius: 2px;
+  pointer-events: none;
+  transition: width 0.25s linear;
+}
+.spb-time {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.spb-edit {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 7px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.spb-edit:hover { border-color: var(--accent); color: var(--accent); }
+
+.spb-row2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.spb-speed-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+.spb-speed-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  max-width: 140px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--dim);
+  outline: none;
+  cursor: pointer;
+}
+.spb-speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,255,231,0.15);
+  cursor: pointer;
+}
+.spb-speed-slider::-moz-range-thumb {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none; cursor: pointer;
+}
+.spb-speed-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 36px;
+  text-align: left;
+}
+.spb-pitch-note {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  color: var(--green);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+@media print { #songPlayerBar { display: none !important; } }
+
+/* ══════════════════════════════════════════════
+   READ-ONLY / TOCAR MODE
+   El header muestra: [#hdrScroll] [✎ Editar]
+   Todo lo demás del header se oculta.
+══════════════════════════════════════════════ */
+
+/* Ocultar todos los controles de edición del header */
 body.readonly .header-actions .btn:not(#btnReadonly) { display: none; }
-body.readonly .hdr-sep { display: none; }
-body.readonly .hdr-export-wrap { display: none; }
-body.readonly #btnReadonly { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+body.readonly .hdr-sep            { display: none; }
+body.readonly .hdr-export-wrap    { display: none; }
+body.readonly #songAudioPlayer    { display: none !important; }
+body.readonly #btnSongAudio       { display: none !important; }
+body.readonly .mhdr-row1          { display: none !important; }
+body.readonly .mhdr-row3          { display: none !important; }
 
-/* Móvil readonly: layout limpio Audio + Editar / Pills */
-@media (max-width: 600px) {
-  /* Ocultar fila 1 completa (Biblioteca · Repertorios · Audio) */
+/* Fila 2: solo hdrScroll + btnReadonly, en todos los breakpoints */
+body.readonly .mhdr-row2 {
+  display: flex !important;
+  gap: 6px;
+  align-items: stretch;
+}
+body.readonly .mhdr-row2 #hdrScroll {
+  display: flex !important;
+  flex: 1;
+  min-width: 0;
+}
+body.readonly .mhdr-row2 #btnReadonly {
+  display: inline-flex !important;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* Botón Tocar ↔ Editar */
+#btnReadonly .lbl-tocar  { display: inline; }
+#btnReadonly .lbl-editar { display: none; }
+body.readonly #btnReadonly .lbl-tocar  { display: none; }
+body.readonly #btnReadonly .lbl-editar { display: none; } /* solo icono en Tocar */
+
+body.readonly #btnReadonly {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 700;
+  font-size: 0 !important;        /* ocultar cualquier texto residual */
+  padding: 9px 13px !important;
+  flex-shrink: 0;
+}
+body.readonly #btnReadonly::before {
+  content: '✎';
+  font-size: 1.1rem;
+}
+
+/* Pills: visibles en readonly */
+body.readonly .inst-filter-bar { display: flex !important; }
+
+/* En landscape/desktop: header-actions ya es flex-row, funciona igual */
+@media (max-height: 500px) and (orientation: landscape) {
   body.readonly .mhdr-row1 { display: none !important; }
-
-  /* Fila 2: mostrar solo Audio + btnReadonly */
-  body.readonly .mhdr-row2 { display: flex !important; gap: 5px; }
-  body.readonly .mhdr-row2 #songAudioPlayer { display: flex !important; flex: 1; min-width: 0; }
-  body.readonly .mhdr-row2 #songAudioPlayer .sap-bar { display: flex !important; }
-  body.readonly .mhdr-row2 #btnSongAudio { flex-shrink: 0; }
-  body.readonly .mhdr-row2 #btnReadonly  { display: inline-flex !important; flex-shrink: 0; padding: 9px 12px !important; }
-  /* Ocultar undo/redo/export en readonly */
-  body.readonly .mhdr-row2 #btnUndo,
-  body.readonly .mhdr-row2 #btnRedo,
-  body.readonly .mhdr-row2 .hdr-export-wrap { display: none !important; }
-
-  /* Fila 3: oculta (vacía) */
-  body.readonly .mhdr-row3 { display: none !important; }
-
-  /* Pills: visibles en readonly */
-  body.readonly .inst-filter-bar { display: flex !important; }
+  /* hdrScroll ya tiene flex:1, se adapta solo */
 }
 body.readonly .section-insert { display: none !important; }
 body.readonly .add-section-btn { display: none !important; }
@@ -1815,76 +1876,9 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   flex-wrap: wrap;
 }
 
-/* Song-level audio player in header */
+/* Song-level audio player in header — reemplazado por #songPlayerBar, oculto */
 #songAudioPlayer {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-#songAudioPlayer.visible { display: flex; }
-#songAudioPlayer .sap-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.62rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-#songAudioPlayer .sap-play {
-  background: var(--accent);
-  border: none;
-  border-radius: 50%;
-  width: 26px;
-  height: 26px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.15s;
-}
-#songAudioPlayer .sap-play:hover { background: var(--green); }
-#songAudioPlayer .sap-play.playing { background: var(--accent2); color: #fff; }
-#songAudioPlayer .sap-bar {
-  width: 80px;
-  height: 3px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-  cursor: pointer;
-  position: relative;
-  transition: height 0.15s, opacity 0.15s;
-}
-#songAudioPlayer .sap-bar:hover {
-  height: 6px;
-  opacity: 0.9;
-}
-#songAudioPlayer .sap-fill {
-  height: 100%;
-  background: var(--accent);
-  width: 0%;
-  border-radius: 2px;
-  pointer-events: none;
-}
-#songAudioPlayer .sap-edit {
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 0.8rem;
-  padding: 2px 4px;
-  border-radius: 3px;
-}
-#songAudioPlayer .sap-edit:hover { color: var(--accent); }
-
-@media print {
-  .audio-btn, #songAudioPlayer { display: none !important; }
+  display: none !important;
 }
 
 /* ══════════════════════════════════════════════
@@ -1960,6 +1954,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 .drum-preview-cell.active.v-HH.hh-open { position:relative; }
 .drum-preview-cell.active.v-HH.hh-open::after { content:'×'; font-size:0.6rem; color:var(--inst-HH,#00ffe7); font-weight:700; }
 .drum-preview-cell.active.v-C  { background: transparent; border: 2px solid #a78bfa; border-radius:50%; }
+.drum-preview-cell.active.v-RD { background: transparent; border: 2px solid #e879f9; border-radius:50%; }
 .drum-preview-cell.active.v-BD { background: #ff6b6b; box-shadow: 0 0 4px rgba(255,107,107,0.5); }
 .drum-preview-cell.active.v-SD { background: #ffc300; box-shadow: 0 0 4px rgba(255,195,0,0.5); }
 .drum-preview-cell.active.v-T1 { background: #f97316; border-radius: 3px; }
@@ -1974,6 +1969,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 }
 .drum-preview-cell.active.note-flam.v-HH::after { background:#00ffe7; }
 .drum-preview-cell.active.note-flam.v-C::after  { background:#a78bfa; }
+.drum-preview-cell.active.note-flam.v-RD::after { background:#e879f9; }
 .drum-preview-cell.active.note-flam.v-SD::after { background:#ffc300; }
 .drum-preview-cell.active.note-flam.v-BD::after { background:#ff6b6b; }
 .drum-preview-cell.active.note-flam.v-T1::after { background:#f97316; border-radius:1px; }
@@ -1991,6 +1987,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 .drum-preview-cell.active.note-roll.accent::after { font-size:0.45rem; }
 .drum-preview-cell.active.note-roll.v-HH::after { color:#00ffe7; }
 .drum-preview-cell.active.note-roll.v-C::after  { color:#a78bfa; }
+.drum-preview-cell.active.note-roll.v-RD::after { color:#e879f9; }
 .drum-preview-cell.active.note-roll.v-SD::after { color:#ffc300; }
 .drum-preview-cell.active.note-roll.v-BD::after { color:#ff6b6b; }
 .drum-preview-cell.active.note-roll.v-T1::after { color:#f97316; }
@@ -2006,6 +2003,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 }
 .drum-preview-cell.active.accent.v-HH::before { color:#00ffe7; }
 .drum-preview-cell.active.accent.v-C::before  { color:#a78bfa; }
+.drum-preview-cell.active.accent.v-RD::before { color:#e879f9; }
 .drum-preview-cell.active.accent.v-SD::before { color:#ffc300; }
 .drum-preview-cell.active.accent.v-BD::before { color:#ff6b6b; }
 .drum-preview-cell.active.accent.v-T1::before { color:#f97316; }
@@ -2346,7 +2344,8 @@ body.readonly .drum-add-btn  { display: none !important; }
 }
 .de-vrow-HH .de-cell.active.hh-open .de-cell-inner::before { transform:rotate(45deg); }
 .de-vrow-HH .de-cell.active.hh-open .de-cell-inner::after  { transform:rotate(-45deg); }
-.de-vrow-C .de-cell.active .de-cell-inner  { background:transparent; border:2px solid #a78bfa; box-shadow:0 0 5px rgba(167,139,250,0.3); }
+.de-vrow-C  .de-cell.active .de-cell-inner { background:transparent; border:2px solid #a78bfa; box-shadow:0 0 5px rgba(167,139,250,0.3); }
+.de-vrow-RD .de-cell.active .de-cell-inner { background:transparent; border:2px solid #e879f9; box-shadow:0 0 5px rgba(232,121,249,0.3); }
 .de-vrow-BD .de-cell.active .de-cell-inner { background:#ff6b6b; border-color:#ff6b6b; box-shadow:0 0 6px rgba(255,107,107,0.4); }
 .de-vrow-SD .de-cell.active .de-cell-inner { background:#ffc300; border-color:#ffc300; box-shadow:0 0 6px rgba(255,195,0,0.4); }
 .de-vrow-T1 .de-cell.active .de-cell-inner { background:#f97316; border-color:#f97316; border-radius:3px; box-shadow:0 0 6px rgba(249,115,22,0.4); }
@@ -2366,6 +2365,7 @@ body.readonly .drum-add-btn  { display: none !important; }
 }
 .de-vrow-HH .de-cell.active.note-flam::before { background:#00ffe7; }
 .de-vrow-C  .de-cell.active.note-flam::before { background:#a78bfa; }
+.de-vrow-RD .de-cell.active.note-flam::before { background:#e879f9; }
 .de-vrow-SD .de-cell.active.note-flam::before { background:#ffc300; }
 .de-vrow-BD .de-cell.active.note-flam::before { background:#ff6b6b; }
 .de-vrow-T1 .de-cell.active.note-flam::before { background:#f97316; border-radius:2px; }
@@ -2383,6 +2383,7 @@ body.readonly .drum-add-btn  { display: none !important; }
 .de-cell.active.note-roll.accent::before { font-size:0.75rem; }
 .de-vrow-HH .de-cell.active.note-roll::before { color:#00ffe7; }
 .de-vrow-C  .de-cell.active.note-roll::before { color:#a78bfa; }
+.de-vrow-RD .de-cell.active.note-roll::before { color:#e879f9; }
 .de-vrow-SD .de-cell.active.note-roll::before { color:#ffc300; }
 .de-vrow-BD .de-cell.active.note-roll::before { color:#ff6b6b; }
 .de-vrow-T1 .de-cell.active.note-roll::before { color:#f97316; }
@@ -2402,6 +2403,7 @@ body.readonly .drum-add-btn  { display: none !important; }
 }
 .de-vrow-HH .de-cell.active.accent::after { color:#00ffe7; }
 .de-vrow-C  .de-cell.active.accent::after { color:#a78bfa; }
+.de-vrow-RD .de-cell.active.accent::after { color:#e879f9; }
 .de-vrow-SD .de-cell.active.accent::after { color:#ffc300; }
 .de-vrow-BD .de-cell.active.accent::after { color:#ff6b6b; }
 .de-vrow-T1 .de-cell.active.accent::after { color:#f97316; }
@@ -2410,6 +2412,7 @@ body.readonly .drum-add-btn  { display: none !important; }
 /* Voice label colors */
 .de-vrow-HH .de-voice-lbl { color:#00ffe7; }
 .de-vrow-C  .de-voice-lbl { color:#a78bfa; }
+.de-vrow-RD .de-voice-lbl { color:#e879f9; }
 .de-vrow-T1 .de-voice-lbl { color:#f97316; }
 .de-vrow-T2 .de-voice-lbl { color:#22d3ee; }
 .de-vrow-T3 .de-voice-lbl { color:#4ade80; }
@@ -2464,6 +2467,100 @@ body.readonly .drum-add-btn  { display: none !important; }
 .de-btn-danger { color: #c04040; border-color: rgba(192,64,64,0.4); }
 .de-btn-danger:hover { background: rgba(192,64,64,0.1); border-color: #c04040; }
 
+/* ── TRANSPORT BAR ── */
+.de-transport {
+  background: #08081a;
+  border-top: 1px solid var(--accent);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.de-transport-sep { width:1px; height:22px; background:var(--border); flex-shrink:0; }
+.de-tbtn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  padding: 7px 13px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.de-tbtn:hover { border-color: var(--accent); color: var(--accent); }
+.de-tbtn.playing {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.de-tbtn.loop-on {
+  background: rgba(57,255,20,0.12);
+  border-color: var(--green);
+  color: var(--green);
+}
+.de-bpm-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.de-bpm-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.de-bpm-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 36px;
+  text-align: center;
+}
+.de-bpm-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 90px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--dim);
+  outline: none;
+  cursor: pointer;
+}
+.de-bpm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,255,231,0.15);
+  cursor: pointer;
+}
+.de-bpm-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+/* Metronome: pulse column highlight */
+.de-cell.metro-pulse .de-cell-inner {
+  box-shadow: 0 0 0 2px var(--accent) !important;
+  background: rgba(0,255,231,0.18) !important;
+}
+.de-cell.metro-pulse.active .de-cell-inner {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 10px var(--accent) !important;
+}
 /* Print: ocultar editor */
 @media print { .drum-editor-overlay { display: none !important; } }
 
@@ -2746,7 +2843,22 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
 
     <!-- MÓVIL FILA 2: Audio · ↩ · ⇅ · ↪ · Guardar · Tocar -->
     <div class="mhdr-row2">
-      <!-- Audio (player o botón según estado) -->
+      <!-- ── Autoscroll (solo visible en modo Tocar) ── -->
+      <div id="hdrScroll">
+        <button id="cmReturnBtn" onclick="navBack()" title="Volver al Modo Concierto" style="display:none;font-family:'Space Mono',monospace;font-size:0.62rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;padding:5px 9px;border-radius:5px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0;">← </button>
+        <button id="hdrBtnPlay" onclick="toggleScroll()" title="Autoscroll (Space)">
+          <span id="hdrPlayIcon">▶</span>
+        </button>
+        <span class="hdr-scroll-label">Vel</span>
+        <input type="range" id="scrollSpeed" min="1" max="10" value="3"
+          oninput="updateSpeedLabel()" title="Velocidad de autoscroll" />
+        <span id="speedVal">3</span>
+        <button id="hdrBtnSave" onclick="saveScrollSpeed()" title="Guardar velocidad para esta canción">☁</button>
+        <div class="hdr-scroll-progress" title="Progreso">
+          <div class="hdr-scroll-fill" id="progressFill"></div>
+        </div>
+      </div>
+      <!-- ── Controles de edición (ocultos en modo Tocar) ── -->
       <div id="songAudioPlayer">
         <span class="sap-label">🎵</span>
         <button class="sap-play" id="sapPlayBtn" onclick="toggleSongAudio()">▶</button>
@@ -2766,7 +2878,7 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
       </div>
       <button class="btn hdr-icon-btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
       <button class="btn btn-primary btn-save-cloud" onclick="saveSongCloud()" title="Guardar en la nube">☁ Guardar</button>
-      <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar">👁 Tocar</button>
+      <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar"><span class="lbl-tocar">👁 Tocar</span><span class="lbl-editar">✎ Editar</span></button>
     </div>
 
     <!-- MÓVIL FILA 3: Pills filtro (scroll) + icono Tema -->
@@ -2799,25 +2911,34 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
 <div class="container" id="chart"></div>
 
 <!-- AUTOSCROLL BAR (visible only in readonly/play mode) -->
-<div id="scrollBar">
-  <!-- Botón volver al concierto (solo visible cuando hay concierto en pila) -->
-  <button id="cmReturnBtn" onclick="navBack()" title="Volver al Modo Concierto">← Concierto</button>
-  <!-- Play autoscroll — solo icono -->
-  <button id="btnPlay" onclick="toggleScroll()">
-    <span class="play-icon" id="playIcon">▶</span>
-  </button>
-  <!-- Velocidad (slider flexible + número) -->
-  <div class="scroll-speed-wrap">
-    <span class="scroll-speed-label">Velocidad</span>
-    <input type="range" id="scrollSpeed" min="1" max="10" value="3"
-      oninput="updateSpeedLabel()" title="Velocidad de autoscroll" />
-    <span class="scroll-speed-val" id="speedVal">3</span><button id="btnSaveScroll" onclick="saveScrollSpeed()" title="Guardar velocidad para esta canción">☁</button>
+<!-- ══════════════════════════════════════════════
+     SONG PLAYER BAR — reproductor unificado fijo abajo
+══════════════════════════════════════════════ -->
+<div id="songPlayerBar">
+  <!-- Fila 1: controles de reproducción -->
+  <div class="spb-row1">
+    <span class="spb-label" id="spbLabel" style="display:none"></span>
+    <button class="spb-play" id="spbPlayBtn" onclick="spbToggle()">▶</button>
+    <button class="spb-seek" onclick="spbSeek(-5)" title="−5 segundos">−5s</button>
+    <button class="spb-seek" onclick="spbSeek(+5)" title="+5 segundos">+5s</button>
+    <div class="spb-progress" id="spbProgress" onclick="spbClickProgress(event)">
+      <div class="spb-progress-fill" id="spbFill"></div>
+    </div>
+    <span class="spb-time" id="spbTime">0:00 / 0:00</span>
+    <button class="spb-edit" onclick="openAudioModal('song',null)" title="Editar audio">✎</button>
   </div>
-  <!-- Progreso compacto -->
-  <div class="scroll-progress" title="Progreso">
-    <div class="scroll-progress-fill" id="progressFill"></div>
+  <!-- Fila 2: velocidad con preservación de tono -->
+  <div class="spb-row2">
+    <span class="spb-speed-label">Velocidad</span>
+    <input class="spb-speed-slider" id="spbSpeedSlider" type="range"
+      min="50" max="130" value="100" step="5"
+      oninput="spbSetSpeed(this.value)" />
+    <span class="spb-speed-val" id="spbSpeedVal">100%</span>
+    <span class="spb-pitch-note" id="spbPitchNote">♪ tono conservado</span>
   </div>
 </div>
+
+<!-- scrollBar eliminado: los controles de autoscroll están en el header (#hdrScroll) -->
 
 <!-- AUDIO MODAL -->
 <div class="audio-modal-overlay" id="audioModal">
@@ -4050,10 +4171,10 @@ function toggleScroll() {
 function startScroll() {
   _scrolling   = true;
   _scrollAccum = 0;
-  const btn  = document.getElementById("btnPlay");
-  const icon = document.getElementById("playIcon");
-  btn.classList.add("playing");
-  icon.textContent = "⏹";
+  const btn  = document.getElementById("hdrBtnPlay");
+  const icon = document.getElementById("hdrPlayIcon");
+  if (btn)  btn.classList.add("playing");
+  if (icon) icon.textContent = "⏹";
 
   let lastTs       = null;
   let useAccum     = false;  // start in float mode
@@ -4114,9 +4235,10 @@ function stopScroll() {
   _scrolling   = false;
   _scrollAccum = 0;
   if (_scrollRaf) { cancelAnimationFrame(_scrollRaf); _scrollRaf = null; }
-  const btn  = document.getElementById("btnPlay");
-  const icon = document.getElementById("playIcon");
-  if (btn) { btn.classList.remove("playing"); icon.textContent = "▶"; }
+  const btn  = document.getElementById("hdrBtnPlay");
+  const icon = document.getElementById("hdrPlayIcon");
+  if (btn)  { btn.classList.remove("playing"); }
+  if (icon) { icon.textContent = "▶"; }
 }
 
 function updateSpeedLabel() {
@@ -4133,7 +4255,7 @@ function saveScrollSpeed() {
     localStorage.setItem(key, v);
   } catch(e) {}
   // Visual feedback
-  const btn = document.getElementById("btnSaveScroll");
+  const btn = document.getElementById("hdrBtnSave");
   if (btn) {
     btn.textContent = "✓";
     btn.classList.add("saved");
@@ -4918,19 +5040,16 @@ function toggleSongAudio() {
   const btn = document.getElementById("sapPlayBtn");
   const scrollBtn = document.getElementById("btnScrollSongAudio");
   const lbl = document.getElementById("scrollSongAudioLbl");
-  const row2 = document.querySelector(".mhdr-row2");
   if (_activeAudioEl.paused) {
     _activeAudioEl.play().catch(() => {});
     if (btn) { btn.textContent = "⏸"; btn.classList.add("playing"); }
     if (scrollBtn) { scrollBtn.style.borderColor = "var(--accent2)"; scrollBtn.style.color = "var(--accent2)"; }
     if (lbl) lbl.textContent = "⏸ Audio";
-    if (row2) row2.classList.add("is-playing");
   } else {
     _activeAudioEl.pause();
     if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
     if (scrollBtn) { scrollBtn.style.borderColor = "var(--green)"; scrollBtn.style.color = "var(--green)"; }
     if (lbl) lbl.textContent = "Audio";
-    if (row2) row2.classList.remove("is-playing");
   }
 }
 
@@ -4944,8 +5063,6 @@ function stopSongAudio() {
   if (scrollBtn) { scrollBtn.style.borderColor = "var(--green)"; scrollBtn.style.color = "var(--green)"; }
   const lbl = document.getElementById("scrollSongAudioLbl");
   if (lbl) lbl.textContent = "Audio";
-  const row2 = document.querySelector(".mhdr-row2");
-  if (row2) row2.classList.remove("is-playing");
 }
 
 // ── Click en sap-bar para posicionar el audio ──
@@ -4989,6 +5106,205 @@ document.addEventListener("click", function(e) {
 document.getElementById("audioModal").addEventListener("click", e => {
   if (e.target === document.getElementById("audioModal")) closeAudioModal();
 });
+
+// ═══════════════════════════════════════════════════════════════
+// SONG PLAYER BAR (SPB) — reproductor unificado de canción
+// Funciona en: edición, modo Tocar, y editor de batería
+// ═══════════════════════════════════════════════════════════════
+
+const _spb = {
+  audio: null,          // HTMLAudioElement activo
+  speed: 1.0,           // playbackRate actual
+  rafId: null,          // requestAnimationFrame para barra de progreso
+};
+
+// Formatea segundos como m:ss
+function _spbFmt(s) {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60), ss = Math.floor(s % 60);
+  return m + ':' + String(ss).padStart(2, '0');
+}
+
+// Actualiza todas las barras de progreso y tiempo (global + drum editor)
+function _spbTick() {
+  if (!_spb.audio) return;
+  const cur = _spb.audio.currentTime;
+  const dur = _spb.audio.duration || 0;
+  const pct = dur > 0 ? (cur / dur * 100).toFixed(1) : 0;
+  const timeStr = _spbFmt(cur) + ' / ' + _spbFmt(dur);
+
+  // Barra global
+  const fill = document.getElementById('spbFill');
+  const time = document.getElementById('spbTime');
+  if (fill) fill.style.width = pct + '%';
+  if (time) time.textContent = timeStr;
+
+  // Barra dentro del drum editor
+  const deFill = document.getElementById('deAudioFill');
+  const deTime = document.getElementById('deAudioTime');
+  if (deFill) deFill.style.width = pct + '%';
+  if (deTime) deTime.textContent = timeStr;
+
+  if (!_spb.audio.paused) {
+    _spb.rafId = requestAnimationFrame(_spbTick);
+  }
+}
+
+// Sincroniza el estado visual de todos los botones play
+function _spbSyncBtns(playing) {
+  ['spbPlayBtn', 'deAudioPlayBtn', 'sapPlayBtn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.textContent = playing ? '⏸' : '▶';
+    btn.classList.toggle('playing', playing);
+  });
+}
+
+// Crea el elemento Audio y lo configura
+function _spbInit() {
+  if (!songData.audio) return false;
+  if (_spb.audio && _spb.audio.src === songData.audio.src) return true; // ya cargado
+
+  _spbDestroy();
+  const a = new Audio(songData.audio.src);
+  a.preservesPitch = true;           // preservar tono al cambiar velocidad
+  a.mozPreservesPitch = true;        // Firefox
+  a.webkitPreservesPitch = true;     // Safari legacy
+  a.playbackRate = _spb.speed;
+  a.addEventListener('ended', () => { _spbSyncBtns(false); cancelAnimationFrame(_spb.rafId); _spbTick(); });
+  a.addEventListener('play',  () => { _spbSyncBtns(true);  _spb.rafId = requestAnimationFrame(_spbTick); });
+  a.addEventListener('pause', () => { _spbSyncBtns(false); cancelAnimationFrame(_spb.rafId); _spbTick(); });
+  _spb.audio = a;
+  return true;
+}
+
+function _spbDestroy() {
+  if (_spb.audio) {
+    _spb.audio.pause();
+    _spb.audio.src = '';
+    _spb.audio = null;
+  }
+  cancelAnimationFrame(_spb.rafId);
+  _spbSyncBtns(false);
+}
+
+// Toggle play/pause — llamado desde todos los botones
+function spbToggle() {
+  if (!_spbInit()) return;
+  if (_spb.audio.paused) {
+    // Detener audio de sección si estaba sonando
+    stopAllSectionAudio();
+    _spb.audio.play().catch(() => {});
+  } else {
+    _spb.audio.pause();
+  }
+}
+
+// Seek ±N segundos
+function spbSeek(delta) {
+  if (!_spbInit()) return;
+  _spb.audio.currentTime = Math.max(0,
+    Math.min(_spb.audio.duration || 0, _spb.audio.currentTime + delta));
+  _spbTick();
+  // Si estaba pausado, arrancar
+  if (_spb.audio.paused) _spb.audio.play().catch(() => {});
+}
+
+// Click en barra de progreso
+function spbClickProgress(e) {
+  if (!_spbInit()) return;
+  const bar = e.currentTarget;
+  const rect = bar.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  _spb.audio.currentTime = ratio * (_spb.audio.duration || 0);
+  _spbTick();
+  if (_spb.audio.paused) _spb.audio.play().catch(() => {});
+}
+
+// Cambiar velocidad con preservación de tono
+function spbSetSpeed(val) {
+  _spb.speed = parseInt(val) / 100;
+  if (_spb.audio) _spb.audio.playbackRate = _spb.speed;
+
+  // Actualizar labels en barra global y drum editor
+  ['spbSpeedVal', 'deAudioSpeedVal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val + '%';
+  });
+  // Sync slider del drum editor si existe
+  const deSlider = document.querySelector('#deAudioBar .spb-speed-slider');
+  if (deSlider && deSlider.value !== String(val)) deSlider.value = val;
+  // Sync slider global
+  const gSlider = document.getElementById('spbSpeedSlider');
+  if (gSlider && gSlider.value !== String(val)) gSlider.value = val;
+
+  // Nota de tono — verde si ≤20% de diferencia, amarillo si más
+  const note = document.getElementById('spbPitchNote');
+  const deNote = document.querySelector('#deAudioBar .spb-pitch-note');
+  const txt = Math.abs(_spb.speed - 1.0) > 0.25 ? '⚠ tono aprox.' : '♪ tono conservado';
+  if (note) note.textContent = txt;
+  if (deNote) deNote.textContent = txt;
+}
+
+// Mostrar/ocultar la barra según haya audio
+function spbUpdateVisibility() {
+  const bar = document.getElementById('songPlayerBar');
+  const deBar = document.getElementById('deAudioBar');
+  const hasAudio = !!(songData && songData.audio);
+
+  if (bar) bar.classList.toggle('visible', hasAudio);
+  if (deBar) deBar.style.display = hasAudio ? 'flex' : 'none';
+
+  // Padding del body
+  document.body.classList.toggle('has-song-player', hasAudio);
+
+  if (hasAudio) {
+    // Actualizar label con nombre del audio si disponible
+    const lbl = document.getElementById('spbLabel');
+    if (lbl) lbl.textContent = '';
+  } else {
+    _spbDestroy();
+  }
+}
+
+// Detener el reproductor (llamado al cambiar de canción, cerrar, etc.)
+function spbStop() { _spbDestroy(); }
+
+// Conectar con el sistema existente: reemplazar stopSongAudio y updateSongAudioPlayer
+const _origStopSongAudio = stopSongAudio;
+stopSongAudio = function() {
+  spbStop();
+  _origStopSongAudio();
+};
+
+// Actualizar visibilidad cuando cambie el audio de la canción
+const _origUpdateSongAudioPlayer = updateSongAudioPlayer;
+updateSongAudioPlayer = function() {
+  _origUpdateSongAudioPlayer();
+  spbUpdateVisibility();
+};
+
+// Abrir el drum editor también actualiza la barra interna
+const _origOpenDrumEditorSpb = openDrumEditor;
+openDrumEditor = function(row, sec) {
+  _origOpenDrumEditorSpb(row, sec);
+  // Mostrar barra de audio dentro del editor si hay audio
+  const deBar = document.getElementById('deAudioBar');
+  if (deBar) deBar.style.display = (songData && songData.audio) ? 'flex' : 'none';
+  // Ocultar barra global mientras el editor está abierto
+  const bar = document.getElementById('songPlayerBar');
+  if (bar) bar.style.display = 'none';
+};
+
+// Al cerrar el drum editor, restaurar la barra global
+const _origCloseDrumEditorSpb = closeDrumEditor;
+closeDrumEditor = function() {
+  _origCloseDrumEditorSpb();
+  // Restaurar visibilidad de la barra global
+  spbUpdateVisibility();
+};
+
+
 
 // ═══════════════════════════════════════════════
 // THEME SWITCHER
@@ -6119,6 +6435,7 @@ const DE_VOICES = [
   { id:'T3', label:'T3' },
   { id:'T2', label:'T2' },
   { id:'T1', label:'T1' },
+  { id:'RD', label:'RD' },
   { id:'C',  label:'C'  },
   { id:'HH', label:'HH' },
   { id:'SD', label:'SD' },
@@ -6181,6 +6498,21 @@ function openDrumEditor(row, sec) {
 
   document.getElementById('drumEditorOverlay').classList.add('open');
   deFixModalHeight();
+
+  // Sync BPM from song data
+  const songBpm = parseInt(songData?.bpm) || 90;
+  _dau.bpm = songBpm;
+  const slider = document.getElementById('deBpmSlider');
+  const valLbl = document.getElementById('deBpmVal');
+  if (slider) slider.value = Math.min(240, Math.max(40, songBpm));
+  if (valLbl) valLbl.textContent = _dau.bpm;
+
+  // Reset transport UI
+  const playBtn = document.getElementById('dePlayBtn');
+  const loopBtn = document.getElementById('deLoopBtn');
+  if (playBtn) { playBtn.textContent = '▶ Play'; playBtn.classList.remove('playing'); }
+  if (loopBtn) loopBtn.classList.toggle('loop-on', _dau.loop);
+
   deRenderGrid();
 }
 
@@ -6201,6 +6533,7 @@ window.addEventListener('resize', () => {
 });
 
 function closeDrumEditor() {
+  deStop();
   document.getElementById('drumEditorOverlay').classList.remove('open');
   document.getElementById('deHelpTooltip').classList.remove('open');
   _de.row = null;
@@ -6306,6 +6639,7 @@ function deRemoveBar() {
 }
 
 function deRenderGrid() {
+  if (_dau.playing) deStop();
   const wrap = document.getElementById('deGridWrap');
   wrap.innerHTML = '';
   document.getElementById('deBarCount').textContent = _de.pattern.bars.length;
@@ -6382,6 +6716,7 @@ function deRenderGrid() {
 
       const row = document.createElement('div');
       row.className = 'de-voice-row de-vrow-' + voice.id;
+      row.dataset.barIdx = bi;
 
       const lbl = document.createElement('div');
       lbl.className = 'de-voice-lbl';
@@ -6536,8 +6871,348 @@ function renderDrumPreview(container, row) {
   container.appendChild(wrap);
 }
 
-// ═══════════════════════════════════════════════
-// DRUM TEXT EXPORT (for RTF and print/PDF)
+// ═══════════════════════════════════════════════════════════════
+// DRUM AUDIO ENGINE  — Web Audio API synthesis (no samples)
+// ═══════════════════════════════════════════════════════════════
+
+const _dau = {
+  ctx: null,       // AudioContext
+  bpm: 90,
+  playing: false,
+  loop: false,
+  scheduleAheadTime: 0.1,   // seconds
+  scheduleInterval: 50,      // ms
+  nextNoteTime: 0,
+  currentStep: 0,            // global step pointer (across all bars)
+  timerID: null,
+  barSteps: [],              // flat array: [{barIdx, stepIdx}] across all repeats
+};
+
+// ── Synth voices ──────────────────────────────────────────────
+function dauSynth(voice, audioCtx, when, accent, velOverride) {
+  const g = audioCtx.createGain();
+  // Master gain: acento sube claramente, ghost baja
+  const masterVel = velOverride !== undefined ? velOverride : (accent ? 1.35 : 0.62);
+  g.gain.setValueAtTime(masterVel, when);
+  g.connect(audioCtx.destination);
+  const vel = 1.0; // volumen interno normalizado; master lo controla
+
+  switch (voice) {
+    case 'BD': {
+      // Kick: sine pitched down fast
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.connect(env); env.connect(g);
+      osc.frequency.setValueAtTime(180, when);
+      osc.frequency.exponentialRampToValueAtTime(40, when + 0.06);
+      env.gain.setValueAtTime(vel * 1.4, when);
+      env.gain.exponentialRampToValueAtTime(0.001, when + 0.35);
+      osc.start(when); osc.stop(when + 0.36);
+      break;
+    }
+    case 'SD': {
+      // Snare: noise burst + tonal body
+      const bufLen = audioCtx.sampleRate * 0.15;
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+      const noiseEnv = audioCtx.createGain();
+      const noiseFilter = audioCtx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.value = 3000;
+      noiseFilter.Q.value = 0.8;
+      noise.connect(noiseFilter); noiseFilter.connect(noiseEnv); noiseEnv.connect(g);
+      noiseEnv.gain.setValueAtTime(vel * 0.9, when);
+      noiseEnv.gain.exponentialRampToValueAtTime(0.001, when + 0.18);
+      noise.start(when); noise.stop(when + 0.19);
+      // Body tone
+      const osc = audioCtx.createOscillator();
+      const bodyEnv = audioCtx.createGain();
+      osc.connect(bodyEnv); bodyEnv.connect(g);
+      osc.frequency.setValueAtTime(200, when);
+      osc.frequency.exponentialRampToValueAtTime(100, when + 0.08);
+      bodyEnv.gain.setValueAtTime(vel * 0.5, when);
+      bodyEnv.gain.exponentialRampToValueAtTime(0.001, when + 0.1);
+      osc.start(when); osc.stop(when + 0.11);
+      break;
+    }
+    case 'HH': {
+      // Closed hi-hat: short noise burst, high-pass
+      const bufLen = audioCtx.sampleRate * 0.05;
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+      const filt = audioCtx.createBiquadFilter();
+      filt.type = 'highpass'; filt.frequency.value = 8000;
+      const env = audioCtx.createGain();
+      noise.connect(filt); filt.connect(env); env.connect(g);
+      env.gain.setValueAtTime(vel * 0.55, when);
+      env.gain.exponentialRampToValueAtTime(0.001, when + 0.05);
+      noise.start(when); noise.stop(when + 0.06);
+      break;
+    }
+    case 'HH_OPEN': {
+      // Open hi-hat: longer noise decay
+      const bufLen = audioCtx.sampleRate * 0.45;
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+      const filt = audioCtx.createBiquadFilter();
+      filt.type = 'highpass'; filt.frequency.value = 7000;
+      const env = audioCtx.createGain();
+      noise.connect(filt); filt.connect(env); env.connect(g);
+      env.gain.setValueAtTime(vel * 0.5, when);
+      env.gain.exponentialRampToValueAtTime(0.001, when + 0.42);
+      noise.start(when); noise.stop(when + 0.43);
+      break;
+    }
+    case 'C': {
+      // Crash: long metallic noise
+      const bufLen = audioCtx.sampleRate * 1.2;
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+      const filt = audioCtx.createBiquadFilter();
+      filt.type = 'bandpass'; filt.frequency.value = 6000; filt.Q.value = 0.4;
+      const env = audioCtx.createGain();
+      noise.connect(filt); filt.connect(env); env.connect(g);
+      env.gain.setValueAtTime(vel * 0.7, when);
+      env.gain.exponentialRampToValueAtTime(0.001, when + 1.1);
+      noise.start(when); noise.stop(when + 1.2);
+      break;
+    }
+    case 'RD': {
+      // Ride: mid metallic ping
+      const bufLen = audioCtx.sampleRate * 0.6;
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+      const filt = audioCtx.createBiquadFilter();
+      filt.type = 'bandpass'; filt.frequency.value = 5000; filt.Q.value = 1.5;
+      const env = audioCtx.createGain();
+      noise.connect(filt); filt.connect(env); env.connect(g);
+      env.gain.setValueAtTime(vel * 0.55, when);
+      env.gain.exponentialRampToValueAtTime(0.001, when + 0.55);
+      noise.start(when); noise.stop(when + 0.6);
+      // Tonal ping on top
+      const osc = audioCtx.createOscillator();
+      const oscEnv = audioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.value = 980;
+      osc.connect(oscEnv); oscEnv.connect(g);
+      oscEnv.gain.setValueAtTime(vel * 0.18, when);
+      oscEnv.gain.exponentialRampToValueAtTime(0.001, when + 0.3);
+      osc.start(when); osc.stop(when + 0.31);
+      break;
+    }
+    case 'T1': {
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.connect(env); env.connect(g);
+      osc.frequency.setValueAtTime(300, when);
+      osc.frequency.exponentialRampToValueAtTime(120, when + 0.1);
+      env.gain.setValueAtTime(vel * 0.9, when);
+      env.gain.exponentialRampToValueAtTime(0.001, when + 0.18);
+      osc.start(when); osc.stop(when + 0.19);
+      break;
+    }
+    case 'T2': {
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.connect(env); env.connect(g);
+      osc.frequency.setValueAtTime(220, when);
+      osc.frequency.exponentialRampToValueAtTime(90, when + 0.12);
+      env.gain.setValueAtTime(vel * 0.9, when);
+      env.gain.exponentialRampToValueAtTime(0.001, when + 0.2);
+      osc.start(when); osc.stop(when + 0.21);
+      break;
+    }
+    case 'T3': {
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.connect(env); env.connect(g);
+      osc.frequency.setValueAtTime(160, when);
+      osc.frequency.exponentialRampToValueAtTime(65, when + 0.15);
+      env.gain.setValueAtTime(vel * 0.9, when);
+      env.gain.exponentialRampToValueAtTime(0.001, when + 0.22);
+      osc.start(when); osc.stop(when + 0.23);
+      break;
+    }
+  }
+}
+
+// ── Build flat step list from pattern bars+repeats ────────────
+function dauBuildStepList() {
+  const dp = _de.pattern;
+  if (!dp || !dp.bars) return [];
+  const ts   = dp.timeSignature || '4/4';
+  const sdiv = dp.subdivision  || '8th';
+  const steps = deStepsPerBar(ts, sdiv);
+  const list = [];
+  dp.bars.forEach((bar, bi) => {
+    const reps = bar.repeat || 1;
+    for (let r = 0; r < reps; r++) {
+      for (let s = 0; s < steps; s++) {
+        list.push({ barIdx: bi, stepIdx: s });
+      }
+    }
+  });
+  return list;
+}
+
+// ── Metronome visual ──────────────────────────────────────────
+let _dau_lastVisualStep = -1;
+
+function dauHighlightStep(globalStep) {
+  if (_dau_lastVisualStep === globalStep) return;
+
+  // Clear previous
+  document.querySelectorAll('.de-cell.metro-pulse').forEach(el => el.classList.remove('metro-pulse'));
+
+  const stepList = _dau.barSteps;
+  if (!stepList.length) return;
+
+  const { barIdx, stepIdx } = stepList[globalStep % stepList.length];
+
+  // Find all cells at this barIdx + stepIdx
+  const barsWrap = document.querySelectorAll('#deGridWrap .de-bar-lbl');
+  const allRows  = document.querySelectorAll('#deGridWrap .de-voice-row');
+  allRows.forEach(row => {
+    const cells = row.querySelectorAll('.de-cell');
+    // Determine which bar this row belongs to — count bar labels before this row
+    // simpler: tag cells with data attributes in deRenderGrid
+    const barCell = row.dataset.barIdx !== undefined ? parseInt(row.dataset.barIdx) : -1;
+    if (barCell === barIdx && cells[stepIdx]) {
+      cells[stepIdx].classList.add('metro-pulse');
+    }
+  });
+  _dau_lastVisualStep = globalStep;
+}
+
+// ── Scheduler ────────────────────────────────────────────────
+function dauSchedule() {
+  const stepList = _dau.barSteps;
+  if (!stepList.length) return;
+  const secondsPerStep = (60 / _dau.bpm) / dauStepsPerBeat();
+
+  while (_dau.nextNoteTime < _dau.ctx.currentTime + _dau.scheduleAheadTime) {
+    const globalStep = _dau.currentStep % stepList.length;
+    const { barIdx, stepIdx } = stepList[globalStep];
+    const bar = _de.pattern.bars[barIdx];
+    const when = _dau.nextNoteTime;
+
+    // Fire each voice that has a note at this step
+    DE_VOICES.forEach(voice => {
+      const notes = bar.voices[voice.id] || [];
+      const note  = notes.find(n => n.step === stepIdx);
+      if (!note) return;
+
+      const voiceId = (voice.id === 'HH' && note.hhOpen) ? 'HH_OPEN' : voice.id;
+
+      if (note.type === 'flam') {
+        // Ghost note 30ms before, very soft; then main note at normal vel
+        dauSynth(voiceId, _dau.ctx, when,           false, 0.22); // ghost suave
+        dauSynth(voiceId, _dau.ctx, when + 0.030,   false, note.accent ? 1.35 : 0.62); // nota principal
+
+      } else if (note.type === 'roll') {
+        // Dos golpes separados por la mitad del paso
+        const halfStep = secondsPerStep / 2;
+        dauSynth(voiceId, _dau.ctx, when,           false, note.accent ? 1.35 : 0.62);
+        dauSynth(voiceId, _dau.ctx, when + halfStep, false, note.accent ? 1.10 : 0.50);
+
+      } else {
+        // Normal o acento
+        dauSynth(voiceId, _dau.ctx, when, note.accent);
+      }
+    });
+
+    // Schedule visual update (approx)
+    const delay = (when - _dau.ctx.currentTime) * 1000;
+    const snapStep = _dau.currentStep;
+    setTimeout(() => { if (_dau.playing) dauHighlightStep(snapStep % stepList.length); }, Math.max(0, delay));
+
+    _dau.nextNoteTime += secondsPerStep;
+    _dau.currentStep++;
+
+    // Loop or stop
+    if (_dau.currentStep >= stepList.length) {
+      if (_dau.loop) {
+        _dau.currentStep = 0;
+      } else {
+        // schedule stop after last note plays
+        const stopDelay = (when - _dau.ctx.currentTime + secondsPerStep) * 1000;
+        setTimeout(() => deStop(), Math.max(0, stopDelay));
+        return;
+      }
+    }
+  }
+}
+
+function dauStepsPerBeat() {
+  const sdiv = (_de.pattern && _de.pattern.subdivision) || '8th';
+  if (sdiv === '4th')  return 1;
+  if (sdiv === '16th') return 4;
+  return 2;
+}
+
+// ── Public controls ──────────────────────────────────────────
+function deTogglePlay() {
+  if (_dau.playing) { deStop(); return; }
+  dePlay();
+}
+
+function dePlay() {
+  // Rebuild step list fresh
+  _dau.barSteps = dauBuildStepList();
+  if (!_dau.barSteps.length) return;
+
+  // Init AudioContext on first use (requires user gesture)
+  if (!_dau.ctx) _dau.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_dau.ctx.state === 'suspended') _dau.ctx.resume();
+
+  _dau.playing = true;
+  _dau.currentStep = 0;
+  _dau_lastVisualStep = -1;
+  _dau.nextNoteTime = _dau.ctx.currentTime + 0.05;
+
+  _dau.timerID = setInterval(dauSchedule, _dau.scheduleInterval);
+  dauSchedule();
+
+  const btn = document.getElementById('dePlayBtn');
+  if (btn) { btn.textContent = '⏹ Stop'; btn.classList.add('playing'); }
+}
+
+function deStop() {
+  _dau.playing = false;
+  clearInterval(_dau.timerID);
+  _dau.timerID = null;
+  _dau_lastVisualStep = -1;
+  document.querySelectorAll('.de-cell.metro-pulse').forEach(el => el.classList.remove('metro-pulse'));
+  const btn = document.getElementById('dePlayBtn');
+  if (btn) { btn.textContent = '▶ Play'; btn.classList.remove('playing'); }
+}
+
+function deToggleLoop() {
+  _dau.loop = !_dau.loop;
+  const btn = document.getElementById('deLoopBtn');
+  if (btn) btn.classList.toggle('loop-on', _dau.loop);
+}
+
+function deSetBpm(val) {
+  _dau.bpm = parseInt(val) || 90;
+  const v = document.getElementById('deBpmVal');
+  if (v) v.textContent = _dau.bpm;
+}
+
 // Returns a compact text representation
 // ═══════════════════════════════════════════════
 function drumPatternToText(dp) {
@@ -6582,7 +7257,7 @@ function drumPatternToHTML(dp, colorClass) {
   );
   if (!usedVoices.length) return '<em style="color:#aaa;">(patrón vacío)</em>';
 
-  const vColors = {HH:'#00a090',C:'#6040b0',T1:'#b05010',T2:'#006090',T3:'#207040',SD:'#907000',BD:'#a03030'};
+  const vColors = {HH:'#00a090',C:'#6040b0',RD:'#b040c0',T1:'#b05010',T2:'#006090',T3:'#207040',SD:'#907000',BD:'#a03030'};
   const cellSz = 14;
 
   let html = '<div style="overflow-x:auto;">';
@@ -6596,7 +7271,7 @@ function drumPatternToHTML(dp, colorClass) {
       for (let s = 0; s < steps; s++) {
         const n = notes.find(x => x.step === s);
         const bg = n ? col : '#e8e8e8';
-        const br = ['T1','T2','T3'].includes(v.id) ? '2px' : (v.id === 'HH' || v.id === 'C') ? '50%' : '50%';
+        const br = ['T1','T2','T3'].includes(v.id) ? '2px' : (v.id === 'HH' || v.id === 'C' || v.id === 'RD') ? '50%' : '50%';
         html += `<div style="width:${cellSz}px;height:${cellSz}px;border-radius:${br};background:${bg};border:1px solid ${n ? col : '#ddd'};flex-shrink:0;"></div>`;
       }
       html += '</div>';
@@ -6815,11 +7490,47 @@ function drumPatternToHTML(dp, colorClass) {
       <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffc300;"></span><span style="color:#ffc300">SD</span> Caja</div>
       <div class="de-legend-item"><span style="color:#00ffe7;font-weight:700;font-size:0.8rem;">×</span><span style="color:#00ffe7">HH</span> Hi-Hat</div>
       <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid #a78bfa;"></span><span style="color:#a78bfa">C</span> Crash</div>
+      <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid #e879f9;"></span><span style="color:#e879f9">RD</span> Ride</div>
       <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f97316;"></span><span style="color:#f97316">T1</span></div>
       <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#22d3ee;"></span><span style="color:#22d3ee">T2</span></div>
       <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#4ade80;"></span><span style="color:#4ade80">T3</span></div>
       <div style="flex:1"></div>
       <div class="de-legend-item" style="font-size:0.5rem;">Clic=nota · HH: clic=cerrado→abierto→quitar · Doble clic=acento · ⁻♩=flam</div>
+    </div>
+    <div class="de-transport" id="deTransport">
+      <!-- Play / Stop -->
+      <button class="de-tbtn" id="dePlayBtn" onclick="deTogglePlay()">▶ Play</button>
+      <div class="de-transport-sep"></div>
+      <!-- Loop -->
+      <button class="de-tbtn" id="deLoopBtn" onclick="deToggleLoop()" title="Repetir en bucle">⟳ Loop</button>
+      <div class="de-transport-sep"></div>
+      <!-- BPM -->
+      <div class="de-bpm-wrap">
+        <span class="de-bpm-label">BPM</span>
+        <input class="de-bpm-slider" id="deBpmSlider" type="range" min="40" max="240" value="90"
+          oninput="deSetBpm(this.value)" />
+        <span class="de-bpm-val" id="deBpmVal">90</span>
+      </div>
+    </div>
+    <!-- Player de audio de la canción dentro del editor de batería -->
+    <div id="deAudioBar" style="display:none;background:#06060f;border-top:1px solid var(--border);padding:8px 16px;flex-direction:column;gap:6px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-family:'Space Mono',monospace;font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">🎵 Canción</span>
+        <button class="spb-play" id="deAudioPlayBtn" onclick="spbToggle()">▶</button>
+        <button class="spb-seek" onclick="spbSeek(-5)">−5s</button>
+        <button class="spb-seek" onclick="spbSeek(+5)">+5s</button>
+        <div class="spb-progress" onclick="spbClickProgress(event)" style="flex:1;">
+          <div class="spb-progress-fill" id="deAudioFill"></div>
+        </div>
+        <span class="spb-time" id="deAudioTime">0:00 / 0:00</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="spb-speed-label">Velocidad</span>
+        <input class="spb-speed-slider" type="range" min="50" max="130" value="100" step="5"
+          oninput="spbSetSpeed(this.value)" style="flex:1;max-width:120px;" />
+        <span class="spb-speed-val" id="deAudioSpeedVal">100%</span>
+        <span class="spb-pitch-note">♪ tono conservado</span>
+      </div>
     </div>
     <div class="de-footer">
       <button class="de-btn de-btn-danger" onclick="deClearPattern()">🗑 Limpiar</button>
