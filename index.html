@@ -314,15 +314,17 @@ body {
 }
 .hdr-export-menu {
   display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
   background: var(--surface);
   border: 1px solid var(--accent);
   border-radius: 8px;
   padding: 6px;
-  z-index: 9999;
-  min-width: 150px;
+  z-index: 99999;
+  min-width: 160px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
   box-shadow: 0 8px 32px rgba(0,0,0,0.6);
   flex-direction: column;
   gap: 2px;
@@ -2310,6 +2312,31 @@ body.readonly .drum-add-btn  { display: none !important; }
   border-radius: 4px;
   padding: 1px 2px;
 }
+/* Botón inline añadir compás */
+.de-add-bar-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin: 6px 0 2px 0;
+  padding: 9px 0;
+  border: 1px dashed var(--dim);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.de-add-bar-inline:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(57,255,20,0.04);
+}
 .de-bar-del {
   background: transparent;
   border: none;
@@ -2503,6 +2530,32 @@ body.readonly .drum-add-btn  { display: none !important; }
 .de-btn-danger { color: #c04040; border-color: rgba(192,64,64,0.4); }
 .de-btn-danger:hover { background: rgba(192,64,64,0.1); border-color: #c04040; }
 
+/* Transport integrado en el header */
+.de-header-transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.de-bpm-input {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 52px;
+  padding: 4px 6px;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.de-bpm-input::-webkit-inner-spin-button,
+.de-bpm-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.de-bpm-input:focus { border-color: var(--accent); }
+
 /* ── TRANSPORT BAR ── */
 .de-transport {
   background: #08081a;
@@ -2531,6 +2584,10 @@ body.readonly .drum-add-btn  { display: none !important; }
   flex-shrink: 0;
 }
 .de-tbtn:hover { border-color: var(--accent); color: var(--accent); }
+.de-tbtn.de-tbtn-save { color: var(--accent); border-color: rgba(0,255,231,0.3); font-size: 1rem; }
+.de-tbtn.de-tbtn-save:hover { background: rgba(0,255,231,0.1); border-color: var(--accent); }
+.de-tbtn.de-tbtn-danger { color: #c04040; border-color: rgba(192,64,64,0.3); }
+.de-tbtn.de-tbtn-danger:hover { background: rgba(192,64,64,0.1); border-color: #c04040; }
 .de-tbtn.playing {
   background: var(--accent);
   color: var(--bg);
@@ -5483,10 +5540,25 @@ function applyTheme(idx) {
 // ── EXPORT DROPDOWN
 function toggleExportMenu() {
   const menu = document.getElementById("exportMenu");
+  const btn  = document.getElementById("btnExportMenu");
   const isOpen = menu.classList.contains("open");
   if (isOpen) {
     closeExportMenu();
   } else {
+    // Posicionar el menú con fixed relativo al botón
+    const rect = btn.getBoundingClientRect();
+    menu.style.top   = (rect.bottom + 6) + "px";
+    menu.style.right = "auto";
+    // Primero renderizar para medir el ancho real del menú
+    menu.style.left = "-9999px";
+    menu.style.display = "flex";
+    const menuW = menu.offsetWidth;
+    menu.style.display = "";
+    // Alinear borde derecho del menú con borde derecho del botón, sin salirse
+    let left = rect.right - menuW;
+    if (left < 8) left = 8;
+    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    menu.style.left = left + "px";
     menu.classList.add("open");
     setTimeout(() => document.addEventListener("click", _closeExportOutside), 10);
   }
@@ -6551,11 +6623,9 @@ function openDrumEditor(row, sec) {
   if (eraseBtn) eraseBtn.classList.remove('active');
   document.getElementById('deTimeSig').value = _de.pattern.timeSignature || '4/4';
 
-  // Subdiv buttons
+  // Subdiv select
   const sdiv = _de.pattern.subdivision || '8th';
-  document.getElementById('deSubDiv4').classList.toggle('active', sdiv === '4th');
-  document.getElementById('deSubDiv8').classList.toggle('active', sdiv === '8th');
-  document.getElementById('deSubDiv16').classList.toggle('active', sdiv === '16th');
+  document.getElementById('deSubDivSel').value = sdiv;
 
   // Subtitle
   const secName = sec?.name || '';
@@ -6572,14 +6642,12 @@ function openDrumEditor(row, sec) {
   const songBpm = parseInt(songData?.bpm) || 90;
   _dau.bpm = songBpm;
   const slider = document.getElementById('deBpmSlider');
-  const valLbl = document.getElementById('deBpmVal');
   if (slider) slider.value = Math.min(240, Math.max(40, songBpm));
-  if (valLbl) valLbl.textContent = _dau.bpm;
 
   // Reset transport UI
   const playBtn = document.getElementById('dePlayBtn');
   const loopBtn = document.getElementById('deLoopBtn');
-  if (playBtn) { playBtn.textContent = '▶ Play'; playBtn.classList.remove('playing'); }
+  if (playBtn) { playBtn.textContent = '▶'; playBtn.classList.remove('playing'); }
   if (loopBtn) loopBtn.classList.toggle('loop-on', _dau.loop);
 
   deRenderGrid();
@@ -6676,11 +6744,13 @@ function deChangeTimeSig() {
   deRenderGrid();
 }
 
-function deChangeSubdiv(sdiv, btn) {
+function deChangeSubdivSel(sdiv) {
+  deChangeSubdiv(sdiv);
+}
+function deChangeSubdiv(sdiv) {
   _de.pattern.subdivision = sdiv;
-  document.getElementById('deSubDiv4').classList.toggle('active', sdiv === '4th');
-  document.getElementById('deSubDiv8').classList.toggle('active', sdiv === '8th');
-  document.getElementById('deSubDiv16').classList.toggle('active', sdiv === '16th');
+  const sel = document.getElementById('deSubDivSel');
+  if (sel) sel.value = sdiv;
   // Filter notes that exceed new step count
   const ts = _de.pattern.timeSignature || '4/4';
   const newSteps = deStepsPerBar(ts, sdiv);
@@ -6714,7 +6784,7 @@ function deRenderGrid() {
   if (_dau.playing) deStop();
   const wrap = document.getElementById('deGridWrap');
   wrap.innerHTML = '';
-  document.getElementById('deBarCount').textContent = _de.pattern.bars.length;
+
 
   const ts   = _de.pattern.timeSignature || '4/4';
   const sdiv = _de.pattern.subdivision  || '8th';
@@ -6873,6 +6943,13 @@ function deRenderGrid() {
       wrap.appendChild(row);
     });
   });
+
+  // Botón "＋ Añadir compás" al final del grid
+  const addBarBtn = document.createElement('button');
+  addBarBtn.className = 'de-add-bar-inline';
+  addBarBtn.innerHTML = '＋ &nbsp;Añadir compás';
+  addBarBtn.addEventListener('click', deAddBar);
+  wrap.appendChild(addBarBtn);
 }
 
 // ═══════════════════════════════════════════════
@@ -7260,7 +7337,7 @@ function dePlay() {
   dauSchedule();
 
   const btn = document.getElementById('dePlayBtn');
-  if (btn) { btn.textContent = '⏹ Stop'; btn.classList.add('playing'); }
+  if (btn) { btn.textContent = '⏹'; btn.classList.add('playing'); }
 }
 
 function deStop() {
@@ -7270,7 +7347,7 @@ function deStop() {
   _dau_lastVisualStep = -1;
   document.querySelectorAll('.de-cell.metro-pulse').forEach(el => el.classList.remove('metro-pulse'));
   const btn = document.getElementById('dePlayBtn');
-  if (btn) { btn.textContent = '▶ Play'; btn.classList.remove('playing'); }
+  if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
 }
 
 function deToggleLoop() {
@@ -7281,8 +7358,8 @@ function deToggleLoop() {
 
 function deSetBpm(val) {
   _dau.bpm = parseInt(val) || 90;
-  const v = document.getElementById('deBpmVal');
-  if (v) v.textContent = _dau.bpm;
+  const inp = document.getElementById('deBpmSlider');
+  if (inp && inp !== document.activeElement) inp.value = _dau.bpm;
 }
 
 // Returns a compact text representation
@@ -7531,31 +7608,35 @@ function drumPatternToHTML(dp, colorClass) {
         <div class="de-help-row">⁻♩ <span><strong>Flam</strong> — activa y clica · punto arriba</span></div>
         <div class="de-help-row">〰 <span><strong>Roll</strong> — activa y clica · onda arriba</span></div>
         <div class="de-help-row">&gt; <span><strong>Acento</strong> — activa y clica · símbolo arriba</span></div>
-        <div class="de-help-row">‹ › <span><strong>Flechas</strong> — añadir / quitar compás</span></div>
         <div class="de-help-row">4ª 8ª 16ª <span><strong>Subdivisión</strong> del grid</span></div>
       </div>
       <button class="de-close" onclick="closeDrumEditor()">✕</button>
     </div>
     <div class="de-toolbar">
-      <span class="de-toolbar-label">Tipo</span>
       <button class="de-note-btn active" id="deNoteF"  onclick="deSelectNote('flam',this)"><span class="de-note-sym" style="font-size:0.85rem">⁻♩</span><span>Flam</span></button>
       <button class="de-note-btn"        id="deNoteR"  onclick="deSelectNote('roll',this)"><span class="de-note-sym" style="font-size:0.85rem">〰</span><span>Roll</span></button>
       <button class="de-note-btn"        id="deNoteA"  onclick="deSelectNote('accent',this)"><span class="de-note-sym" style="font-size:0.85rem">></span><span>Acento</span></button>
       <div class="de-toolbar-sep"></div>
-      <span class="de-toolbar-label">Compás</span>
       <select class="de-sel" id="deTimeSig" onchange="deChangeTimeSig()">
         <option value="4/4">4/4</option><option value="3/4">3/4</option>
         <option value="6/8">6/8</option><option value="5/4">5/4</option>
       </select>
+      <select class="de-sel" id="deSubDivSel" onchange="deChangeSubdivSel(this.value)">
+        <option value="4th">4ª</option>
+        <option value="8th" selected>8ª</option>
+        <option value="16th">16ª</option>
+      </select>
       <div class="de-toolbar-sep"></div>
-      <button class="de-sdiv-btn" style="padding:3px 6px;" onclick="deRemoveBar()" title="Quitar compás">‹</button>
-      <span id="deBarCount" style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--text);padding:0 2px;min-width:14px;text-align:center;"></span>
-      <button class="de-sdiv-btn" style="padding:3px 6px;" onclick="deAddBar()" title="Añadir compás">›</button>
-      <div class="de-toolbar-sep"></div>
-      <span class="de-toolbar-label">Subdiv</span>
-      <button class="de-sdiv-btn"        id="deSubDiv4"  onclick="deChangeSubdiv('4th',this)">4ª</button>
-      <button class="de-sdiv-btn active" id="deSubDiv8"  onclick="deChangeSubdiv('8th',this)">8ª</button>
-      <button class="de-sdiv-btn"        id="deSubDiv16" onclick="deChangeSubdiv('16th',this)">16ª</button>
+      <button class="de-tbtn de-tbtn-save" onclick="deSavePattern()" title="Guardar patrón">☁</button>
+      <button class="de-tbtn de-tbtn-danger" onclick="deClearPattern()" title="Limpiar patrón">🗑</button>
+      <div class="de-toolbar-sep" style="margin-left:auto;"></div>
+      <button class="de-tbtn" id="dePlayBtn" onclick="deTogglePlay()" title="Play / Stop">▶</button>
+      <button class="de-tbtn" id="deLoopBtn" onclick="deToggleLoop()" title="Repetir en bucle">⟳</button>
+      <div class="de-bpm-wrap">
+        <span class="de-bpm-label">BPM</span>
+        <input class="de-bpm-input" id="deBpmSlider" type="number" min="40" max="240" value="90"
+          oninput="deSetBpm(this.value)" />
+      </div>
     </div>
     <div class="de-grid-wrap" id="deGridWrap"></div>
     <div class="de-legend">
@@ -7569,21 +7650,6 @@ function drumPatternToHTML(dp, colorClass) {
       <div class="de-legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#4ade80;"></span><span style="color:#4ade80">T3</span></div>
       <div style="flex:1"></div>
       <div class="de-legend-item" style="font-size:0.5rem;">Clic=nota · HH: clic=cerrado→abierto→quitar · Doble clic=acento · ⁻♩=flam</div>
-    </div>
-    <div class="de-transport" id="deTransport">
-      <!-- Play / Stop -->
-      <button class="de-tbtn" id="dePlayBtn" onclick="deTogglePlay()">▶ Play</button>
-      <div class="de-transport-sep"></div>
-      <!-- Loop -->
-      <button class="de-tbtn" id="deLoopBtn" onclick="deToggleLoop()" title="Repetir en bucle">⟳ Loop</button>
-      <div class="de-transport-sep"></div>
-      <!-- BPM -->
-      <div class="de-bpm-wrap">
-        <span class="de-bpm-label">BPM</span>
-        <input class="de-bpm-slider" id="deBpmSlider" type="range" min="40" max="240" value="90"
-          oninput="deSetBpm(this.value)" />
-        <span class="de-bpm-val" id="deBpmVal">90</span>
-      </div>
     </div>
     <!-- Player de audio de la canción dentro del editor de batería -->
     <div id="deAudioBar" style="display:none;background:#06060f;border-top:1px solid var(--border);padding:8px 16px;flex-direction:column;gap:6px;flex-shrink:0;">
@@ -7604,12 +7670,6 @@ function drumPatternToHTML(dp, colorClass) {
         <span class="spb-speed-val" id="deAudioSpeedVal">100%</span>
         <span class="spb-pitch-note">♪ tono conservado</span>
       </div>
-    </div>
-    <div class="de-footer">
-      <button class="de-btn de-btn-danger" onclick="deClearPattern()">🗑 Limpiar</button>
-      <div class="spacer"></div>
-      <button class="de-btn" onclick="closeDrumEditor()">Cancelar</button>
-      <button class="de-btn de-btn-primary" onclick="deSavePattern()">✓ Guardar patrón</button>
     </div>
   </div>
 </div>
