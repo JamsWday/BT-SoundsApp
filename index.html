@@ -1957,6 +1957,16 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   color: var(--muted);
   letter-spacing: 0.08em;
   padding-left: 28px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.drum-preview-bar-repeat {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0;
 }
 .drum-preview-voice {
   display: flex;
@@ -3880,40 +3890,53 @@ function render() {
 
       // right controls (for all row types)
       const right = document.createElement("div");
-      right.className = "row-right" + (inst === "bat" ? " drum-right" : "");
+      right.className = "row-right";
 
-      if (inst !== "voz" && inst !== "bat") {
-      const addBar = document.createElement("button");
-      addBar.className = "add-bar-btn";
-      addBar.innerHTML = `<span style="font-size:1rem;line-height:1">+</span> compás`;
-      addBar.title = "Añadir compás al final de esta línea";
-      addBar.addEventListener("click", () => { saveUndo(); row.bars.push(["C"]); render(); });
-      right.appendChild(addBar);
-
-      const xl = document.createElement("span");
-      xl.className = "x-label";
-      xl.textContent = "x";
-      const repIn = document.createElement("input");
-      repIn.type = "number";
-      repIn.min = 1; repIn.max = 32;
-      repIn.className = "repeat-input";
-      repIn.value = row.repeats !== null ? row.repeats : "";
-      repIn.placeholder = "–";
-      repIn.title = "Número de repeticiones";
-      repIn.addEventListener("change", () => {
-        const v = parseInt(repIn.value);
-        row.repeats = isNaN(v) ? null : v;
-      });
-      right.appendChild(xl);
-      right.appendChild(repIn);
+      // 1. PRIMER SLOT: lápiz/editar para bat, + compás para otros
+      if (inst === "bat") {
+        if (!_readonly) {
+          const drumEditBtn = document.createElement("button");
+          drumEditBtn.className = "add-bar-btn";
+          drumEditBtn.innerHTML = row.drumPattern
+            ? `<span style="font-size:0.85rem;line-height:1">✏</span> editar`
+            : `<span style="font-size:0.85rem;line-height:1">🥁</span> patrón`;
+          drumEditBtn.title = row.drumPattern ? "Editar patrón de batería" : "Añadir patrón de batería";
+          drumEditBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            openDrumEditor(row, sec);
+          });
+          right.appendChild(drumEditBtn);
+        }
+      } else if (inst !== "voz") {
+        const addBar = document.createElement("button");
+        addBar.className = "add-bar-btn";
+        addBar.innerHTML = `<span style="font-size:1rem;line-height:1">+</span> compás`;
+        addBar.title = "Añadir compás al final de esta línea";
+        addBar.addEventListener("click", () => { saveUndo(); row.bars.push(["C"]); render(); });
+        right.appendChild(addBar);
       }
 
-      const delRow = document.createElement("button");
-      delRow.className = "btn-icon";
-      delRow.title = "Eliminar línea";
-      delRow.textContent = "✕";
-      delRow.addEventListener("click", () => { saveUndo(); sec.rows.splice(ri, 1); render(); });
+      // 2. BADGE x [ ] para bat y otros (no voz)
+      if (inst !== "voz") {
+        const xl = document.createElement("span");
+        xl.className = "x-label";
+        xl.textContent = "x";
+        const repIn = document.createElement("input");
+        repIn.type = "number";
+        repIn.min = 1; repIn.max = 32;
+        repIn.className = "repeat-input";
+        repIn.value = row.repeats !== null ? row.repeats : "";
+        repIn.placeholder = "–";
+        repIn.title = inst === "bat" ? "Número de repeticiones del patrón" : "Número de repeticiones";
+        repIn.addEventListener("change", () => {
+          const v = parseInt(repIn.value);
+          row.repeats = isNaN(v) ? null : v;
+        });
+        right.appendChild(xl);
+        right.appendChild(repIn);
+      }
 
+      // 3. Duplicar  4. Eliminar
       const dupRow = document.createElement("button");
       dupRow.className = "btn-icon";
       dupRow.title = "Duplicar línea";
@@ -3927,24 +3950,24 @@ function render() {
         render();
       });
 
-      // Drum edit button (bat rows only)
-      if (inst === "bat" && !_readonly) {
-        const drumEditBtn = document.createElement("button");
-        drumEditBtn.className = "drum-edit-btn";
-        drumEditBtn.innerHTML = row.drumPattern ? "✏" : "🥁";
-        drumEditBtn.title = row.drumPattern ? "Editar patrón" : "Añadir patrón";
-        drumEditBtn.addEventListener("click", e => {
-          e.stopPropagation();
-          openDrumEditor(row, sec);
-        });
-        right.appendChild(drumEditBtn);
-      }
+      const delRow = document.createElement("button");
+      delRow.className = "btn-icon";
+      delRow.title = "Eliminar línea";
+      delRow.textContent = "✕";
+      delRow.addEventListener("click", () => { saveUndo(); sec.rows.splice(ri, 1); render(); });
 
       right.appendChild(dupRow);
       right.appendChild(delRow);
 
-      barLine.appendChild(right);
-      rowWrap.appendChild(barLine);
+      if (inst === "bat") {
+        // Controles debajo del patrón, no dentro del barLine horizontal
+        rowWrap.appendChild(barLine);
+        right.style.cssText = "padding: 4px 10px 6px; border-top: 1px solid var(--border);";
+        rowWrap.appendChild(right);
+      } else {
+        barLine.appendChild(right);
+        rowWrap.appendChild(barLine);
+      }
 
       barsArea.appendChild(rowWrap);
     });
@@ -6987,7 +7010,13 @@ function renderDrumPreview(container, row) {
 
     const barLbl = document.createElement('div');
     barLbl.className = 'drum-preview-bar-label';
-    barLbl.textContent = 'C' + (bi + 1);
+    const barLblTxt = document.createElement('span');
+    barLblTxt.textContent = 'C' + (bi + 1);
+    barLbl.appendChild(barLblTxt);
+    const barRepSpan = document.createElement('span');
+    barRepSpan.className = 'drum-preview-bar-repeat';
+    barRepSpan.textContent = '×' + (bar.repeat || 1);
+    barLbl.appendChild(barRepSpan);
     barDiv.appendChild(barLbl);
 
     usedVoices.forEach(voice => {
