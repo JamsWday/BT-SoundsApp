@@ -628,28 +628,54 @@ body {
 .comment-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px 6px;
+  gap: 6px;
+  padding: 3px 8px 3px 6px;
   background: #11111a;
   border: 1px solid var(--border);
-  border-top: none;
+  border-bottom: none;
 }
 .comment-icon { font-size: 0.75rem; color: #333348; }
+
+/* Botón instrumento en comment row */
+.comment-inst-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 1px 4px;
+  cursor: pointer;
+  font-size: 0.65rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  opacity: 0.75;
+}
+.comment-inst-btn:hover { opacity: 1; transform: scale(1.08); }
+.cib-icon { font-size: 0.7rem; }
+.cib-letter {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .comment-input {
   flex: 1;
   background: transparent;
   border: none;
   border-bottom: 1px dashed transparent;
-  color: var(--muted);
   font-family: 'IBM Plex Sans', sans-serif;
   font-size: 0.78rem;
   font-style: italic;
   padding: 2px 0;
   outline: none;
   transition: all 0.2s;
+  caret-color: var(--comment-caret, var(--accent2));
 }
 .comment-input::placeholder { color: #282836; }
-.comment-input:focus { border-bottom-color: var(--accent2); color: var(--text); }
+.comment-input:focus { border-bottom-color: currentColor; }
 
 /* ── ADD ROW / SECTION BUTTONS ── */
 .add-row-btn {
@@ -1384,11 +1410,14 @@ body.readonly .section-name-input { pointer-events: none; }
 body.readonly .section-lyric-input { pointer-events: none; }
 body.readonly .repeat-input { pointer-events: none; border-color: transparent !important; background: transparent !important; }
 body.readonly .comment-input { pointer-events: none; border-color: transparent !important; }
+/* Ocultar comment-row vacío en modo Tocar */
+body.readonly .comment-row:has(.comment-input[value=""]) { display: none; }
 
-/* Dimmer comment row in readonly */
-body.readonly .comment-row { background: transparent; border-color: transparent; padding-top: 2px; padding-bottom: 2px; }
+/* Comment row en readonly: más discreta, botón inst no clickable */
+body.readonly .comment-row { background: transparent; border-color: transparent; padding-top: 1px; padding-bottom: 1px; }
 body.readonly .comment-icon { display: none; }
-body.readonly .comment-input { display: block; color: #555570; font-size: 0.76rem; }
+body.readonly .comment-inst-btn { pointer-events: none; opacity: 0.4; }
+body.readonly .comment-input { display: block; }
 body.readonly .comment-input::placeholder { color: transparent; }
 
 /* Right side: only show repeat badge, hide controls */
@@ -1406,6 +1435,13 @@ body.readonly .bars-area { padding: 6px 10px; gap: 2px; }
 
 body.readonly .row-right .btn-icon { display: none; }
 body.readonly .audio-btn.btn-icon { display: none !important; }
+
+/* ── Tocar: menos margen derecho en móvil ── */
+@media (max-width: 600px) {
+  body.readonly .bars-area        { padding-right: 5px;  }
+  body.readonly .bar-line         { padding-right: 8px;  }
+  body.readonly .section-header   { padding-right: 8px;  }
+}
 
 /* ── LOGIN SCREEN ── */
 #loginScreen {
@@ -2898,6 +2934,9 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
   </div>
 </div>
 
+<!-- ZONA CON ZOOM — todo lo que hay entre header y footer -->
+<div id="zoomWrapper">
+
 <!-- TONALIDAD — cuerpo del editor -->
 <div id="songKeyBar" style="max-width:900px;margin:18px auto 0;padding:0 20px;">
   <div style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
@@ -2909,6 +2948,8 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
 </div>
 
 <div class="container" id="chart"></div>
+
+</div><!-- /zoomWrapper -->
 
 <!-- AUTOSCROLL BAR (visible only in readonly/play mode) -->
 <!-- ══════════════════════════════════════════════
@@ -3177,6 +3218,9 @@ async function doLogout() {
 let _allSongs = [];
 
 async function showLibrary() {
+  window._immersiveDeactivate && window._immersiveDeactivate();
+  window._immersiveResetZoom && window._immersiveResetZoom();
+  window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility();
   document.getElementById("libraryScreen").classList.add("open");
   document.getElementById("libUserName").textContent =
     _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || "";
@@ -3242,6 +3286,9 @@ async function openSong(id) {
   _currentSongId = id;
   loadSong(data.data);
   document.getElementById("libraryScreen").classList.remove("open");
+  window._immersiveDeactivate && window._immersiveDeactivate();
+  window._immersiveResetZoom && window._immersiveResetZoom();
+  setTimeout(() => window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility(), 50);
 }
 
 function newSong() {
@@ -3255,6 +3302,9 @@ function newSong() {
   render();
   document.getElementById("libraryScreen").classList.remove("open");
   setCloudStatus("");
+  window._immersiveDeactivate && window._immersiveDeactivate();
+  window._immersiveResetZoom && window._immersiveResetZoom();
+  setTimeout(() => window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility(), 50);
 }
 
 async function deleteSong(id, e) {
@@ -3619,7 +3669,49 @@ function render() {
         render();
       });
 
-      // ── bar line
+      // ── comment row ARRIBA (antes del cifrado)
+      const _instLabels = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
+      const _instFirstLetter = { guit1:'M', guit2:'J', bajo:'H', bat:'S', voz:'J' };
+
+      const commRow = document.createElement("div");
+      commRow.className = "comment-row";
+
+      // Botón instrumento con primera letra (sustituye al 💬)
+      const instBtn = document.createElement("button");
+      instBtn.className = "comment-inst-btn";
+      instBtn.title = inst !== "voz" ? "Clic para cambiar instrumento" : _instLabels[inst] || inst;
+      instBtn.innerHTML = `<span class="cib-icon">${instMeta.icon}</span><span class="cib-letter">${_instFirstLetter[inst] || '?'}</span>`;
+      instBtn.style.color = instMeta.color;
+      instBtn.style.borderColor = instMeta.color;
+      if (inst !== "voz") {
+        instBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          if (_readonly) return;
+          openInstPicker(instBtn, row, sec);
+        });
+      } else {
+        instBtn.style.cursor = "default";
+        instBtn.style.opacity = "0.7";
+      }
+
+      // Input comentario con color del instrumento
+      const commIn = document.createElement("input");
+      commIn.type = "text";
+      commIn.className = "comment-input";
+      commIn.placeholder = _readonly ? "" : "Nota o comentario...";
+      commIn.value = row.comment || "";
+      commIn.style.color = instMeta.color;
+      commIn.style.setProperty('--comment-caret', instMeta.color);
+      commIn.addEventListener("change", () => { row.comment = commIn.value; });
+      if (_readonly) commIn.readOnly = true;
+
+      commRow.appendChild(instBtn);
+      commRow.appendChild(commIn);
+      // En modo Tocar, ocultar filas de comentario vacías
+      if (_readonly && !commIn.value) commRow.style.display = "none";
+      rowWrap.appendChild(commRow);
+
+      // ── bar line (AHORA DEBAJO del comment row)
       const barLine = document.createElement("div");
       barLine.className = "bar-line";
 
@@ -3643,23 +3735,7 @@ function render() {
       });
       barLine.appendChild(rowHandle);
 
-      // instrument icon — clickable to change instrument (non-voz only)
-      const instIconEl = document.createElement("span");
-      instIconEl.className = "inst-icon";
-      instIconEl.textContent = instMeta.icon;
-      instIconEl.title = inst !== "voz" ? "Clic para cambiar instrumento" : inst.toUpperCase();
-      if (inst !== "voz") {
-        instIconEl.style.cursor = "pointer";
-        instIconEl.style.opacity = "0.85";
-        instIconEl.addEventListener("mouseenter", () => { instIconEl.style.opacity = "1"; instIconEl.style.transform = "scale(1.2)"; });
-        instIconEl.addEventListener("mouseleave", () => { instIconEl.style.opacity = "0.85"; instIconEl.style.transform = ""; });
-        instIconEl.addEventListener("click", e => {
-          e.stopPropagation();
-          if (_readonly) return;
-          openInstPicker(instIconEl, row, sec);
-        });
-      }
-      barLine.appendChild(instIconEl);
+      // instrument icon moved to comment row above
 
       if (inst === "bat") {
         // ── Drum row: preview or add-pattern button
@@ -3812,22 +3888,6 @@ function render() {
 
       barLine.appendChild(right);
       rowWrap.appendChild(barLine);
-
-      // comment row
-      const commRow = document.createElement("div");
-      commRow.className = "comment-row";
-      const ciEl = document.createElement("span");
-      ciEl.className = "comment-icon";
-      ciEl.textContent = "💬";
-      const commIn = document.createElement("input");
-      commIn.type = "text";
-      commIn.className = "comment-input";
-      commIn.placeholder = "Nota o comentario para esta línea...";
-      commIn.value = row.comment || "";
-      commIn.addEventListener("change", () => { row.comment = commIn.value; });
-      commRow.appendChild(ciEl);
-      commRow.appendChild(commIn);
-      rowWrap.appendChild(commRow);
 
       barsArea.appendChild(rowWrap);
     });
@@ -5300,6 +5360,9 @@ openDrumEditor = function(row, sec) {
 const _origCloseDrumEditorSpb = closeDrumEditor;
 closeDrumEditor = function() {
   _origCloseDrumEditorSpb();
+  // Limpiar el inline style que puso openDrumEditor antes de restaurar con clase
+  const bar = document.getElementById('songPlayerBar');
+  if (bar) bar.style.display = '';
   // Restaurar visibilidad de la barra global
   spbUpdateVisibility();
 };
@@ -5448,6 +5511,9 @@ let _slDirty = false;
 let _slDragIdx = null;
 
 function showSetlists() {
+  window._immersiveDeactivate && window._immersiveDeactivate();
+  window._immersiveResetZoom && window._immersiveResetZoom();
+  window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility();
   document.getElementById("libraryScreen").classList.remove("open");
   document.getElementById("setlistScreen").style.display = "flex";
   document.getElementById("slUserName").textContent =
@@ -6498,6 +6564,9 @@ function openDrumEditor(row, sec) {
 
   document.getElementById('drumEditorOverlay').classList.add('open');
   deFixModalHeight();
+  window._immersiveDeactivate && window._immersiveDeactivate();
+  window._immersiveResetZoom && window._immersiveResetZoom();
+  setTimeout(() => window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility(), 50);
 
   // Sync BPM from song data
   const songBpm = parseInt(songData?.bpm) || 90;
@@ -6538,6 +6607,9 @@ function closeDrumEditor() {
   document.getElementById('deHelpTooltip').classList.remove('open');
   _de.row = null;
   _de.pattern = null;
+  window._immersiveDeactivate && window._immersiveDeactivate();
+  window._immersiveResetZoom && window._immersiveResetZoom();
+  setTimeout(() => window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility(), 50);
 }
 
 function deToggleHelp(e) {
@@ -7403,8 +7475,11 @@ function drumPatternToHTML(dp, colorClass) {
   <!-- Contador -->
   <div id="cmCounter" style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:16px;"></div>
 
-  <!-- Estado semáforo -->
-  <div id="cmStatus" style="font-size:2.5rem;margin-bottom:10px;"></div>
+  <!-- Estado semáforo + icono cifrado -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
+    <div id="cmStatus" style="font-size:2.5rem;line-height:1;"></div>
+    <button id="cmScoreBtn" onclick="cmOpenScore()" title="Ver cifrado" style="display:none;background:transparent;border:none;cursor:pointer;font-size:1.6rem;line-height:1;opacity:0.7;transition:opacity 0.2s;padding:0;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">📄</button>
+  </div>
 
   <!-- Título -->
   <div id="cmTitle" style="font-family:'Playfair Display',serif;font-size:clamp(2rem,7vw,4rem);color:var(--accent);line-height:1.15;margin-bottom:8px;"></div>
@@ -7426,8 +7501,6 @@ function drumPatternToHTML(dp, colorClass) {
     <button onclick="closeConcertMode()" style="font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 24px;border-radius:6px;border:1px solid rgba(192,64,64,0.5);background:transparent;color:#c04040;cursor:pointer;">✕ Salir</button>
   </div>
 
-  <!-- Abrir cifrado (solo si hay song_id vinculado) -->
-  <button id="cmScoreBtn" onclick="cmOpenScore()" style="display:none;margin-top:20px;font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;padding:6px 16px;border-radius:4px;border:1px dashed var(--dim);background:transparent;color:var(--muted);cursor:pointer;">📄 Ver cifrado</button>
 
   <!-- Config avance automático -->
   <div style="position:absolute;bottom:20px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);">
@@ -7544,6 +7617,9 @@ function drumPatternToHTML(dp, colorClass) {
 <!-- Área de impresión PDF (oculta en pantalla) -->
 <div id="slPrintArea"></div>
 
+<!-- ── BOTÓN INMERSIVO flotante (solo móvil, solo en vistas de canción/batería) ── -->
+<button id="btnImmersive" onclick="toggleImmersive()" title="Modo inmersivo">⛶</button>
+
 <!-- Modal compartir link -->
 <div id="slShareModal" style="position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:24px 26px;width:100%;max-width:500px;display:flex;flex-direction:column;gap:14px;">
@@ -7568,7 +7644,245 @@ function drumPatternToHTML(dp, colorClass) {
   #slPrintArea { display: block !important; }
 }
 #slPrintArea { display: none; }
+
+/* ══════════════════════════════════════════════
+   IMMERSIVE MODE — ocultar header/footer + pinch zoom
+══════════════════════════════════════════════ */
+
+/* Botón flotante — oculto por defecto, JS lo muestra solo en pantallas correctas */
+#btnImmersive {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom: 12px;
+  right: 10px;
+  z-index: 9999;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  opacity: 0.7;
+}
+#btnImmersive.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  opacity: 1;
+}
+/* En desktop nunca se muestra aunque JS lo active */
+@media (min-width: 1024px) {
+  #btnImmersive { display: none !important; }
+}
+
+/* Transición suave del header */
+.header {
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
+}
+.header.immersive-hidden {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom-width: 0 !important;
+  pointer-events: none;
+}
+
+/* songKeyBar también se oculta */
+#songKeyBar {
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  overflow: hidden;
+}
+#songKeyBar.immersive-hidden {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  pointer-events: none;
+}
+
+/* inst-filter-bar también */
+.inst-filter-bar {
+  transition: max-height 0.25s ease, opacity 0.25s ease;
+}
+.inst-filter-bar.immersive-hidden {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none;
+}
+
+/* SongPlayerBar transición */
+#songPlayerBar {
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+#songPlayerBar.immersive-hidden {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none;
+}
+
+/* Zona de zoom: wrapper alrededor del contenido principal */
+#zoomWrapper {
+  transform-origin: top center;
+  transition: transform 0.05s linear;
+  will-change: transform;
+}
+
+/* En modo inmersivo, el container ocupa más espacio */
+@media (max-width: 600px) {
+  body.immersive-mode {
+    padding-bottom: 20px !important;
+  }
+  body.immersive-mode.has-song-player {
+    padding-bottom: 20px !important;
+  }
+}
 </style>
+
+<script>
+/* ══════════════════════════════════════════════
+   IMMERSIVE MODE — toggle header/footer
+══════════════════════════════════════════════ */
+let _immersiveActive = false;
+
+/* Pantallas donde el botón debe aparecer */
+function _immersiveShouldShow() {
+  const libOpen = document.getElementById('libraryScreen')?.classList.contains('open');
+  const setlistOpen = document.getElementById('setlistScreen')?.style.display === 'flex';
+  // Visible en: editor de canción, modo tocar, editor de batería
+  // NO visible en: biblioteca, repertorios
+  return !libOpen && !setlistOpen;
+}
+
+function _immersiveUpdateButtonVisibility() {
+  const btn = document.getElementById('btnImmersive');
+  if (!btn) return;
+  const isMobile = window.innerWidth < 1024;
+  const show = isMobile && _immersiveShouldShow();
+  btn.style.display = show ? 'flex' : 'none';
+}
+
+function _immersiveDeactivate() {
+  _immersiveActive = false;
+  const btn = document.getElementById('btnImmersive');
+  const header = document.querySelector('.header');
+  const keyBar = document.getElementById('songKeyBar');
+  const filterBar = document.getElementById('instFilterBar');
+  const playerBar = document.getElementById('songPlayerBar');
+  header    && header.classList.remove('immersive-hidden');
+  keyBar    && keyBar.classList.remove('immersive-hidden');
+  filterBar && filterBar.classList.remove('immersive-hidden');
+  playerBar && playerBar.classList.remove('immersive-hidden');
+  document.body.classList.remove('immersive-mode');
+  if (btn) { btn.classList.remove('active'); }
+}
+
+function toggleImmersive() {
+  const btn = document.getElementById('btnImmersive');
+  const header = document.querySelector('.header');
+  const keyBar = document.getElementById('songKeyBar');
+  const filterBar = document.getElementById('instFilterBar');
+  const playerBar = document.getElementById('songPlayerBar');
+
+  if (!_immersiveActive) {
+    // ACTIVAR
+    _immersiveActive = true;
+    header    && header.classList.add('immersive-hidden');
+    keyBar    && keyBar.classList.add('immersive-hidden');
+    filterBar && filterBar.classList.add('immersive-hidden');
+    playerBar && playerBar.classList.add('immersive-hidden');
+    document.body.classList.add('immersive-mode');
+    if (btn) btn.classList.add('active');
+  } else {
+    // DESACTIVAR
+    _immersiveDeactivate();
+  }
+}
+
+/* Exponer helpers para que las funciones de navegación los llamen */
+window._immersiveDeactivate = _immersiveDeactivate;
+window._immersiveUpdateButtonVisibility = _immersiveUpdateButtonVisibility;
+
+/* Init: calcular visibilidad del botón al cargar */
+document.addEventListener('DOMContentLoaded', function() {
+  _immersiveUpdateButtonVisibility();
+});
+
+/* ══════════════════════════════════════════════
+   PINCH-TO-ZOOM — solo en #zoomWrapper, móvil
+══════════════════════════════════════════════ */
+(function () {
+  const MIN_SCALE = 0.6;
+  const MAX_SCALE = 2.5;
+  let _scale = 1.0;
+  let _lastScale = 1.0;
+  let _startDist = 0;
+  let _isPinching = false;
+
+  function getDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  function applyScale(s) {
+    _scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
+    const el = document.getElementById('zoomWrapper');
+    if (el) el.style.transform = _scale === 1 ? '' : `scale(${_scale})`;
+  }
+
+  // Reset zoom when screen changes
+  window._immersiveResetZoom = function() {
+    _scale = 1.0;
+    _lastScale = 1.0;
+    const el = document.getElementById('zoomWrapper');
+    if (el) el.style.transform = '';
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const wrapper = document.getElementById('zoomWrapper');
+    if (!wrapper) return;
+
+    wrapper.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 2) {
+        _isPinching = true;
+        _startDist = getDist(e.touches);
+        _lastScale = _scale;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchmove', function (e) {
+      if (_isPinching && e.touches.length === 2) {
+        const dist = getDist(e.touches);
+        applyScale(_lastScale * (dist / _startDist));
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchend', function (e) {
+      if (e.touches.length < 2) _isPinching = false;
+    }, { passive: true });
+
+    wrapper.addEventListener('touchcancel', function () {
+      _isPinching = false;
+    }, { passive: true });
+  });
+})();
+</script>
 
 </body>
 </html>
