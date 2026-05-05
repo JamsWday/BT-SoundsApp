@@ -1065,7 +1065,8 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 5px 9px;
-  overflow: hidden;
+  overflow: visible;
+  flex-wrap: wrap;
 }
 body.readonly #hdrScroll { display: flex; }
 
@@ -2882,6 +2883,141 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
   .row-right { gap: 4px; }
   .container { padding: 12px; }
 }
+
+/* ══ TOGGLE MANUAL / SYNC ══ */
+#scrollModeToggle {
+  display: none;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 0;
+  flex-shrink: 0;
+}
+body.readonly #scrollModeToggle { display: flex; }
+
+.mode-pill {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 9px;
+  border-radius: 16px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+.mode-pill.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+[data-theme="light"] .mode-pill.active { color: #fff; }
+
+/* ══ AUTOSCROLL SINCRONIZADO ══ */
+
+/* Botones ▶ y ▶🎵 — mismo tamaño que hdr-icon-btn */
+#syncPlayBtn, #syncPlayAudioBtn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 5px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+#syncPlayBtn:hover,
+#syncPlayAudioBtn:hover   { background: rgba(0,255,231,0.1); }
+#syncPlayBtn.playing,
+#syncPlayAudioBtn.playing { background: var(--accent); color: var(--bg); }
+[data-theme="light"] #syncPlayBtn.playing,
+[data-theme="light"] #syncPlayAudioBtn.playing { color: #fff; }
+
+/* Ocultar scroll manual cuando Sync está activo */
+body.readonly.sync-on #hdrScroll { display: none !important; }
+
+/* Sección activa resaltada */
+.section-block.sync-active {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(0,255,231,0.2);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+[data-theme="light"]   .section-block.sync-active { box-shadow: 0 0 0 2px rgba(176,122,16,0.2); }
+[data-theme="bluered"] .section-block.sync-active { box-shadow: 0 0 0 2px rgba(58,159,212,0.2); }
+.calib-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.88);
+  display: none; align-items: center; justify-content: center; padding: 16px;
+}
+.calib-overlay.open { display: flex; }
+.calib-modal {
+  background: var(--surface); border: 1px solid var(--accent); border-radius: 14px;
+  padding: 22px 20px 18px; width: 100%; max-width: 520px; max-height: 90vh;
+  display: flex; flex-direction: column; gap: 14px; overflow: hidden;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.7);
+}
+.calib-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; color: var(--accent); margin: 0; }
+.calib-subtitle { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin: -8px 0 0; }
+.calib-audio-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
+}
+.calib-play-btn {
+  font-size: 1rem; background: var(--accent); color: var(--bg); border: none; border-radius: 50%;
+  width: 30px; height: 30px; cursor: pointer; flex-shrink: 0; display: flex;
+  align-items: center; justify-content: center; transition: opacity 0.15s;
+}
+.calib-play-btn:hover { opacity: 0.82; }
+.calib-seek-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem; background: transparent;
+  border: 1px solid var(--border); color: var(--muted); border-radius: 4px;
+  padding: 3px 6px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.calib-seek-btn:hover { border-color: var(--accent); color: var(--accent); }
+.calib-progress {
+  flex: 1; height: 5px; background: var(--dim); border-radius: 3px;
+  cursor: pointer; position: relative; min-width: 0;
+}
+.calib-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; width: 0%; pointer-events: none; }
+.calib-time { font-family: 'Space Mono', monospace; font-size: 0.62rem; color: var(--muted); flex-shrink: 0; min-width: 80px; text-align: right; }
+.calib-sections { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 38vh; padding-right: 2px; }
+.calib-section-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; transition: border-color 0.15s, background 0.15s;
+}
+.calib-section-row.calib-next { border-color: var(--accent); background: rgba(0,255,231,0.05); }
+[data-theme="light"] .calib-section-row.calib-next { background: rgba(176,122,16,0.07); }
+[data-theme="bluered"] .calib-section-row.calib-next { background: rgba(58,159,212,0.07); }
+.calib-sec-idx { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--dim); flex-shrink: 0; min-width: 18px; }
+.calib-sec-name { font-family: 'Space Mono', monospace; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calib-sec-time { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--accent); min-width: 44px; text-align: right; }
+.calib-sec-time.calib-empty { color: var(--dim); }
+.calib-tap-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase; padding: 5px 10px;
+  border-radius: 5px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); cursor: pointer; transition: all 0.12s; flex-shrink: 0;
+}
+.calib-tap-btn:hover,
+.calib-tap-btn.calib-done { border-color: var(--accent); color: var(--accent); background: rgba(0,255,231,0.08); }
+[data-theme="light"] .calib-tap-btn.calib-done { background: rgba(176,122,16,0.08); }
+.calib-clr-btn { background: transparent; border: none; color: var(--dim); font-size: 0.75rem; cursor: pointer; padding: 2px 5px; border-radius: 3px; flex-shrink: 0; transition: color 0.12s; }
+.calib-clr-btn:hover { color: var(--accent2); }
+.calib-banner { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.75rem; color: var(--muted); line-height: 1.5; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
+.calib-banner.calib-warn { background: rgba(255,200,0,0.07); border-color: rgba(255,200,0,0.3); color: #ffc800; }
+.calib-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 2px; }
+.calib-actions .btn { flex: 1; min-width: 80px; text-align: center; justify-content: center; }
+#btnCalibrate { flex-shrink: 0; display: none !important; }
+body.readonly #btnCalibrate { display: inline-flex !important; }
 </style>
 </head>
 <body>
@@ -2946,7 +3082,7 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
 
     <!-- MÓVIL FILA 2: Audio · ↩ · ⇅ · ↪ · Guardar · Tocar -->
     <div class="mhdr-row2">
-      <!-- ── Autoscroll (solo visible en modo Tocar) ── -->
+      <!-- ── Autoscroll manual (solo visible en modo Tocar, oculto con Sync) ── -->
       <div id="hdrScroll">
         <button id="cmReturnBtn" onclick="navBack()" title="Volver al Modo Concierto" style="display:none;font-family:'Space Mono',monospace;font-size:0.62rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;padding:5px 9px;border-radius:5px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0;">← </button>
         <button id="hdrBtnPlay" onclick="toggleScroll()" title="Autoscroll (Space)">
@@ -2981,6 +3117,15 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
       </div>
       <button class="btn hdr-icon-btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
       <button class="btn btn-primary btn-save-cloud" onclick="saveSongCloud()" title="Guardar en la nube">☁ Guardar</button>
+      <!-- ── Toggle Manual / Sync ── -->
+      <div id="scrollModeToggle" style="display:none;">
+        <button id="toggleManualBtn" class="mode-pill active" onclick="setScrollMode('manual')">Manual</button>
+        <button id="toggleSyncBtn"   class="mode-pill"        onclick="setScrollMode('sync')">Sync</button>
+      </div>
+      <!-- ── Sync buttons (solo si modo sync) ── -->
+      <button class="sync-play-btn" id="syncPlayBtn"      style="display:none;" onclick="syncTogglePlay('scroll')" title="Solo scroll">▶</button>
+      <button class="sync-play-btn" id="syncPlayAudioBtn" style="display:none;" onclick="syncTogglePlay('audio')"  title="Canción + scroll">▶🎵</button>
+      <button class="btn hdr-icon-btn" id="btnCalibrate" onclick="openCalibModal()" title="Calibrar secciones" style="display:none;">🎯</button>
       <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar"><span class="lbl-tocar">👁 Tocar</span><span class="lbl-editar">✎ Editar</span></button>
     </div>
 
@@ -3575,6 +3720,7 @@ function render() {
     // ── section block — NOT draggable itself
     const block = document.createElement("div");
     block.className = "section-block";
+    block.dataset.secid = sec.id;
 
     // dragend cleanup on block (catches drop-outside cases)
     block.addEventListener("dragend", () => {
@@ -4279,14 +4425,23 @@ function toggleReadonly() {
     btn.title = "Volver al modo edición";
     closePopup();
     updateScrollSongAudioBtn();
+    // Mostrar botones sync según calibración
+    _syncUpdateButtons();
   } else {
     btn.textContent = "👁 Tocar";
     btn.title = "Vista solo lectura para tocar";
     stopScroll();
     stopAllSectionAudio();
     stopSongAudio();
+    // Parar sync y limpiar
+    syncStop();
+    document.body.classList.remove("sync-on");
+    document.getElementById("scrollModeToggle").style.display = "none";
+    var btnScroll = document.getElementById("syncPlayBtn");
+    var btnAudio  = document.getElementById("syncPlayAudioBtn");
+    if (btnScroll) btnScroll.style.display = "none";
+    if (btnAudio)  btnAudio.style.display  = "none";
   }
-  // Recalculate voz textarea heights after layout change
   resizeAllVozTextareas();
 }
 
@@ -4379,6 +4534,507 @@ function stopScroll() {
   const icon = document.getElementById("hdrPlayIcon");
   if (btn)  { btn.classList.remove("playing"); }
   if (icon) { icon.textContent = "▶"; }
+}
+
+// ═══════════════════════════════════════════════
+// CALIBRACIÓN DE SECCIONES
+// Guarda songData.sectionTimestamps = { sectionId: seconds }
+// ═══════════════════════════════════════════════
+let _cAudio  = null;   // HTMLAudioElement del modal
+let _cTimes  = {};     // copia de trabajo { secId: secs }
+let _cRaf    = null;   // loop de progreso
+
+function openCalibModal() {
+  // Clonar timestamps actuales como punto de partida
+  _cTimes = Object.assign({}, songData.sectionTimestamps || {});
+
+  // Aviso si ya calibrada
+  const already = Object.keys(songData.sectionTimestamps || {}).length > 0;
+  document.getElementById("calibWarn").style.display = already ? "" : "none";
+
+  // Comprobar audio
+  const src = songData.audio && songData.audio.src;
+  document.getElementById("calibNoAudio").style.display        = src ? "none" : "";
+  document.getElementById("calibAudioRow").style.opacity       = src ? "1" : "0.3";
+  document.getElementById("calibAudioRow").style.pointerEvents = src ? "" : "none";
+
+  // Crear elemento audio
+  if (_cAudio) { _cAudio.pause(); _cAudio.src = ""; }
+  _cAudio = src ? new Audio(src) : null;
+  if (_cAudio) {
+    _cAudio.addEventListener("ended", function() { document.getElementById("calibPlayBtn").textContent = "▶"; });
+  }
+
+  // Reset UI del player
+  document.getElementById("calibProgFill").style.width  = "0%";
+  document.getElementById("calibTimeLabel").textContent = "0:00 / 0:00";
+  document.getElementById("calibPlayBtn").textContent   = "▶";
+
+  _calibRenderList();
+  document.getElementById("calibModal").classList.add("open");
+
+  // Loop de actualización de barra de progreso
+  if (_cRaf) cancelAnimationFrame(_cRaf);
+  (function tick() {
+    if (_cAudio && _cAudio.duration) {
+      const pct = (_cAudio.currentTime / _cAudio.duration) * 100;
+      document.getElementById("calibProgFill").style.width = pct + "%";
+      document.getElementById("calibTimeLabel").textContent =
+        fmtTime(_cAudio.currentTime) + " / " + fmtTime(_cAudio.duration);
+    }
+    _cRaf = requestAnimationFrame(tick);
+  })();
+}
+
+function closeCalibModal() {
+  if (_cAudio) { _cAudio.pause(); _cAudio.src = ""; _cAudio = null; }
+  if (_cRaf)   { cancelAnimationFrame(_cRaf); _cRaf = null; }
+  document.getElementById("calibModal").classList.remove("open");
+}
+
+function calibTogglePlay() {
+  if (!_cAudio) return;
+  const btn = document.getElementById("calibPlayBtn");
+  if (_cAudio.paused) {
+    _cAudio.play().catch(function() {});
+    btn.textContent = "⏸";
+  } else {
+    _cAudio.pause();
+    btn.textContent = "▶";
+  }
+}
+
+function calibSeek(d) {
+  if (_cAudio) _cAudio.currentTime = Math.max(0, (_cAudio.currentTime || 0) + d);
+}
+
+function calibClickProg(e) {
+  if (!_cAudio || !_cAudio.duration) return;
+  const r = document.getElementById("calibProgBar").getBoundingClientRect();
+  _cAudio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * _cAudio.duration;
+}
+
+function _calibRenderList() {
+  const list = document.getElementById("calibSecList");
+  list.innerHTML = "";
+  songData.sections.forEach(function(sec, i) {
+    const t      = _cTimes[sec.id];
+    const hasTap = t !== undefined && t !== null;
+
+    const row = document.createElement("div");
+    row.className = "calib-section-row";
+    row.id = "cr_" + sec.id;
+
+    const idx = document.createElement("span");
+    idx.className = "calib-sec-idx";
+    idx.textContent = (i + 1);
+
+    const name = document.createElement("span");
+    name.className = "calib-sec-name";
+    name.textContent = sec.name || "Sección";
+
+    const time = document.createElement("span");
+    time.className = "calib-sec-time" + (hasTap ? "" : " calib-empty");
+    time.id = "ct_" + sec.id;
+    time.textContent = hasTap ? fmtTime(t) : "--:--";
+
+    const tap = document.createElement("button");
+    tap.className = "calib-tap-btn" + (hasTap ? " calib-done" : "");
+    tap.textContent = hasTap ? "✓ Tap" : "Tap";
+    tap.onclick = function() { calibTap(sec.id); };
+
+    const clr = document.createElement("button");
+    clr.className = "calib-clr-btn";
+    clr.textContent = "✕";
+    clr.title = "Borrar";
+    clr.onclick = function() { calibClearOne(sec.id); };
+
+    row.appendChild(idx);
+    row.appendChild(name);
+    row.appendChild(time);
+    row.appendChild(tap);
+    row.appendChild(clr);
+    list.appendChild(row);
+  });
+  // Resaltar la primera sin tap
+  _calibHighlightNext();
+}
+
+function _calibHighlightNext() {
+  document.querySelectorAll(".calib-section-row").forEach(function(r) { r.classList.remove("calib-next"); });
+  const next = songData.sections.find(function(s) { return _cTimes[s.id] === undefined || _cTimes[s.id] === null; });
+  if (next) {
+    const row = document.getElementById("cr_" + next.id);
+    if (row) row.classList.add("calib-next");
+  }
+}
+
+function calibTap(secId) {
+  const t = _cAudio ? _cAudio.currentTime : 0;
+  _cTimes[secId] = t;
+
+  const timeEl = document.getElementById("ct_" + secId);
+  const row    = document.getElementById("cr_" + secId);
+  if (timeEl) { timeEl.textContent = fmtTime(t); timeEl.classList.remove("calib-empty"); }
+  if (row) {
+    const btn = row.querySelector(".calib-tap-btn");
+    if (btn) { btn.textContent = "✓ Tap"; btn.classList.add("calib-done"); }
+  }
+  _calibHighlightNext();
+}
+
+function calibClearOne(secId) {
+  delete _cTimes[secId];
+  const timeEl = document.getElementById("ct_" + secId);
+  const row    = document.getElementById("cr_" + secId);
+  if (timeEl) { timeEl.textContent = "--:--"; timeEl.classList.add("calib-empty"); }
+  if (row) {
+    const btn = row.querySelector(".calib-tap-btn");
+    if (btn) { btn.textContent = "Tap"; btn.classList.remove("calib-done"); }
+  }
+  _calibHighlightNext();
+}
+
+function calibClearAll() {
+  if (!confirm("¿Borrar toda la calibración?")) return;
+  _cTimes = {};
+  _calibRenderList();
+}
+
+async function calibSave() {
+  if (!Object.keys(_cTimes).length) {
+    alert("No hay timestamps marcados. Escucha la canción y pulsa Tap en cada sección.");
+    return;
+  }
+  songData.sectionTimestamps = Object.assign({}, _cTimes);
+  const btn = document.getElementById("calibSaveBtn");
+  try {
+    if (_currentSongId) {
+      await _sb.from("Canciones").update({ data: songData, updated_at: new Date().toISOString() }).eq("id", _currentSongId);
+    }
+    if (btn) {
+      btn.textContent = "✓ ¡Guardado!";
+      btn.style.background = "var(--green)"; btn.style.borderColor = "var(--green)";
+      setTimeout(function() { btn.textContent = "✓ Guardar calibración"; btn.style.background = ""; btn.style.borderColor = ""; }, 2000);
+    }
+  } catch(e) {
+    console.error(e);
+    if (btn) { btn.textContent = "✓ Guardado local"; setTimeout(function() { btn.textContent = "✓ Guardar calibración"; }, 2000); }
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SCROLL SINCRONIZADO — Fase 2 final
+// Lógica limpia:
+//  1. Medir pantalla visible
+//  2. Localizar siguiente sección en DOM
+//  3. Calcular píxeles a recorrer
+//  4. Dividir entre segundos restantes → velocidad constante px/s
+// ═══════════════════════════════════════════════
+let _syncActive          = false;
+let _syncMode            = "scroll"; // "scroll" | "audio"
+let _syncPlaying         = false;
+let _syncRaf             = null;
+let _syncStartTs         = null;
+let _syncElapsed         = 0;
+let _syncLastSecId       = null;
+let _syncUserScrolled    = false;
+let _syncUserScrollTimer = null;
+let _syncLastNow         = null;
+let _syncAudioEl         = null;   // Audio element para modo audio
+
+const SYNC_GUIDE_POS     = 0.25;
+
+// Mostrar botones sync según calibración al entrar en modo Tocar
+function _syncUpdateButtons() {
+  var isReadonly = document.body.classList.contains("readonly");
+  if (!isReadonly) return;
+  var hasCalib = Object.keys(songData.sectionTimestamps || {}).length > 0;
+  var hasAudio = !!(songData.audio && songData.audio.src);
+  // Mostrar toggle siempre en modo Tocar
+  document.getElementById("scrollModeToggle").style.display = "flex";
+  document.getElementById("btnCalibrate").style.display     = "";
+  // Sync buttons solo si calibrado
+  document.getElementById("syncPlayBtn").style.display      = "none";
+  document.getElementById("syncPlayAudioBtn").style.display = "none";
+  // Arrancar en modo manual por defecto
+  setScrollMode("manual");
+}
+
+function setScrollMode(mode) {
+  syncStop();
+  var hasCalib = Object.keys(songData.sectionTimestamps || {}).length > 0;
+  var hasAudio = !!(songData.audio && songData.audio.src);
+
+  var manualBtn = document.getElementById("toggleManualBtn");
+  var syncBtn   = document.getElementById("toggleSyncBtn");
+  var hdrScroll = document.getElementById("hdrScroll");
+  var playBtn   = document.getElementById("syncPlayBtn");
+  var audioBtn  = document.getElementById("syncPlayAudioBtn");
+
+  if (mode === "manual") {
+    manualBtn.classList.add("active");
+    syncBtn.classList.remove("active");
+    hdrScroll.style.display = "";   // mostrar scroll manual
+    document.body.classList.remove("sync-on");
+    playBtn.style.display  = "none";
+    audioBtn.style.display = "none";
+  } else {
+    // Sync
+    if (!hasCalib) {
+      alert("Esta canción no tiene calibración. Pulsa 🎯 para calibrar primero.");
+      return;
+    }
+    syncBtn.classList.add("active");
+    manualBtn.classList.remove("active");
+    stopScroll();
+    hdrScroll.style.display = "none";  // ocultar scroll manual
+    document.body.classList.add("sync-on");
+    playBtn.style.display  = "";
+    audioBtn.style.display = hasAudio ? "" : "none";
+  }
+}
+
+function syncTogglePlay(mode) {
+  if (_syncPlaying && _syncMode === mode) { syncStop(); return; }
+  if (_syncPlaying) syncStop();
+  _syncMode = mode;
+  syncPlay();
+}
+
+function syncPlay() {
+  if (!Object.keys(songData.sectionTimestamps || {}).length) {
+    alert("Calibra primero las secciones con 🎯"); return;
+  }
+  if (_syncMode === "audio") {
+    if (!songData.audio || !songData.audio.src) {
+      alert("Esta canción no tiene audio asignado."); return;
+    }
+    _syncAudioEl = new Audio(songData.audio.src);
+    _syncAudioEl.play().catch(function() {});
+  }
+  _syncPlaying      = true;
+  _syncStartTs      = performance.now();
+  _syncLastNow      = _syncStartTs;
+  _syncElapsed      = 0;
+  _syncLastSecId    = null;
+  _syncUserScrolled = false;
+
+  var btnScroll = document.getElementById("syncPlayBtn");
+  var btnAudio  = document.getElementById("syncPlayAudioBtn");
+  if (_syncMode === "scroll") {
+    if (btnScroll) { btnScroll.textContent = "⏹";   btnScroll.classList.add("playing"); }
+    if (btnAudio)  { btnAudio.classList.remove("playing"); btnAudio.textContent = "▶🎵"; }
+  } else {
+    if (btnAudio)  { btnAudio.textContent  = "⏹🎵"; btnAudio.classList.add("playing"); }
+    if (btnScroll) { btnScroll.classList.remove("playing"); btnScroll.textContent = "▶"; }
+  }
+  _syncShowGuideLine(false);
+  _syncShowDebug(false);
+  window.addEventListener("touchstart", _syncOnUserScroll, { passive: true });
+  window.addEventListener("wheel",      _syncOnUserScroll, { passive: true });
+  _syncRaf = requestAnimationFrame(_syncStep);
+}
+
+function syncStop() {
+  _syncPlaying = false;
+  if (_syncRaf) { cancelAnimationFrame(_syncRaf); _syncRaf = null; }
+  if (_syncUserScrollTimer) { clearTimeout(_syncUserScrollTimer); _syncUserScrollTimer = null; }
+  if (_syncAudioEl) { _syncAudioEl.pause(); _syncAudioEl.src = ""; _syncAudioEl = null; }
+  window.removeEventListener("touchstart", _syncOnUserScroll);
+  window.removeEventListener("wheel",      _syncOnUserScroll);
+  document.querySelectorAll(".section-block.sync-active")
+    .forEach(function(el) { el.classList.remove("sync-active"); });
+  var btnScroll = document.getElementById("syncPlayBtn");
+  var btnAudio  = document.getElementById("syncPlayAudioBtn");
+  if (btnScroll) { btnScroll.textContent = "▶";   btnScroll.classList.remove("playing"); }
+  if (btnAudio)  { btnAudio.textContent  = "▶🎵"; btnAudio.classList.remove("playing"); }
+  _syncLastSecId = null;
+  _syncShowGuideLine(false);
+  _syncShowDebug(false);
+}
+
+
+function _syncOnUserScroll() {
+  _syncUserScrolled = true;
+  if (_syncUserScrollTimer) clearTimeout(_syncUserScrollTimer);
+  _syncUserScrollTimer = setTimeout(function() { _syncUserScrolled = false; }, 2500);
+}
+
+function _syncGetCalibrated() {
+  const stamps = songData.sectionTimestamps || {};
+  return songData.sections
+    .map(function(s, i) { return { idx: i, id: s.id, time: stamps[s.id] }; })
+    .filter(function(s) { return s.time !== undefined && s.time !== null; })
+    .sort(function(a, b) { return a.time - b.time; });
+}
+
+// scrollY para que la sección quede en la línea guía (25% de pantalla visible)
+function _syncGetTargetY(secId) {
+  const block = document.querySelector(".section-block[data-secid='" + secId + "']");
+  if (!block) return null;
+  // Medir header real visible (puede estar oculto en modo inmersivo)
+  const headerEl = document.querySelector(".header");
+  const headerH  = (headerEl && !headerEl.classList.contains("immersive-hidden"))
+    ? headerEl.offsetHeight : 0;
+  // Altura visible real entre header y borde inferior de pantalla
+  const visibleH = window.innerHeight - headerH;
+  const guideY   = headerH + visibleH * SYNC_GUIDE_POS;
+  return Math.max(0, window.scrollY + block.getBoundingClientRect().top - guideY);
+}
+
+function _syncStep(now) {
+  if (!_syncPlaying) return;
+
+  const delta  = (now - _syncLastNow) / 1000;
+  _syncLastNow = now;
+  _syncElapsed = (now - _syncStartTs) / 1000;
+
+  const calibrated = _syncGetCalibrated();
+  if (!calibrated.length) { syncStop(); return; }
+
+  // 1. Sección activa
+  var current = calibrated[0], currentPos = 0;
+  for (var i = 0; i < calibrated.length; i++) {
+    if (_syncElapsed >= calibrated[i].time) { current = calibrated[i]; currentPos = i; }
+    else break;
+  }
+
+  // 2. Siguiente sección
+  var next = currentPos + 1 < calibrated.length ? calibrated[currentPos + 1] : null;
+
+  // Resaltar si cambió
+  if (current.id !== _syncLastSecId) {
+    _syncLastSecId = current.id;
+    _syncHighlight(current.id);
+    _syncUpdateGuideLine(next);
+  }
+
+  // 3 & 4. Scroll a velocidad constante
+  if (!_syncUserScrolled) {
+    var targetY, secsLeft;
+
+    if (next) {
+      // Hacia la línea guía de la siguiente sección
+      targetY  = _syncGetTargetY(next.id);
+      secsLeft = next.time - _syncElapsed;
+    } else {
+      // Última sección: scroll hasta el final de la página
+      // Usamos la duración real del audio si está disponible
+      const last      = calibrated[calibrated.length - 1];
+      const audioDur  = (_spb && _spb.audio && _spb.audio.duration)
+                        ? _spb.audio.duration
+                        : (last.time + 30);
+      const endOfDoc  = document.documentElement.scrollHeight - window.innerHeight;
+      targetY  = endOfDoc;
+      secsLeft = audioDur - _syncElapsed;
+    }
+
+    if (targetY !== null && secsLeft > 0.05 && Math.abs(targetY - window.scrollY) > 0.5) {
+      const speed = (targetY - window.scrollY) / secsLeft;
+      window.scrollTo(0, window.scrollY + speed * delta);
+    }
+
+    _syncUpdateDebug(current, next);
+  }
+
+  // Reposicionar línea guía (por si cambió modo inmersivo)
+  _syncRepositionGuideLine();
+
+  // Parar cuando acaba el audio (o 30s después de la última sección si no hay audio)
+  const last     = calibrated[calibrated.length - 1];
+  const audioDur = (_syncAudioEl && _syncAudioEl.duration)
+                   ? _syncAudioEl.duration
+                   : (_spb && _spb.audio && _spb.audio.duration)
+                     ? _spb.audio.duration
+                     : last.time + 30;
+  if (_syncElapsed > audioDur) { syncStop(); return; }
+
+  _syncRaf = requestAnimationFrame(_syncStep);
+}
+
+function _syncHighlight(secId) {
+  document.querySelectorAll(".section-block.sync-active")
+    .forEach(function(el) { el.classList.remove("sync-active"); });
+  const block = document.querySelector(".section-block[data-secid='" + secId + "']");
+  if (block) block.classList.add("sync-active");
+}
+
+// ── Línea guía al 75% ─────────────────────────
+function _syncShowGuideLine(show) {
+  var line = document.getElementById("syncGuideLine");
+  if (!line) {
+    line = document.createElement("div");
+    line.id = "syncGuideLine";
+    line.style.cssText = "position:fixed;left:0;right:0;height:2px;background:var(--accent);opacity:0.5;z-index:9000;pointer-events:none;display:none;";
+    var lbl = document.createElement("span");
+    lbl.id = "syncGuideLabel";
+    lbl.style.cssText = "position:absolute;right:8px;top:-18px;font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--accent);background:var(--bg);padding:1px 6px;border-radius:3px;white-space:nowrap;";
+    line.appendChild(lbl);
+    document.body.appendChild(line);
+  }
+  if (show) {
+    line.style.display = "block";
+    _syncRepositionGuideLine();
+  } else {
+    line.style.display = "none";
+  }
+}
+
+function _syncRepositionGuideLine() {
+  var line = document.getElementById("syncGuideLine");
+  if (!line) return;
+  const headerEl = document.querySelector(".header");
+  const headerH  = (headerEl && !headerEl.classList.contains("immersive-hidden"))
+    ? headerEl.offsetHeight : 0;
+  const visibleH = window.innerHeight - headerH;
+  const guideTop = headerH + visibleH * SYNC_GUIDE_POS;
+  line.style.top = Math.round(guideTop) + "px";
+}
+
+function _syncUpdateGuideLine(nextEntry) {
+  var lbl = document.getElementById("syncGuideLabel");
+  if (!lbl) return;
+  if (nextEntry && songData.sections[nextEntry.idx]) {
+    lbl.textContent = fmtTime(nextEntry.time) + " · " + (songData.sections[nextEntry.idx].name || "");
+  } else {
+    lbl.textContent = "— fin —";
+  }
+}
+
+// ── Panel debug ───────────────────────────────
+function _syncShowDebug(show) {
+  var panel = document.getElementById("syncDebugPanel");
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "syncDebugPanel";
+    panel.style.cssText = "position:fixed;bottom:70px;left:8px;background:rgba(0,0,0,0.82);border:1px solid var(--accent);border-radius:7px;padding:8px 10px;font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--accent);z-index:9001;pointer-events:none;line-height:1.8;display:none;min-width:190px;";
+    document.body.appendChild(panel);
+  }
+  panel.style.display = show ? "block" : "none";
+}
+
+function _syncUpdateDebug(current, next) {
+  var panel = document.getElementById("syncDebugPanel");
+  if (!panel || panel.style.display === "none") return;
+  var secsLeft = "—", pxLeft = "—", speed = "—";
+  if (next) {
+    var sl = next.time - _syncElapsed;
+    var tY = _syncGetTargetY(next.id);
+    secsLeft = sl.toFixed(1) + "s";
+    if (tY !== null) {
+      var px = Math.round(tY - window.scrollY);
+      pxLeft  = px + "px";
+      speed   = sl > 0 ? Math.round(px / sl) + "px/s" : "—";
+    }
+  }
+  var curName  = current && songData.sections[current.idx]  ? songData.sections[current.idx].name  || "—" : "—";
+  var nextName = next    && songData.sections[next.idx]     ? songData.sections[next.idx].name     || "—" : "fin";
+  panel.innerHTML =
+    "▶ " + curName  + "<br>" +
+    "⏭ " + nextName + "<br>" +
+    "⏱ " + fmtTime(_syncElapsed) + "  −" + secsLeft + "<br>" +
+    "📏 " + pxLeft + "  🚀 " + speed;
 }
 
 function updateSpeedLabel() {
@@ -7705,6 +8361,31 @@ function drumPatternToHTML(dp, colorClass) {
 
 <!-- Área de impresión PDF (oculta en pantalla) -->
 <div id="slPrintArea"></div>
+
+<!-- ══ MODAL CALIBRACIÓN ══ -->
+<div class="calib-overlay" id="calibModal">
+  <div class="calib-modal">
+    <h3 class="calib-title">🎯 Calibrar secciones</h3>
+    <p class="calib-subtitle">Play → pulsa Tap en cada sección cuando empiece a sonar</p>
+    <div class="calib-banner calib-warn" id="calibWarn" style="display:none">⚠ Ya hay calibración guardada. Si tapeas de nuevo, se sobreescribirá.</div>
+    <div class="calib-banner" id="calibNoAudio" style="display:none">🎵 Esta canción no tiene audio. Añádelo primero con el botón 🎵 del editor.</div>
+    <div class="calib-audio-row" id="calibAudioRow">
+      <button class="calib-play-btn" id="calibPlayBtn" onclick="calibTogglePlay()">▶</button>
+      <button class="calib-seek-btn" onclick="calibSeek(-5)">−5s</button>
+      <button class="calib-seek-btn" onclick="calibSeek(+5)">+5s</button>
+      <div class="calib-progress" id="calibProgBar" onclick="calibClickProg(event)">
+        <div class="calib-progress-fill" id="calibProgFill"></div>
+      </div>
+      <span class="calib-time" id="calibTimeLabel">0:00 / 0:00</span>
+    </div>
+    <div class="calib-sections" id="calibSecList"></div>
+    <div class="calib-actions">
+      <button class="btn btn-primary" id="calibSaveBtn" onclick="calibSave()">✓ Guardar</button>
+      <button class="btn" onclick="calibClearAll()" style="color:var(--accent2);border-color:var(--accent2);">🗑 Limpiar</button>
+      <button class="btn" onclick="closeCalibModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── BOTÓN INMERSIVO flotante (solo móvil, solo en vistas de canción/batería) ── -->
 <button id="btnImmersive" onclick="toggleImmersive()" title="Modo inmersivo">⛶</button>
