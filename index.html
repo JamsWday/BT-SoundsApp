@@ -2723,6 +2723,93 @@ body.readonly .drum-add-btn  { display: none !important; }
 .de-help-btn { display: inline-flex; }
 .de-legend   { display: none; }
 
+/* ══ MODAL CONFIGURACIÓN BIBLIOTECA ══ */
+.cfg-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.82); z-index: 9200;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.cfg-overlay.open { display: flex; }
+.cfg-modal {
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 12px; width: 100%; max-width: 560px;
+  display: flex; flex-direction: column; overflow: hidden; max-height: 90vh;
+}
+.cfg-modal-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 0; border-bottom: 1px solid var(--border);
+}
+.cfg-modal-title { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--accent); }
+.cfg-close { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1.1rem; padding: 0 4px; }
+.cfg-tabs { display: flex; padding: 0 20px; border-bottom: 1px solid var(--border); gap: 0; }
+.cfg-tab {
+  font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 10px 14px 9px; color: var(--muted);
+  cursor: pointer; border: none; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; background: none; transition: color 0.15s; white-space: nowrap;
+}
+.cfg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.cfg-tab:hover:not(.active) { color: var(--text); }
+.cfg-panel { display: none; padding: 18px 20px; overflow-y: auto; flex: 1; }
+.cfg-panel.active { display: block; }
+.cfg-desc { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.78rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+.cfg-rules { display: flex; flex-direction: column; gap: 7px; }
+.cfg-rule-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 8px 12px;
+}
+.cfg-kw {
+  font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+  padding: 3px 8px; min-width: 100px; color: var(--text);
+}
+.cfg-arrow { color: var(--muted); font-size: 0.9rem; flex-shrink: 0; }
+.cfg-swatch {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15); cursor: pointer;
+  flex-shrink: 0; transition: transform 0.12s;
+}
+.cfg-swatch:hover { transform: scale(1.15); }
+.cfg-color-label { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); flex: 1; }
+.cfg-preview-pill {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700;
+  padding: 3px 8px; border-radius: 10px; flex-shrink: 0;
+}
+.cfg-del { background: none; border: none; cursor: pointer; color: var(--dim); font-size: 0.9rem; padding: 0 3px; flex-shrink: 0; transition: color 0.15s; }
+.cfg-del:hover { color: var(--accent2); }
+.cfg-add-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+.cfg-add-input {
+  font-family: 'Space Mono', monospace; font-size: 0.72rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); padding: 7px 10px;
+  outline: none; flex: 1; transition: border-color 0.15s;
+}
+.cfg-add-input:focus { border-color: var(--accent); }
+.cfg-add-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem; padding: 7px 14px;
+  border: 1px solid var(--accent); border-radius: 6px; background: transparent;
+  color: var(--accent); cursor: pointer; letter-spacing: 0.06em;
+  text-transform: uppercase; transition: all 0.15s;
+}
+.cfg-add-btn:hover { background: rgba(232,200,64,0.08); }
+.cfg-palette { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+.cfg-pal-swatch {
+  width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: transform 0.12s, border-color 0.12s; flex-shrink: 0;
+}
+.cfg-pal-swatch:hover { transform: scale(1.18); }
+.cfg-pal-swatch.selected { border-color: var(--text); }
+.cfg-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.cfg-placeholder { text-align: center; padding: 40px 20px; color: var(--muted); font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem; }
+.cfg-placeholder-icon { font-size: 2rem; margin-bottom: 10px; opacity: 0.4; }
+.lib-cfg-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.75rem; padding: 6px 10px;
+  border: 1px solid var(--border); border-radius: 6px; background: transparent;
+  color: var(--muted); cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.lib-cfg-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 /* ── INSTRUMENT SYSTEM ── */
 :root {
   --inst-guit1: #4a9eff;   /* Marco → azul */
@@ -3049,6 +3136,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     <span class="lib-user" id="libUserName"></span>
     <button class="btn btn-primary" onclick="newSong()">＋ Nueva canción</button>
     <button class="btn" onclick="showSetlists()">🎭 Repertorios</button>
+    <button class="lib-cfg-btn" onclick="openLibConfig()" title="Configuración de la biblioteca">⚙ Config</button>
     <button class="btn" onclick="doLogout()">Salir</button>
   </div>
   <div class="lib-body">
@@ -3056,6 +3144,63 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <input class="lib-search" id="libSearch" placeholder="🔍 Buscar canción o artista..." oninput="filterLibrary()" />
     </div>
     <div class="lib-grid" id="libGrid"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL CONFIGURACIÓN BIBLIOTECA ══ -->
+<div class="cfg-overlay" id="cfgModal">
+  <div class="cfg-modal">
+    <div class="cfg-modal-hdr">
+      <span class="cfg-modal-title">⚙ Configuración</span>
+      <button class="cfg-close" onclick="closeLibConfig()">✕</button>
+    </div>
+    <div class="cfg-tabs">
+      <button class="cfg-tab active" onclick="cfgSwitchTab('secciones',this)">Secciones</button>
+      <button class="cfg-tab" onclick="cfgSwitchTab('instrumentos',this)">Instrumentos</button>
+      <button class="cfg-tab" onclick="cfgSwitchTab('tema',this)">Tema</button>
+      <button class="cfg-tab" onclick="cfgSwitchTab('preferencias',this)">Preferencias</button>
+    </div>
+
+    <!-- Panel: Secciones -->
+    <div class="cfg-panel active" id="cfgPanel-secciones">
+      <p class="cfg-desc">Asigna un color al encabezado de las secciones cuyo nombre contenga la palabra clave (sin distinguir mayúsculas ni tildes).</p>
+      <div class="cfg-rules" id="cfgRulesList"></div>
+      <div class="cfg-add-row">
+        <input class="cfg-add-input" id="cfgKwInput" placeholder="ej: Estribillo, Intro, Puente…" maxlength="40"
+               onkeydown="if(event.key==='Enter')cfgAddRule()" />
+        <button class="cfg-add-btn" onclick="cfgAddRule()">+ Añadir</button>
+      </div>
+      <div class="cfg-palette" id="cfgPalette"></div>
+    </div>
+
+    <!-- Panel: Instrumentos -->
+    <div class="cfg-panel" id="cfgPanel-instrumentos">
+      <div class="cfg-placeholder">
+        <div class="cfg-placeholder-icon">🎸</div>
+        <div>Configuración de instrumentos — próximamente</div>
+      </div>
+    </div>
+
+    <!-- Panel: Tema -->
+    <div class="cfg-panel" id="cfgPanel-tema">
+      <div class="cfg-placeholder">
+        <div class="cfg-placeholder-icon">🎨</div>
+        <div>Selector de tema visual — próximamente</div>
+      </div>
+    </div>
+
+    <!-- Panel: Preferencias -->
+    <div class="cfg-panel" id="cfgPanel-preferencias">
+      <div class="cfg-placeholder">
+        <div class="cfg-placeholder-icon">⚙</div>
+        <div>Preferencias generales — próximamente</div>
+      </div>
+    </div>
+
+    <div class="cfg-footer">
+      <button class="btn" onclick="closeLibConfig()">Cancelar</button>
+      <button class="btn btn-primary" onclick="cfgSave()">✓ Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -3410,6 +3555,7 @@ async function doLogin() {
 
   _currentUser = result.data.user;
   _currentUser._displayName = username;
+  await loadUserSettings();
   document.getElementById("loginScreen").style.display = "none";
   showLibrary();
 }
@@ -3732,6 +3878,9 @@ function render() {
     const hdr = document.createElement("div");
     hdr.className = "section-header";
 
+    // Aplicar color de sección según reglas de configuración
+    const secColor = getSectionColor(sec.name);
+
     // ── drag handle — THIS is draggable
     const secHandle = document.createElement("span");
     secHandle.className = "drag-handle";
@@ -3755,6 +3904,11 @@ function render() {
     nameIn.className = "section-name-input";
     nameIn.value = sec.name;
     nameIn.placeholder = "Sección...";
+    if (secColor) {
+      nameIn.style.color = secColor;
+      nameIn.style.background = secColor + '22';
+      nameIn.style.borderColor = secColor + '80';
+    }
     nameIn.addEventListener("click", e => e.stopPropagation());
     nameIn.addEventListener("change", () => { sec.name = nameIn.value; });
 
@@ -8078,8 +8232,151 @@ function drumPatternToText(dp) {
 }
 
 // ═══════════════════════════════════════════════
-// DRUM HTML PREVIEW for print/PDF
+// USER SETTINGS — Supabase user_settings table
 // ═══════════════════════════════════════════════
+
+let _userSettings = {};  // cache en memoria
+
+const CFG_PALETTE = [
+  { hex: '#c0392b', label: 'Rojo'    },
+  { hex: '#e67e22', label: 'Naranja' },
+  { hex: '#f1c40f', label: 'Amarillo'},
+  { hex: '#27ae60', label: 'Verde'   },
+  { hex: '#1abc9c', label: 'Teal'    },
+  { hex: '#2980b9', label: 'Azul'    },
+  { hex: '#8e44ad', label: 'Morado'  },
+  { hex: '#e91e8c', label: 'Rosa'    },
+  { hex: '#7f8c8d', label: 'Gris'    },
+];
+
+let _cfgSelectedColor = 0;  // índice en CFG_PALETTE
+
+// Carga settings desde Supabase (llamar tras login)
+async function loadUserSettings() {
+  if (!_currentUser) return;
+  const { data } = await _sb
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', _currentUser.id)
+    .single();
+  _userSettings = data?.settings || {};
+}
+
+// Guarda settings en Supabase
+async function saveUserSettings() {
+  if (!_currentUser) return;
+  await _sb.from('user_settings').upsert({
+    user_id:    _currentUser.id,
+    settings:   _userSettings,
+    updated_at: new Date().toISOString()
+  });
+}
+
+// Normaliza texto: minúsculas + quita tildes
+function _cfgNorm(str) {
+  return (str || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Devuelve el color hex que corresponde al nombre de sección, o null
+function getSectionColor(secName) {
+  const rules = _userSettings.sectionColors || [];
+  const norm  = _cfgNorm(secName);
+  const match = rules.find(r => norm.includes(_cfgNorm(r.keyword)));
+  return match ? match.color : null;
+}
+
+// ── Modal UI ────────────────────────────────────
+
+function openLibConfig() {
+  cfgRenderPalette();
+  cfgRenderRules();
+  document.getElementById('cfgModal').classList.add('open');
+}
+
+function closeLibConfig() {
+  document.getElementById('cfgModal').classList.remove('open');
+  document.getElementById('cfgKwInput').value = '';
+}
+
+function cfgSwitchTab(id, btn) {
+  document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('cfgPanel-' + id).classList.add('active');
+}
+
+function cfgRenderPalette() {
+  const el = document.getElementById('cfgPalette');
+  el.innerHTML = '';
+  CFG_PALETTE.forEach((c, i) => {
+    const s = document.createElement('div');
+    s.className = 'cfg-pal-swatch' + (i === _cfgSelectedColor ? ' selected' : '');
+    s.style.background = c.hex;
+    s.title = c.label;
+    s.onclick = () => { _cfgSelectedColor = i; cfgRenderPalette(); };
+    el.appendChild(s);
+  });
+}
+
+function cfgRenderRules() {
+  const list  = document.getElementById('cfgRulesList');
+  const rules = _userSettings.sectionColors || [];
+  list.innerHTML = '';
+  if (!rules.length) {
+    list.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.65rem;color:var(--muted);padding:8px 0;">Sin reglas. Añade una palabra clave abajo.</div>';
+    return;
+  }
+  rules.forEach((r, i) => {
+    const row = document.createElement('div');
+    row.className = 'cfg-rule-row';
+    row.innerHTML = `
+      <span class="cfg-kw">${r.keyword}</span>
+      <span class="cfg-arrow">→</span>
+      <div class="cfg-swatch" style="background:${r.color}" title="Clic para cambiar color" onclick="cfgCycleColor(${i})"></div>
+      <span class="cfg-color-label">${CFG_PALETTE.find(p=>p.hex===r.color)?.label || r.color}</span>
+      <span class="cfg-preview-pill" style="background:${r.color};color:#fff;">${r.keyword}</span>
+      <button class="cfg-del" onclick="cfgDeleteRule(${i})" title="Eliminar">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function cfgAddRule() {
+  const kw = document.getElementById('cfgKwInput').value.trim();
+  if (!kw) return;
+  if (!_userSettings.sectionColors) _userSettings.sectionColors = [];
+  const already = _userSettings.sectionColors.find(
+    r => _cfgNorm(r.keyword) === _cfgNorm(kw)
+  );
+  if (already) {
+    document.getElementById('cfgKwInput').select();
+    return;
+  }
+  _userSettings.sectionColors.push({ keyword: kw, color: CFG_PALETTE[_cfgSelectedColor].hex });
+  document.getElementById('cfgKwInput').value = '';
+  cfgRenderRules();
+}
+
+function cfgDeleteRule(i) {
+  _userSettings.sectionColors.splice(i, 1);
+  cfgRenderRules();
+}
+
+function cfgCycleColor(i) {
+  const rules = _userSettings.sectionColors;
+  const cur   = CFG_PALETTE.findIndex(p => p.hex === rules[i].color);
+  rules[i].color = CFG_PALETTE[(cur + 1) % CFG_PALETTE.length].hex;
+  cfgRenderRules();
+}
+
+async function cfgSave() {
+  await saveUserSettings();
+  closeLibConfig();
+  render();  // re-renderiza para aplicar los nuevos colores
+}
+
+
 function drumPatternToHTML(dp, colorClass) {
   if (!dp || !dp.bars || !dp.bars.length) return '';
   const ts    = dp.timeSignature || '4/4';
