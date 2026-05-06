@@ -3734,6 +3734,7 @@ async function saveSongCloud() {
     // Recuperar nombre de usuario quitando @btb.com
     _currentUser._displayName = (_currentUser.email || "").replace("@btb.com", "");
     document.getElementById("loginScreen").style.display = "none";
+    await loadUserSettings();
     showLibrary();
   }
 })();
@@ -3880,6 +3881,11 @@ function render() {
 
     // Aplicar color de sección según reglas de configuración
     const secColor = getSectionColor(sec.name);
+    if (secColor) {
+      hdr.style.background = secColor + '18';         // fondo muy sutil ~10%
+      hdr.style.borderLeft = `3px solid ${secColor}60`; // borde izquierdo suave
+      hdr.style.paddingLeft = '11px';                 // compensar el borde
+    }
 
     // ── drag handle — THIS is draggable
     const secHandle = document.createElement("span");
