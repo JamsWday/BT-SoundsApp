@@ -306,6 +306,10 @@ body {
   padding: 8px 10px !important;
   min-width: 0;
   font-size: 0.9rem !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  vertical-align: middle;
 }
 
 /* Dropdown exportar */
@@ -1414,7 +1418,13 @@ body.readonly .section-lyric-input { pointer-events: none; }
 body.readonly .repeat-input { pointer-events: none; border-color: transparent !important; background: transparent !important; }
 body.readonly .comment-input { pointer-events: none; border-color: transparent !important; }
 /* Ocultar comment-row vacío en modo Tocar */
-body.readonly .comment-row:has(.comment-input[value=""]) { display: none; }
+body.readonly #btnBanda { display: inline-flex !important; }
+#btnBanda.banda-on {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+[data-theme="light"] #btnBanda.banda-on { color: #fff; }
 
 /* Comment row en readonly: más discreta, botón inst no clickable */
 body.readonly .comment-row { background: transparent; border-color: transparent; padding-top: 1px; padding-bottom: 1px; }
@@ -1937,13 +1947,29 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   display: flex;
   flex-direction: row;
   gap: 6px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   overflow-x: auto;
   scrollbar-width: none;
 }
 .drum-preview-bars::-webkit-scrollbar { display: none; }
 @media (max-width: 600px) {
-  .drum-preview-bars { flex-direction: column; }
+  /* Compases siempre en fila, círculos más pequeños para que quepan */
+  .drum-preview-cell {
+    width: 13px;
+    height: 13px;
+  }
+  .drum-preview-beat-lbl {
+    width: 13px;
+    flex: 0 0 13px;
+    font-size: 0.38rem;
+  }
+  .drum-preview-voice-lbl {
+    width: 22px;
+    padding-right: 2px;
+    font-size: 0.48rem;
+  }
+  .drum-preview-beat-hdr  { padding-left: 22px; }
+  .drum-preview-bar-label { padding-left: 22px; font-size: 0.46rem; }
 }
 .drum-preview-bar {
   display: flex;
@@ -1969,10 +1995,36 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   color: var(--accent);
   letter-spacing: 0;
 }
+.drum-preview-beat-hdr {
+  display: flex;
+  align-items: center;
+  padding-left: 26px;
+  gap: 0;
+  margin-bottom: 2px;
+}
+.drum-preview-beat-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.42rem;
+  color: var(--dim);
+  text-align: center;
+  width: 16px;
+  flex: 0 0 16px;
+  flex-shrink: 0;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.drum-preview-beat-lbl.down        { color: var(--accent); font-weight: 700; font-size: 0.46rem; }
+.drum-preview-beat-lbl.subdiv-plus { color: var(--accent); font-weight: 700; font-size: 0.46rem; opacity: 0.75; }
+.drum-preview-beat-lbl.subdiv-e    { color: var(--muted);  font-weight: 600; font-size: 0.44rem; opacity: 0.9; }
+.drum-preview-beat-lbl.subdiv-a    { color: var(--muted);  font-weight: 600; font-size: 0.44rem; opacity: 0.9; }
+[data-theme="neon"] .drum-preview-beat-lbl.subdiv-e,
+[data-theme="neon"] .drum-preview-beat-lbl.subdiv-a  { color: #ff2d78; opacity: 1; }
+[data-theme="neon"] .drum-preview-beat-lbl.subdiv-plus { color: #00ffe7; opacity: 0.85; }
+
 .drum-preview-voice {
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 0;
   margin-top: 6px;
   position: relative;
 }
@@ -2273,6 +2325,7 @@ body.readonly .drum-add-btn  { display: none !important; }
   align-items: center;
   margin-bottom: 3px;
   padding-left: 52px;
+  gap: 0;
 }
 .de-beat-lbl {
   font-family: 'Space Mono', monospace;
@@ -2280,9 +2333,18 @@ body.readonly .drum-add-btn  { display: none !important; }
   color: var(--dim);
   text-align: center;
   flex: 0 0 26px;
-  letter-spacing: 0.04em;
+  width: 26px;
+  letter-spacing: 0;
 }
-.de-beat-lbl.down { color: var(--accent); font-weight: 700; }
+.de-beat-lbl.down        { color: var(--accent); font-weight: 700; font-size: 0.6rem; }
+.de-beat-lbl.subdiv-plus { color: var(--accent); font-weight: 700; font-size: 0.6rem; opacity: 0.75; }
+.de-beat-lbl.subdiv-e   { color: var(--muted);  font-weight: 600; font-size: 0.57rem; opacity: 0.9; }
+.de-beat-lbl.subdiv-a   { color: var(--muted);  font-weight: 600; font-size: 0.57rem; opacity: 0.9; }
+
+/* Neón: e y a más visibles con color propio */
+[data-theme="neon"] .de-beat-lbl.subdiv-e,
+[data-theme="neon"] .de-beat-lbl.subdiv-a  { color: #ff2d78; opacity: 1; }
+[data-theme="neon"] .de-beat-lbl.subdiv-plus { color: #00ffe7; opacity: 0.85; }
 .de-bar-lbl {
   font-family: 'Space Mono', monospace;
   font-size: 0.58rem;
@@ -3270,7 +3332,8 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <!-- ── Sync buttons (solo si modo sync) ── -->
       <button class="sync-play-btn" id="syncPlayBtn"      style="display:none;" onclick="syncTogglePlay('scroll')" title="Solo scroll">▶</button>
       <button class="sync-play-btn" id="syncPlayAudioBtn" style="display:none;" onclick="syncTogglePlay('audio')"  title="Canción + scroll">▶🎵</button>
-      <button class="btn hdr-icon-btn" id="btnCalibrate" onclick="openCalibModal()" title="Calibrar secciones" style="display:none;">🎯</button>
+      <button class="btn hdr-icon-btn" id="btnCalibrate" onclick="openCalibModal()" title="Calibrar secciones" style="display:none;line-height:1;vertical-align:middle;">🎯</button>
+      <button class="btn hdr-icon-btn" id="btnBanda" onclick="toggleBanda()" title="Modo banda — sincronía con el grupo" style="display:none;line-height:1;vertical-align:middle;">🐯</button>
       <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar"><span class="lbl-tocar">👁 Tocar</span><span class="lbl-editar">✎ Editar</span></button>
     </div>
 
@@ -4568,10 +4631,14 @@ function closeInstPicker() {
 let _readonly = false;
 
 function resizeAllVozTextareas() {
+  // Doble rAF: primero el layout se repinta (botones ocultos, zoom aplicado),
+  // luego medimos el scrollHeight real
   requestAnimationFrame(() => {
-    document.querySelectorAll(".voz-text").forEach(ta => {
-      ta.style.height = "auto";
-      ta.style.height = ta.scrollHeight + "px";
+    requestAnimationFrame(() => {
+      document.querySelectorAll(".voz-text").forEach(ta => {
+        ta.style.height = "auto";
+        ta.style.height = ta.scrollHeight + "px";
+      });
     });
   });
 }
@@ -4585,16 +4652,20 @@ function toggleReadonly() {
     btn.title = "Volver al modo edición";
     closePopup();
     updateScrollSongAudioBtn();
-    // Mostrar botones sync según calibración
     _syncUpdateButtons();
+    // 🐯 Banda se activa manualmente con el botón
   } else {
     btn.textContent = "👁 Tocar";
     btn.title = "Vista solo lectura para tocar";
     stopScroll();
     stopAllSectionAudio();
     stopSongAudio();
-    // Parar sync y limpiar
-    syncStop();
+    syncStop(true);
+    bandaLeave();
+    _bandaActive = false;
+    _hideCountdown();
+    var btnBanda = document.getElementById("btnBanda");
+    if (btnBanda) { btnBanda.classList.remove("banda-on"); btnBanda.style.display = "none"; }
     document.body.classList.remove("sync-on");
     document.getElementById("scrollModeToggle").style.display = "none";
     var btnScroll = document.getElementById("syncPlayBtn");
@@ -4955,14 +5026,141 @@ function setScrollMode(mode) {
   }
 }
 
-function syncTogglePlay(mode) {
-  if (_syncPlaying && _syncMode === mode) { syncStop(); return; }
-  if (_syncPlaying) syncStop();
-  _syncMode = mode;
-  syncPlay();
+// ═══════════════════════════════════════════════
+// FASE 4 — SINCRONÍA DE BANDA via Supabase Realtime
+// Cualquiera puede emitir play/stop → todos arrancan
+// con un countdown de 3 segundos.
+// Canal: "banda:<songId>"
+// ═══════════════════════════════════════════════
+let _bandaActive    = false;   // modo banda activado por el usuario
+let _bandaChannel   = null;
+let _countdownTimer = null;
+
+function toggleBanda() {
+  _bandaActive = !_bandaActive;
+  const btn = document.getElementById("btnBanda");
+  if (_bandaActive) {
+    btn.classList.add("banda-on");
+    btn.title = "Modo banda activo — pulsa para desactivar";
+    bandaJoin(_currentSongId);
+  } else {
+    btn.classList.remove("banda-on");
+    btn.title = "Modo banda — sincronía con el grupo";
+    bandaLeave();
+  }
 }
 
-function syncPlay() {
+// Suscribirse al canal cuando se abre una canción en modo Tocar
+function bandaJoin(songId) {
+  bandaLeave();
+  if (!songId) return;
+  _bandaChannel = _sb.channel("banda:" + songId, {
+    config: { broadcast: { self: true } }
+  });
+  _bandaChannel
+    .on("broadcast", { event: "play" }, function(payload) {
+      _bandaReceivePlay(payload.payload);
+    })
+    .on("broadcast", { event: "stop" }, function() {
+      _bandaReceiveStop();
+    })
+    .subscribe();
+}
+
+function bandaLeave() {
+  if (_bandaChannel) {
+    _sb.removeChannel(_bandaChannel);
+    _bandaChannel = null;
+  }
+}
+
+// Emitir play a la banda (con modo y timestamp de arranque)
+function bandaEmitPlay(mode) {
+  if (!_bandaActive || !_bandaChannel) return;
+  const startAt = Date.now() + 3000;
+  _bandaChannel.send({
+    type: "broadcast", event: "play",
+    payload: { mode: mode, startAt: startAt }
+  });
+}
+
+function bandaEmitStop() {
+  if (!_bandaActive || !_bandaChannel) return;
+  _bandaChannel.send({ type: "broadcast", event: "stop", payload: {} });
+}
+
+// Recibir play — mostrar countdown y arrancar en el momento exacto
+function _bandaReceivePlay(payload) {
+  const mode    = payload.mode || "scroll";
+  const startAt = payload.startAt;
+  const now     = Date.now();
+  const msLeft  = startAt - now;
+
+  _syncMode = mode;
+
+  // Mostrar countdown
+  _showCountdown(Math.ceil(msLeft / 1000), function() {
+    // Arrancar scroll sincronizado
+    syncPlay(true); // true = ya iniciado por banda, no emitir de nuevo
+  });
+}
+
+function _bandaReceiveStop() {
+  _hideCountdown();
+  syncStop(true);
+}
+
+// Mostrar overlay 3...2...1...▶
+function _showCountdown(secs, onDone) {
+  if (_countdownTimer) clearTimeout(_countdownTimer);
+  const overlay = document.getElementById("countdownOverlay");
+  const numEl   = document.getElementById("countdownNumber");
+  const lblEl   = document.getElementById("countdownLabel");
+  overlay.style.display = "flex";
+
+  var remaining = secs;
+
+  function tick() {
+    if (remaining > 0) {
+      numEl.textContent  = remaining;
+      lblEl.textContent  = "preparados...";
+      numEl.style.color  = "var(--accent)";
+      remaining--;
+      _countdownTimer = setTimeout(tick, 1000);
+    } else {
+      numEl.textContent = "▶";
+      numEl.style.color = "var(--accent)";
+      lblEl.textContent = "¡ya!";
+      _countdownTimer = setTimeout(function() {
+        _hideCountdown();
+        if (onDone) onDone();
+      }, 400);
+    }
+  }
+  tick();
+}
+
+function _hideCountdown() {
+  if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
+  document.getElementById("countdownOverlay").style.display = "none";
+}
+
+function syncTogglePlay(mode) {
+  if (_syncPlaying && _syncMode === mode) {
+    if (_bandaActive) bandaEmitStop();
+    else syncStop();
+    return;
+  }
+  if (_syncPlaying) { if (_bandaActive) bandaEmitStop(); else syncStop(); }
+  _syncMode = mode;
+  if (_bandaActive) {
+    bandaEmitPlay(mode);  // emitir a la banda → countdown en todos
+  } else {
+    syncPlay();           // solo local, sin countdown
+  }
+}
+
+function syncPlay(fromBanda) {
   if (!Object.keys(songData.sectionTimestamps || {}).length) {
     alert("Calibra primero las secciones con 🎯"); return;
   }
@@ -7116,7 +7314,7 @@ function buildScoreHTML() {
 
       if (inst === 'bat') {
         const drumHTML = row.drumPattern ? drumPatternToHTML(row.drumPattern) : '<em style="color:#aaa;">(sin patrón)</em>';
-        const cmt = row.comment ? `<div class="p-comment">💬 ${esc(row.comment)}</div>` : '';
+        const cmt = row.comment ? `<div class="p-comment" style="color:${color};border-left-color:${color}40;">💬 ${esc(row.comment)}</div>` : '';
         return `<div class="p-row-wrap">
           <div class="p-bar-line" style="border-left:4px solid ${color};display:block;">
             <span class="p-inst-lbl" style="color:${color};display:inline-block;margin-bottom:6px;">🥁 ${label}</span>
@@ -7141,7 +7339,7 @@ function buildScoreHTML() {
       const repeats = (row.repeats && row.repeats > 1)
         ? `<span class="p-repeats">× ${row.repeats}</span>` : '';
       const comment = row.comment
-        ? `<div class="p-comment">💬 ${esc(row.comment)}</div>` : '';
+        ? `<div class="p-comment" style="color:${color};border-left-color:${color}40;">💬 ${esc(row.comment)}</div>` : '';
 
       return `<div class="p-row-wrap">
         <div class="p-bar-line" style="border-left:4px solid ${color};">
@@ -7292,7 +7490,7 @@ function exportScorePDF() {
         const label = instLabel[inst] || inst;
         if (inst === 'bat') {
           const drumH = row.drumPattern ? drumPatternToHTML(row.drumPattern) : '<em style="color:#aaa;">(sin patrón)</em>';
-          const cmt = row.comment ? `<div class="pdf-comment">${esc(row.comment)}</div>` : '';
+          const cmt = row.comment ? `<div class="pdf-comment" style="color:${color};border-left-color:${color}40;">${esc(row.comment)}</div>` : '';
           return `<div class="pdf-row-wrap"><div class="pdf-bar-line" style="border-left:4px solid ${color};display:block;">` +
             `<span class="pdf-inst-lbl" style="color:${color};display:inline-block;margin-bottom:5px;">🥁 ${label}</span>` +
             drumH + `</div>${cmt}</div>`;
@@ -7308,7 +7506,7 @@ function exportScorePDF() {
           `<div class="pdf-bar-unit">${bar.map(c=>`<span class="pdf-chord">${fmtChord(c)}</span>`).join('')}</div>`
         ).join('');
         const rep = (row.repeats&&row.repeats>1) ? `<span class="pdf-repeats">× ${row.repeats}</span>` : '';
-        const cmt = row.comment ? `<div class="pdf-comment">${esc(row.comment)}</div>` : '';
+        const cmt = row.comment ? `<div class="pdf-comment" style="color:${color};border-left-color:${color}40;">${esc(row.comment)}</div>` : '';
         return `<div class="pdf-row-wrap"><div class="pdf-bar-line" style="border-left:4px solid ${color}">` +
           `<span class="pdf-inst-lbl" style="color:${color}">${label}</span>` +
           bkO + barsHTML + bkC + rep + `</div>${cmt}</div>`;
@@ -7636,8 +7834,16 @@ function deRenderGrid() {
   hdr.className = 'de-beat-header';
   for (let i = 0; i < steps; i++) {
     const lbl = document.createElement('div');
-    lbl.className = 'de-beat-lbl' + (i % stepsPerBeat === 0 ? ' down' : '');
-    lbl.textContent = i % stepsPerBeat === 0 ? (Math.floor(i / stepsPerBeat) + 1) : (sdiv === '16th' && i % 2 === 1 ? 'e' : '+');
+    const beatPos = i % stepsPerBeat;
+    let lblClass = 'de-beat-lbl';
+    let lblText;
+    if (beatPos === 0) { lblClass += ' down'; lblText = Math.floor(i / stepsPerBeat) + 1; }
+    else if (sdiv === '16th' && beatPos === 1) { lblClass += ' subdiv-e'; lblText = 'e'; }
+    else if (beatPos === (sdiv === '16th' ? 2 : 1)) { lblClass += ' subdiv-plus'; lblText = '+'; }
+    else if (sdiv === '16th' && beatPos === 3) { lblClass += ' subdiv-a'; lblText = 'a'; }
+    else { lblText = '+'; }
+    lbl.className = lblClass;
+    lbl.textContent = lblText;
     hdr.appendChild(lbl);
   }
   wrap.appendChild(hdr);
@@ -7834,6 +8040,26 @@ function renderDrumPreview(container, row) {
     barRepSpan.textContent = '×' + (bar.repeat || 1);
     barLbl.appendChild(barRepSpan);
     barDiv.appendChild(barLbl);
+
+    // Beat header
+    const beatHdr = document.createElement('div');
+    beatHdr.className = 'drum-preview-beat-hdr';
+    const stepsPerBeat = sdiv === '16th' ? 4 : sdiv === '4th' ? 1 : 2;
+    for (let i = 0; i < steps; i++) {
+      const bl = document.createElement('div');
+      const beatPos = i % stepsPerBeat;
+      let blClass = 'drum-preview-beat-lbl';
+      let blText;
+      if (beatPos === 0)                          { blClass += ' down';         blText = Math.floor(i / stepsPerBeat) + 1; }
+      else if (sdiv === '16th' && beatPos === 1)  { blClass += ' subdiv-e';     blText = 'e'; }
+      else if (beatPos === (sdiv === '16th' ? 2 : 1)) { blClass += ' subdiv-plus'; blText = '+'; }
+      else if (sdiv === '16th' && beatPos === 3)  { blClass += ' subdiv-a';     blText = 'a'; }
+      else                                        { blText = '+'; }
+      bl.className = blClass;
+      bl.textContent = blText;
+      beatHdr.appendChild(bl);
+    }
+    barDiv.appendChild(beatHdr);
 
     usedVoices.forEach(voice => {
       const notes = bar.voices[voice.id] || [];
@@ -8690,7 +8916,25 @@ function drumPatternToHTML(dp, colorClass) {
   </div>
 </div>
 
-<!-- ── BOTÓN INMERSIVO flotante (solo móvil, solo en vistas de canción/batería) ── -->
+<!-- ══ COUNTDOWN OVERLAY — Fase 4 ══ -->
+<div id="countdownOverlay" style="
+  display:none; position:fixed; inset:0; z-index:20000;
+  background:rgba(0,0,0,0.85);
+  align-items:center; justify-content:center; flex-direction:column; gap:12px;
+">
+  <div id="countdownNumber" style="
+    font-family:'Playfair Display',serif;
+    font-size:22vw; font-weight:700;
+    color:var(--accent);
+    line-height:1;
+    text-shadow: 0 0 60px var(--accent);
+  ">3</div>
+  <div id="countdownLabel" style="
+    font-family:'Space Mono',monospace;
+    font-size:0.75rem; letter-spacing:0.15em;
+    text-transform:uppercase; color:var(--muted);
+  ">preparados...</div>
+</div>
 <button id="btnImmersive" onclick="toggleImmersive()" title="Modo inmersivo">⛶</button>
 
 <!-- Modal compartir link -->
@@ -8810,8 +9054,7 @@ function drumPatternToHTML(dp, colorClass) {
 /* Zona de zoom: wrapper alrededor del contenido principal */
 #zoomWrapper {
   transform-origin: top center;
-  transition: transform 0.05s linear;
-  will-change: transform;
+  transition: zoom 0.05s linear;
 }
 
 /* En modo inmersivo, el container ocupa más espacio */
@@ -8914,7 +9157,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function applyScale(s) {
     _scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
     const el = document.getElementById('zoomWrapper');
-    if (el) el.style.transform = _scale === 1 ? '' : `scale(${_scale})`;
+    if (el) el.style.zoom = _scale === 1 ? '' : _scale;
+    if (typeof resizeAllVozTextareas === 'function') resizeAllVozTextareas();
   }
 
   // Reset zoom when screen changes
@@ -8922,7 +9166,8 @@ document.addEventListener('DOMContentLoaded', function() {
     _scale = 1.0;
     _lastScale = 1.0;
     const el = document.getElementById('zoomWrapper');
-    if (el) el.style.transform = '';
+    if (el) el.style.zoom = '';
+    if (typeof resizeAllVozTextareas === 'function') resizeAllVozTextareas();
   };
 
   document.addEventListener('DOMContentLoaded', function() {
