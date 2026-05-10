@@ -42,9 +42,9 @@
 [data-theme="neon"] .section-name-input:focus { border-color: #ff2d78; }
 [data-theme="neon"] .btn-primary { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
 [data-theme="neon"] .btn-primary:hover { background: #33fff0; }
-[data-theme="neon"] #hdrBtnPlay { background: #00ffe7; color: #09090f; }
-[data-theme="neon"] #hdrBtnPlay:hover { background: #33fff0; }
-[data-theme="neon"] #hdrBtnPlay.playing { background: #ff2d78; color: #fff; }
+[data-theme="neon"] #hdrBtnPlay { background: transparent; color: #00ffe7; border-color: #00ffe7; }
+[data-theme="neon"] #hdrBtnPlay:hover { background: rgba(0,255,231,0.12); }
+[data-theme="neon"] #hdrBtnPlay.playing { background: #00ffe7; color: #09090f; }
 [data-theme="neon"] .pbtn.ok { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
 [data-theme="neon"] .pbtn.ok:hover { background: #33fff0; }
 [data-theme="neon"] .etab.active { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
@@ -63,7 +63,7 @@
 [data-theme="neon"] .repeat-input { color: #00ffe7; background: rgba(0,255,231,0.08); border-color: rgba(0,255,231,0.25); }
 [data-theme="neon"] .repeat-input:focus { border-color: #00ffe7; background: rgba(0,255,231,0.14); }
 [data-theme="neon"] #btnReadonly.readonly-active { background: #00ffe7; color: #09090f; border-color: #00ffe7; }
-[data-theme="neon"] #speedVal { color: #00ffe7; }
+/* speedVal es un <span> display-only — estilos en la sección zoneManual más abajo */
 [data-theme="neon"] #scrollSpeed { accent-color: #00ffe7; }
 [data-theme="neon"] #scrollSpeed::-webkit-slider-thumb { background: #00ffe7; box-shadow: 0 0 0 3px rgba(0,255,231,0.2); }
 [data-theme="neon"] #scrollSpeed::-moz-range-thumb { background: #00ffe7; }
@@ -126,9 +126,9 @@
 [data-theme="light"] .btn:hover { border-color: #b07a10; color: #b07a10; }
 [data-theme="light"] .btn-primary { background: #b07a10; color: #fff; border-color: #b07a10; }
 [data-theme="light"] .btn-primary:hover { background: #c88c18; }
-[data-theme="light"] #hdrBtnPlay { background: #b07a10; color: #fff; }
-[data-theme="light"] #hdrBtnPlay:hover { background: #c88c18; }
-[data-theme="light"] #hdrBtnPlay.playing { background: #c0401a; color: #fff; }
+[data-theme="light"] #hdrBtnPlay { background: transparent; color: #b07a10; border-color: #b07a10; }
+[data-theme="light"] #hdrBtnPlay:hover { background: rgba(176,122,16,0.1); }
+[data-theme="light"] #hdrBtnPlay.playing { background: #b07a10; color: #fff; }
 [data-theme="light"] #speedVal { color: #b07a10; }
 [data-theme="light"] #scrollSpeed { accent-color: #b07a10; }
 [data-theme="light"] #scrollSpeed::-webkit-slider-thumb { background: #b07a10; box-shadow: 0 0 0 3px rgba(176,122,16,0.2); }
@@ -181,9 +181,9 @@
 [data-theme="bluered"] .btn:hover { border-color: #3a9fd4; color: #3a9fd4; }
 [data-theme="bluered"] .btn-primary { background: #3a9fd4; color: #080c14; border-color: #3a9fd4; }
 [data-theme="bluered"] .btn-primary:hover { background: #5ab8e8; }
-[data-theme="bluered"] #hdrBtnPlay { background: #3a9fd4; color: #080c14; }
-[data-theme="bluered"] #hdrBtnPlay:hover { background: #5ab8e8; }
-[data-theme="bluered"] #hdrBtnPlay.playing { background: #8b1a3a; color: #fff; }
+[data-theme="bluered"] #hdrBtnPlay { background: transparent; color: #3a9fd4; border-color: #3a9fd4; }
+[data-theme="bluered"] #hdrBtnPlay:hover { background: rgba(58,159,212,0.1); }
+[data-theme="bluered"] #hdrBtnPlay.playing { background: #3a9fd4; color: #080c14; }
 [data-theme="bluered"] #speedVal { color: #3a9fd4; }
 [data-theme="bluered"] #scrollSpeed { accent-color: #3a9fd4; }
 [data-theme="bluered"] #scrollSpeed::-webkit-slider-thumb { background: #3a9fd4; box-shadow: 0 0 0 3px rgba(58,159,212,0.2); }
@@ -1074,89 +1074,7 @@ body {
 }
 body.readonly #hdrScroll { display: flex; }
 
-#hdrBtnPlay {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.9rem;
-  font-weight: 700;
-  padding: 6px 11px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  background: var(--accent);
-  color: var(--bg);
-  flex-shrink: 0;
-  transition: background 0.18s;
-  display: flex; align-items: center; justify-content: center;
-  line-height: 1;
-}
-#hdrBtnPlay:hover { opacity: 0.88; }
-#hdrBtnPlay.playing { background: var(--accent2); color: #fff; }
-
-.hdr-scroll-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.58rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  flex-shrink: 0;
-}
-
-#scrollSpeed {
-  -webkit-appearance: none;
-  appearance: none;
-  flex: 1;
-  min-width: 44px;
-  max-width: 110px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border);
-  outline: none;
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-#scrollSpeed::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 15px; height: 15px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  box-shadow: 0 0 0 3px rgba(232,200,64,0.18);
-  transition: box-shadow 0.15s;
-}
-#scrollSpeed::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(232,200,64,0.25); }
-#scrollSpeed::-moz-range-thumb {
-  width: 15px; height: 15px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  border: none;
-}
-
-#speedVal {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7rem;
-  color: var(--accent);
-  font-weight: 700;
-  min-width: 13px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-#hdrBtnSave {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.82rem;
-  padding: 5px 8px;
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.18s;
-  line-height: 1;
-}
-#hdrBtnSave:hover { border-color: var(--accent); color: var(--accent); }
-#hdrBtnSave.saved { background: var(--green); color: #fff; border-color: var(--green); }
+/* #hdrBtnPlay, #speedVal — definidos en el bloque PLAY BAR más abajo */
 
 .hdr-scroll-progress {
   flex: 1;
@@ -1413,6 +1331,11 @@ body.readonly .meta-input { pointer-events: none; border-color: transparent !imp
 body.readonly #songKeyBar { pointer-events: none; }
 body.readonly #songKeyBar > div { background: transparent; border-color: transparent; padding-left: 0; }
 body.readonly #songKey { color: var(--accent) !important; font-size: 0.85rem; letter-spacing: 0.08em; }
+/* Eagle button and toggles must stay clickable in readonly */
+body.readonly #btnEagle,
+body.readonly #eagleToggles,
+body.readonly #btnEagleSections,
+body.readonly #btnEagleComments { pointer-events: all; }
 body.readonly .section-name-input { pointer-events: none; }
 body.readonly .section-lyric-input { pointer-events: none; }
 body.readonly .repeat-input { pointer-events: none; border-color: transparent !important; background: transparent !important; }
@@ -1432,6 +1355,9 @@ body.readonly .comment-icon { display: none; }
 body.readonly .comment-inst-btn { pointer-events: none; opacity: 0.4; }
 body.readonly .comment-input { display: block; }
 body.readonly .comment-input::placeholder { color: transparent; }
+
+/* En eagle+Tocar: ocultar comment-row si el input está vacío */
+body.eagle-mode.readonly .comment-row:has(.comment-input:placeholder-shown) { display: none !important; }
 
 /* Right side: only show repeat badge, hide controls */
 body.readonly .row-right { gap: 6px; }
@@ -1454,6 +1380,24 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   body.readonly .bars-area        { padding-right: 5px;  }
   body.readonly .bar-line         { padding-right: 8px;  }
   body.readonly .section-header   { padding-right: 8px;  }
+
+  /* Cuando viene de concierto (🎭 visible), compactar todos los botones del playBar
+     para que quepan en una sola fila en móvil vertical */
+  #playBar.has-return #hdrBtnPlay,
+  #playBar.has-return #syncPlayBtn,
+  #playBar.has-return #syncPlayAudioBtn,
+  #playBar.has-return #btnReadonlyPlay,
+  #playBar.has-return #speedVal {
+    padding: 6px 7px;
+    font-size: 0.82rem;
+  }
+  #playBar.has-return #cmReturnBtn {
+    padding: 4px 5px !important;
+    font-size: 0.82rem;
+    margin-left: -6px;
+  }
+  #playBar.has-return #scrollModeToggle { flex-shrink: 0; }
+  #playBar.has-return .mode-pill        { padding: 3px 7px; }
 }
 
 /* ── LOGIN SCREEN ── */
@@ -3067,31 +3011,142 @@ body.readonly #scrollModeToggle { display: flex; }
 }
 [data-theme="light"] .mode-pill.active { color: #fff; }
 
-/* ══ AUTOSCROLL SINCRONIZADO ══ */
+/* hdrScroll: legacy — ya no se usa */
+#hdrScroll { display: none !important; }
 
-/* Botones ▶ y ▶🎵 — mismo tamaño que hdr-icon-btn */
-#syncPlayBtn, #syncPlayAudioBtn {
+/* ══════════════════════════════════════════════════════════
+   PLAY BAR — Modo Tocar
+   Todos los tamaños de botones se controlan AQUÍ y solo aquí.
+   Tamaño base: padding 8px 10px · font 0.9rem · radius 5px
+══════════════════════════════════════════════════════════ */
+/* Visibilidad del playBar */
+#playBar { display: none; }
+body.readonly #playBar { display: flex !important; }
+
+/* Zonas internas */
+#zoneManual { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+#zoneSync   { display: none; align-items: center; gap: 5px; }
+
+/* ── Botones de acción del playBar ──────────────────────────
+   Tamaño base unificado: padding 8px 10px · font 0.9rem
+   Cuadrados para iconos solos (▶ ✎ 🎯 🐯), levemente
+   rectangulares para contenido doble (▶🎵).
+─────────────────────────────────────────────────────────── */
+#hdrBtnPlay,
+#syncPlayBtn,
+#syncPlayAudioBtn,
+#btnReadonlyPlay {
   font-family: 'Space Mono', monospace;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  padding: 5px 8px;
+  padding: 8px 10px;
   border-radius: 5px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--border);
   background: transparent;
-  color: var(--accent);
+  color: var(--muted);
   cursor: pointer;
-  transition: all 0.15s;
   flex-shrink: 0;
+  line-height: 1;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
+
+/* Play manual y botones sync: acento como color principal */
+#hdrBtnPlay,
+#syncPlayBtn,
+#syncPlayAudioBtn {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Pareja simétrica: número de velocidad — ancho compacto fijo */
+#speedVal { width: 28px; padding-left: 0; padding-right: 0; }
+
+/* Estados hover y playing */
+#hdrBtnPlay:hover,
 #syncPlayBtn:hover,
 #syncPlayAudioBtn:hover   { background: rgba(0,255,231,0.1); }
-#syncPlayBtn.playing,
-#syncPlayAudioBtn.playing { background: var(--accent); color: var(--bg); }
-[data-theme="light"] #syncPlayBtn.playing,
-[data-theme="light"] #syncPlayAudioBtn.playing { color: #fff; }
+#hdrBtnPlay.playing       { background: var(--accent);  color: var(--bg); }
+#syncPlayBtn.playing      { background: var(--accent);  color: var(--bg); }
+#syncPlayAudioBtn.playing { background: var(--accent2); color: #fff; }
+[data-theme="light"] #hdrBtnPlay,
+[data-theme="light"] #syncPlayBtn,
+[data-theme="light"] #syncPlayAudioBtn       { border-color: #b07a10; color: #b07a10; }
+[data-theme="light"] #hdrBtnPlay:hover,
+[data-theme="light"] #syncPlayBtn:hover,
+[data-theme="light"] #syncPlayAudioBtn:hover { background: rgba(176,122,16,0.1); }
+[data-theme="light"] #hdrBtnPlay.playing,
+[data-theme="light"] #syncPlayBtn.playing    { background: #b07a10; color: #fff; }
+[data-theme="light"] #syncPlayAudioBtn.playing { background: #c0401a; border-color: #c0401a; color: #fff; }
 
-/* Ocultar scroll manual cuando Sync está activo */
-body.readonly.sync-on #hdrScroll { display: none !important; }
+/* Tema bluered */
+[data-theme="bluered"] #hdrBtnPlay,
+[data-theme="bluered"] #syncPlayBtn,
+[data-theme="bluered"] #syncPlayAudioBtn       { border-color: #3a9fd4; color: #3a9fd4; }
+[data-theme="bluered"] #hdrBtnPlay:hover,
+[data-theme="bluered"] #syncPlayBtn:hover,
+[data-theme="bluered"] #syncPlayAudioBtn:hover { background: rgba(58,159,212,0.1); }
+[data-theme="bluered"] #hdrBtnPlay.playing,
+[data-theme="bluered"] #syncPlayBtn.playing    { background: #3a9fd4; color: #080c14; }
+
+/* ── speedVal: número clicable que abre el picker de velocidad ── */
+#speedVal {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  width: 28px;
+  padding: 8px 0;
+  border-radius: 5px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+#speedVal:hover, #speedVal:active { background: rgba(0,255,231,0.12); }
+[data-theme="light"]   #speedVal { border-color: #b07a10; color: #b07a10; }
+[data-theme="light"]   #speedVal:hover { background: rgba(176,122,16,0.1); }
+[data-theme="bluered"] #speedVal { border-color: #3a9fd4; color: #3a9fd4; }
+[data-theme="bluered"] #speedVal:hover { background: rgba(58,159,212,0.1); }
+
+/* ── Speed picker popup ── */
+#speedPicker {
+  position: fixed; z-index: 9999; display: none;
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 10px; padding: 6px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+  gap: 5px; flex-wrap: wrap; width: 138px;
+}
+#speedPicker.open { display: flex; }
+.spd-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.9rem; font-weight: 700;
+  width: 36px; height: 36px; border-radius: 6px;
+  border: 1px solid var(--border); background: transparent; color: var(--text);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, border-color 0.12s; flex-shrink: 0;
+}
+.spd-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.spd-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+[data-theme="light"]   .spd-btn.active { background: #b07a10; border-color: #b07a10; color: #fff; }
+[data-theme="bluered"] .spd-btn.active { background: #3a9fd4; border-color: #3a9fd4; color: #080c14; }
+
+
+
+/* cmReturnBtn siempre visible en modo Tocar, incluso con Sync */
+body.readonly #cmReturnBtn[style*="display:flex"],
+body.readonly #cmReturnBtn[style*="display: flex"] { display: flex !important; }
+
+/* Ocultar btnReadonly original en modo Tocar (usamos btnReadonlyPlay en playBar) */
+body.readonly .mhdr-row2 > #btnReadonly { display: none !important; }
+body.readonly #btnReadonlyPlay { display: inline-flex !important; }
 
 /* Sección activa resaltada */
 .section-block.sync-active {
@@ -3289,21 +3344,6 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 
     <!-- MÓVIL FILA 2: Audio · ↩ · ⇅ · ↪ · Guardar · Tocar -->
     <div class="mhdr-row2">
-      <!-- ── Autoscroll manual (solo visible en modo Tocar, oculto con Sync) ── -->
-      <div id="hdrScroll">
-        <button id="cmReturnBtn" onclick="navBack()" title="Volver al Modo Concierto" style="display:none;font-family:'Space Mono',monospace;font-size:0.62rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;padding:5px 9px;border-radius:5px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0;">← </button>
-        <button id="hdrBtnPlay" onclick="toggleScroll()" title="Autoscroll (Space)">
-          <span id="hdrPlayIcon">▶</span>
-        </button>
-        <span class="hdr-scroll-label">Vel</span>
-        <input type="range" id="scrollSpeed" min="1" max="10" value="3"
-          oninput="updateSpeedLabel()" title="Velocidad de autoscroll" />
-        <span id="speedVal">3</span>
-        <button id="hdrBtnSave" onclick="saveScrollSpeed()" title="Guardar velocidad para esta canción">☁</button>
-        <div class="hdr-scroll-progress" title="Progreso">
-          <div class="hdr-scroll-fill" id="progressFill"></div>
-        </div>
-      </div>
       <!-- ── Controles de edición (ocultos en modo Tocar) ── -->
       <div id="songAudioPlayer">
         <span class="sap-label">🎵</span>
@@ -3324,17 +3364,42 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       </div>
       <button class="btn hdr-icon-btn" id="btnRedo" onclick="redo()" title="Rehacer (Ctrl+Y)" disabled>↪</button>
       <button class="btn btn-primary btn-save-cloud" onclick="saveSongCloud()" title="Guardar en la nube">☁ Guardar</button>
-      <!-- ── Toggle Manual / Sync ── -->
-      <div id="scrollModeToggle" style="display:none;">
-        <button id="toggleManualBtn" class="mode-pill active" onclick="setScrollMode('manual')">Manual</button>
-        <button id="toggleSyncBtn"   class="mode-pill"        onclick="setScrollMode('sync')">Sync</button>
-      </div>
-      <!-- ── Sync buttons (solo si modo sync) ── -->
-      <button class="sync-play-btn" id="syncPlayBtn"      style="display:none;" onclick="syncTogglePlay('scroll')" title="Solo scroll">▶</button>
-      <button class="sync-play-btn" id="syncPlayAudioBtn" style="display:none;" onclick="syncTogglePlay('audio')"  title="Canción + scroll">▶🎵</button>
-      <button class="btn hdr-icon-btn" id="btnCalibrate" onclick="openCalibModal()" title="Calibrar secciones" style="display:none;line-height:1;vertical-align:middle;">🎯</button>
-      <button class="btn hdr-icon-btn" id="btnBanda" onclick="toggleBanda()" title="Modo banda — sincronía con el grupo" style="display:none;line-height:1;vertical-align:middle;">🐯</button>
       <button class="btn" id="btnReadonly" onclick="toggleReadonly()" title="Vista solo lectura para tocar"><span class="lbl-tocar">👁 Tocar</span><span class="lbl-editar">✎ Editar</span></button>
+      <!-- ══ BARRA TOCAR: visible solo en modo Tocar ══
+           Orden fijo: [🎭] [Manual|Sync] [zona-manual ó zona-sync] [🎯][🐯][✎]  -->
+      <div id="playBar" style="display:none;flex:1;align-items:center;gap:6px;min-width:0;">
+        <!-- Volver concierto -->
+        <button id="cmReturnBtn" class="btn hdr-icon-btn" onclick="navBack()" title="Volver al Modo Concierto" style="display:none;line-height:1;vertical-align:middle;">🎭</button>
+        <!-- Toggle Manual / Sync -->
+        <div id="scrollModeToggle">
+          <button id="toggleManualBtn" class="mode-pill active" onclick="setScrollMode('manual')">Manual</button>
+          <button id="toggleSyncBtn"   class="mode-pill"        onclick="setScrollMode('sync')">Sync</button>
+        </div>
+
+        <!-- ── ZONA MANUAL: ▶ + slider + número vel + ☁ ── -->
+        <div id="zoneManual" style="display:flex;align-items:center;gap:5px;flex:1;min-width:0;">
+          <button id="hdrBtnPlay" onclick="manualToggleScroll()" title="Play / Stop (Espacio)">
+            <span id="hdrPlayIcon">▶</span>
+          </button>
+          <!-- valor oculto — lo lee startScroll -->
+          <input type="hidden" id="scrollSpeed" value="3" />
+          <!-- número clicable — abre popup 1-9 -->
+          <span id="speedVal" onclick="openSpeedPicker(this)" title="Velocidad (1–9)">3</span>
+        </div>
+
+        <!-- ── ZONA SYNC: ▶scroll + ▶🎵audio — independientes ── -->
+        <div id="zoneSync" style="display:none;align-items:center;gap:5px;">
+          <button id="syncPlayBtn"      onclick="syncTogglePlay('scroll')" title="Sync scroll sin música">▶</button>
+          <button id="syncPlayAudioBtn" onclick="syncTogglePlay('audio')"  title="Sync scroll + música">▶🎵</button>
+        </div>
+
+        <!-- Herramientas fijas a la derecha -->
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+          <button class="btn hdr-icon-btn" id="btnCalibrate" onclick="openCalibModal()" title="Calibrar secciones" style="display:none;line-height:1;vertical-align:middle;">🎯</button>
+          <button class="btn hdr-icon-btn" id="btnBanda" onclick="toggleBanda()" title="Modo banda — sincronía con el grupo" style="display:none;line-height:1;vertical-align:middle;">🐯</button>
+          <button class="btn hdr-icon-btn" id="btnReadonlyPlay" onclick="toggleReadonly()" title="Volver a editar">✎</button>
+        </div>
+      </div>
     </div>
 
     <!-- MÓVIL FILA 3: Pills filtro (scroll) + icono Tema -->
@@ -3357,14 +3422,38 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 <!-- ZONA CON ZOOM — todo lo que hay entre header y footer -->
 <div id="zoomWrapper">
 
-<!-- TONALIDAD — cuerpo del editor -->
-<div id="songKeyBar" style="max-width:900px;margin:18px auto 0;padding:0 20px;">
+<!-- TONALIDAD + EAGLE MODE — cuerpo del editor -->
+<div id="songKeyBar" style="max-width:900px;margin:18px auto 0;padding:0 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+
   <div style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
     <label for="songKey" style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0;">🎵 Tonalidad</label>
     <input class="meta-input" id="songKey" placeholder="Do Mayor, La menor..." title="Tonalidad (ej: Do Mayor, La menor)"
       style="width:140px;"
       oninput="songData.key = this.value" />
   </div>
+
+  <!-- Botón Eagle -->
+  <button id="btnEagle" onclick="toggleEagleMode()" title="Modo Águila — vista compacta"
+    style="font-family:'Space Mono',monospace;font-size:0.8rem;padding:7px 11px;border-radius:8px;
+           border:1px solid var(--border);background:var(--surface);color:var(--muted);
+           cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;white-space:nowrap;">
+    🦅
+  </button>
+
+  <!-- Toggles Eagle — solo visibles en eagle-mode -->
+  <div id="eagleToggles" style="display:none;align-items:center;gap:6px;">
+    <button id="btnEagleSections" onclick="eagleToggleSections()" title="Mostrar / ocultar secciones al tocar"
+      style="font-family:'Space Mono',monospace;font-size:0.6rem;font-weight:700;padding:5px 9px;
+             border-radius:6px;border:1px solid var(--accent);background:var(--accent);
+             color:var(--bg);cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;
+             transition:all 0.15s;white-space:nowrap;">☰ Secciones</button>
+    <button id="btnEagleComments" onclick="eagleToggleComments()" title="Mostrar / ocultar comentarios"
+      style="font-family:'Space Mono',monospace;font-size:0.6rem;font-weight:700;padding:5px 9px;
+             border-radius:6px;border:1px solid var(--border);background:transparent;
+             color:var(--muted);cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;
+             transition:all 0.15s;white-space:nowrap;">🗨 Comentarios</button>
+  </div>
+
 </div>
 
 <div class="container" id="chart"></div>
@@ -3571,7 +3660,11 @@ function _navUpdateBackBtn() {
   // Muestra u oculta #cmReturnBtn dentro del scrollBar según haya historial
   const btn = document.getElementById("cmReturnBtn");
   if (!btn) return;
-  btn.style.display = _navStack.length > 0 ? "flex" : "none";
+  const show = _navStack.length > 0;
+  btn.style.display = show ? "flex" : "none";
+  // Clase en playBar para CSS compacto en móvil
+  const pb = document.getElementById("playBar");
+  if (pb) pb.classList.toggle("has-return", show);
 }
 
 function navBack() {
@@ -4391,6 +4484,12 @@ function render() {
 
   // Apply active instrument filter after render
   applyInstFilter();
+
+  // 🦅 Eagle mode: re-apply colors and section click bindings after render
+  if (typeof _eagleOn !== 'undefined' && _eagleOn) {
+    _eagleApplySectionColors();
+    _eagleBindSections();
+  }
 }
 
 function insertSectionAt(idx) {
@@ -4667,13 +4766,14 @@ function toggleReadonly() {
     var btnBanda = document.getElementById("btnBanda");
     if (btnBanda) { btnBanda.classList.remove("banda-on"); btnBanda.style.display = "none"; }
     document.body.classList.remove("sync-on");
-    document.getElementById("scrollModeToggle").style.display = "none";
-    var btnScroll = document.getElementById("syncPlayBtn");
+    var btnScroll = { textContent: "", classList: { add:function(){}, remove:function(){} } }; // alias removed
     var btnAudio  = document.getElementById("syncPlayAudioBtn");
     if (btnScroll) btnScroll.style.display = "none";
     if (btnAudio)  btnAudio.style.display  = "none";
   }
   resizeAllVozTextareas();
+  // Sincronizar eagle con el nuevo modo
+  if (typeof _eagleOn !== 'undefined' && _eagleOn) _eagleSyncMode();
 }
 
 // ═══════════════════════════════════════════════
@@ -4742,11 +4842,12 @@ function startScroll() {
       if (intPx > 0) window.scrollTo({ top: before + intPx, behavior: "instant" });
     }
 
-    // Update progress bar
+    // Update progress bar (spbFill es la barra de progreso del header en modo Tocar)
     const scrolled = window.scrollY;
     const total    = document.body.scrollHeight - window.innerHeight;
     const pct      = total > 0 ? Math.min(100, (scrolled / total) * 100) : 0;
-    document.getElementById("progressFill").style.width = pct + "%";
+    const pf = document.getElementById("progressFill") || document.getElementById("spbFill");
+    if (pf) pf.style.width = pct + "%";
 
     // Auto-stop at bottom
     if (total > 0 && scrolled >= total - 2) { stopScroll(); return; }
@@ -4980,36 +5081,37 @@ const SYNC_GUIDE_POS     = 0.25;
 function _syncUpdateButtons() {
   var isReadonly = document.body.classList.contains("readonly");
   if (!isReadonly) return;
+  document.getElementById("btnCalibrate").style.display = "";
+  // Si la canción tiene calibración, entrar directamente en modo Sync; si no, Manual
   var hasCalib = Object.keys(songData.sectionTimestamps || {}).length > 0;
-  var hasAudio = !!(songData.audio && songData.audio.src);
-  // Mostrar toggle siempre en modo Tocar
-  document.getElementById("scrollModeToggle").style.display = "flex";
-  document.getElementById("btnCalibrate").style.display     = "";
-  // Sync buttons solo si calibrado
-  document.getElementById("syncPlayBtn").style.display      = "none";
-  document.getElementById("syncPlayAudioBtn").style.display = "none";
-  // Arrancar en modo manual por defecto
-  setScrollMode("manual");
+  setScrollMode(hasCalib ? "sync" : "manual");
 }
 
 function setScrollMode(mode) {
+  // Parar todo lo que esté corriendo
+  stopScroll();
   syncStop();
+
   var hasCalib = Object.keys(songData.sectionTimestamps || {}).length > 0;
   var hasAudio = !!(songData.audio && songData.audio.src);
 
-  var manualBtn = document.getElementById("toggleManualBtn");
-  var syncBtn   = document.getElementById("toggleSyncBtn");
-  var hdrScroll = document.getElementById("hdrScroll");
-  var playBtn   = document.getElementById("syncPlayBtn");
-  var audioBtn  = document.getElementById("syncPlayAudioBtn");
+  var manualBtn  = document.getElementById("toggleManualBtn");
+  var syncBtn    = document.getElementById("toggleSyncBtn");
+  var zoneManual = document.getElementById("zoneManual");
+  var zoneSync   = document.getElementById("zoneSync");
+  var audioBtn   = document.getElementById("syncPlayAudioBtn");
 
   if (mode === "manual") {
     manualBtn.classList.add("active");
     syncBtn.classList.remove("active");
-    hdrScroll.style.display = "";   // mostrar scroll manual
     document.body.classList.remove("sync-on");
-    playBtn.style.display  = "none";
-    audioBtn.style.display = "none";
+    if (zoneManual) zoneManual.style.display = "flex";
+    if (zoneSync)   zoneSync.style.display   = "none";
+    // Resetear visual del botón play manual
+    const bp   = document.getElementById("hdrBtnPlay");
+    const icon = document.getElementById("hdrPlayIcon");
+    if (bp)   bp.classList.remove("playing");
+    if (icon) icon.textContent = "▶";
   } else {
     // Sync
     if (!hasCalib) {
@@ -5018,11 +5120,15 @@ function setScrollMode(mode) {
     }
     syncBtn.classList.add("active");
     manualBtn.classList.remove("active");
-    stopScroll();
-    hdrScroll.style.display = "none";  // ocultar scroll manual
     document.body.classList.add("sync-on");
-    playBtn.style.display  = "";
-    audioBtn.style.display = hasAudio ? "" : "none";
+    if (zoneManual) zoneManual.style.display = "none";
+    if (zoneSync)   zoneSync.style.display   = "flex";
+    // Ocultar botón audio si no hay audio cargado
+    if (audioBtn) audioBtn.style.display = hasAudio ? "" : "none";
+    // Resetear visual de ambos botones sync
+    const bps  = document.getElementById("syncPlayBtn");
+    if (bps)  { bps.classList.remove("playing");  bps.textContent  = "▶"; }
+    if (audioBtn) { audioBtn.classList.remove("playing"); audioBtn.textContent = "▶🎵"; }
   }
 }
 
@@ -5180,12 +5286,14 @@ function syncPlay(fromBanda) {
 
   var btnScroll = document.getElementById("syncPlayBtn");
   var btnAudio  = document.getElementById("syncPlayAudioBtn");
+
+  // Cada botón muestra su estado activo de forma independiente
   if (_syncMode === "scroll") {
-    if (btnScroll) { btnScroll.textContent = "⏹";   btnScroll.classList.add("playing"); }
-    if (btnAudio)  { btnAudio.classList.remove("playing"); btnAudio.textContent = "▶🎵"; }
+    if (btnScroll) { btnScroll.classList.add("playing");    btnScroll.textContent  = "⏹"; }
+    if (btnAudio)  { btnAudio.classList.remove("playing");  btnAudio.textContent   = "▶🎵"; }
   } else {
-    if (btnAudio)  { btnAudio.textContent  = "⏹🎵"; btnAudio.classList.add("playing"); }
-    if (btnScroll) { btnScroll.classList.remove("playing"); btnScroll.textContent = "▶"; }
+    if (btnAudio)  { btnAudio.classList.add("playing");     btnAudio.textContent   = "⏹🎵"; }
+    if (btnScroll) { btnScroll.classList.remove("playing"); btnScroll.textContent  = "▶"; }
   }
   _syncShowGuideLine(false);
   _syncShowDebug(false);
@@ -5203,10 +5311,11 @@ function syncStop() {
   window.removeEventListener("wheel",      _syncOnUserScroll);
   document.querySelectorAll(".section-block.sync-active")
     .forEach(function(el) { el.classList.remove("sync-active"); });
+  // Resetear sólo botones sync — no tocar el ▶ manual
   var btnScroll = document.getElementById("syncPlayBtn");
   var btnAudio  = document.getElementById("syncPlayAudioBtn");
-  if (btnScroll) { btnScroll.textContent = "▶";   btnScroll.classList.remove("playing"); }
-  if (btnAudio)  { btnAudio.textContent  = "▶🎵"; btnAudio.classList.remove("playing"); }
+  if (btnScroll) { btnScroll.classList.remove("playing");  btnScroll.textContent  = "▶"; }
+  if (btnAudio)  { btnAudio.classList.remove("playing");   btnAudio.textContent   = "▶🎵"; }
   _syncLastSecId = null;
   _syncShowGuideLine(false);
   _syncShowDebug(false);
@@ -5396,32 +5505,88 @@ function _syncUpdateDebug(current, next) {
 }
 
 function updateSpeedLabel() {
-  const v = parseInt(document.getElementById("scrollSpeed").value, 10);
+  const v = Math.min(9, Math.max(1, parseInt(document.getElementById("scrollSpeed").value, 10)));
   document.getElementById("speedVal").textContent = v;
   if (songData) songData.scrollSpeed = v;
 }
 
-function saveScrollSpeed() {
-  const v = parseInt(document.getElementById("scrollSpeed").value, 10);
-  if (songData) songData.scrollSpeed = v;
-  try {
-    const key = "scrollSpeed:" + (_currentSongId || "unsaved");
-    localStorage.setItem(key, v);
-  } catch(e) {}
-  // Visual feedback
-  const btn = document.getElementById("hdrBtnSave");
-  if (btn) {
-    btn.textContent = "✓";
-    btn.classList.add("saved");
-    setTimeout(() => { btn.textContent = "☁"; btn.classList.remove("saved"); }, 1200);
-  }
+function changeSpeed(delta) {
+  const slider = document.getElementById("scrollSpeed");
+  const newVal = Math.min(9, Math.max(1, parseInt(slider.value, 10) + delta));
+  slider.value = newVal;
+  updateSpeedLabel();
 }
 
-// Space bar toggles play/stop in readonly mode
+
+// ── Speed Picker popup ──────────────────────────
+let _speedPickerOpen = false;
+
+function openSpeedPicker(anchor) {
+  const picker = document.getElementById("speedPicker");
+  if (_speedPickerOpen) { closeSpeedPicker(); return; }
+
+  picker.innerHTML = "";
+  const current = parseInt(document.getElementById("scrollSpeed").value, 10);
+  for (let i = 1; i <= 9; i++) {
+    const btn = document.createElement("button");
+    btn.className = "spd-btn" + (i === current ? " active" : "");
+    btn.textContent = i;
+    btn.ontouchend = function(e) { e.preventDefault(); e.stopPropagation(); selectSpeed(i); };
+    btn.onclick    = function(e) { e.stopPropagation(); selectSpeed(i); };
+    picker.appendChild(btn);
+  }
+
+  picker.classList.add("open");
+  _speedPickerOpen = true;
+  const rect = anchor.getBoundingClientRect();
+  const pw   = picker.offsetWidth  || 138;
+  const ph   = picker.offsetHeight || 96;
+  let left   = rect.left;
+  let top    = rect.top - ph - 6;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (left < 8) left = 8;
+  if (top  < 8) top  = rect.bottom + 6;
+  picker.style.left = left + "px";
+  picker.style.top  = top  + "px";
+
+  setTimeout(() => {
+    document.addEventListener("click",      _speedPickerOutside);
+    document.addEventListener("touchstart", _speedPickerOutside, { passive: true });
+  }, 10);
+}
+
+function _speedPickerOutside(e) {
+  const picker = document.getElementById("speedPicker");
+  if (picker && !picker.contains(e.target)) closeSpeedPicker();
+}
+
+function closeSpeedPicker() {
+  const picker = document.getElementById("speedPicker");
+  if (picker) picker.classList.remove("open");
+  document.removeEventListener("click",      _speedPickerOutside);
+  document.removeEventListener("touchstart", _speedPickerOutside);
+  _speedPickerOpen = false;
+}
+
+function selectSpeed(v) {
+  document.getElementById("scrollSpeed").value  = v;
+  document.getElementById("speedVal").textContent = v;
+  if (songData) songData.scrollSpeed = v;
+  closeSpeedPicker();
+}
+// ───────────────────────────────────────────────
+
+/* Botón ▶ del modo Manual — sólo afecta al scroll manual */
+function manualToggleScroll() {
+  _scrolling ? stopScroll() : startScroll();
+}
+
+// Space bar: sólo activa scroll manual (no interfiere con sync)
 document.addEventListener("keydown", e => {
-  if (_readonly && e.code === "Space" && e.target === document.body) {
+  if (_readonly && e.code === "Space" && e.target === document.body
+      && !document.body.classList.contains("sync-on")) {
     e.preventDefault();
-    toggleScroll();
+    manualToggleScroll();
   }
 });
 
@@ -6857,7 +7022,10 @@ function _renderSongList() {
       ? `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--green);border:1px solid rgba(57,255,20,0.4);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;white-space:nowrap;" class="sl-open-btn">📄 Cifrado</span>`
       : `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;white-space:nowrap;" class="sl-link-btn">🔗 Vincular</span>`;
 
-    const dur = song.duration ? `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);flex-shrink:0;">⏱ ${song.duration}m</span>` : "";
+    const inlineStyle = (size, weight) =>
+      `width:100%;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;transition:border-color 0.2s,color 0.2s;padding:1px 0;font-family:'IBM Plex Sans',sans-serif;font-size:${size};font-weight:${weight || 400};color:var(--text);`;
+    const inlineMono = (size, val) =>
+      `background:transparent;border:none;border-bottom:1px solid transparent;outline:none;transition:border-color 0.2s,color 0.2s;padding:1px 0;font-family:'Space Mono',monospace;font-size:${size};color:${val ? 'var(--text)' : 'var(--muted)'};width:100%;`;
 
     mainRow.style.cssText = "display:flex;align-items:center;gap:5px;";
     mainRow.innerHTML = `
@@ -6865,11 +7033,49 @@ function _renderSongList() {
       <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);text-align:right;flex-shrink:0;">${idx + 1}</span>
       <button class="sl-status-btn" title="Cambiar estado (clic para ciclar)" style="background:transparent;border:none;cursor:pointer;font-size:1.1rem;padding:0 1px;flex-shrink:0;line-height:1;">${statusIcons[song.status || 0]}</button>
       <div style="flex:1;min-width:0;">
-        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${song.title || "(Sin título)"}</div>
-        <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${[song.artist, song.key ? "🎵 "+song.key : "", song.bpm ? song.bpm+" bpm" : ""].filter(Boolean).join(" · ")}</div>
+        <input class="sl-title-inp" value="${(song.title||'').replace(/"/g,'&quot;')}" placeholder="(Sin título)" style="${inlineStyle('0.9rem','600')}"/>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:3px;flex-wrap:nowrap;overflow:hidden;">
+          <input class="sl-artist-inp" value="${(song.artist||'').replace(/"/g,'&quot;')}" placeholder="Artista" style="${inlineMono('0.62rem', song.artist)}min-width:40px;flex:2;"/>
+          <span style="color:var(--dim);font-size:0.6rem;flex-shrink:0;">·</span>
+          <input class="sl-key-inp" value="${(song.key||'').replace(/"/g,'&quot;')}" placeholder="🎵" style="${inlineMono('0.62rem', song.key)}width:32px;flex-shrink:0;text-align:center;"/>
+          <span style="color:var(--dim);font-size:0.6rem;flex-shrink:0;">·</span>
+          <input class="sl-bpm-inp" type="number" min="1" max="999" value="${song.bpm||''}" placeholder="bpm" style="${inlineMono('0.62rem', song.bpm)}width:36px;flex-shrink:0;text-align:center;"/>
+          <span style="color:var(--dim);font-size:0.6rem;flex-shrink:0;">·</span>
+          <span style="color:var(--dim);font-size:0.6rem;flex-shrink:0;">⏱</span>
+          <input class="sl-dur-inp" type="number" min="0" max="99" step="0.5" value="${song.duration||''}" placeholder="min" style="${inlineMono('0.62rem', song.duration)}width:30px;flex-shrink:0;text-align:center;"/>
+        </div>
       </div>
-      ${dur}
       <button class="btn-icon sl-del" title="Quitar del repertorio">✕</button>`;
+
+    // Eventos edición inline
+    const focusOn  = el => { el.style.borderBottomColor = 'var(--accent)'; el.style.color = 'var(--text)'; };
+    const focusOff = el => { el.style.borderBottomColor = 'transparent'; el.style.color = el.value ? 'var(--text)' : 'var(--muted)'; };
+
+    const titleInp  = mainRow.querySelector('.sl-title-inp');
+    const artistInp = mainRow.querySelector('.sl-artist-inp');
+    const keyInp    = mainRow.querySelector('.sl-key-inp');
+    const bpmInp    = mainRow.querySelector('.sl-bpm-inp');
+    const durInp    = mainRow.querySelector('.sl-dur-inp');
+
+    titleInp.addEventListener('focus',  () => focusOn(titleInp));
+    titleInp.addEventListener('blur',   () => focusOff(titleInp));
+    titleInp.addEventListener('input',  () => { song.title = titleInp.value; _slDirty = true; });
+
+    artistInp.addEventListener('focus', () => focusOn(artistInp));
+    artistInp.addEventListener('blur',  () => focusOff(artistInp));
+    artistInp.addEventListener('input', () => { song.artist = artistInp.value; artistInp.style.color = 'var(--text)'; _slDirty = true; });
+
+    keyInp.addEventListener('focus', () => focusOn(keyInp));
+    keyInp.addEventListener('blur',  () => focusOff(keyInp));
+    keyInp.addEventListener('input', () => { song.key = keyInp.value; keyInp.style.color = 'var(--text)'; _slDirty = true; });
+
+    bpmInp.addEventListener('focus', () => focusOn(bpmInp));
+    bpmInp.addEventListener('blur',  () => focusOff(bpmInp));
+    bpmInp.addEventListener('input', () => { song.bpm = bpmInp.value ? parseInt(bpmInp.value) : null; bpmInp.style.color = 'var(--text)'; _slDirty = true; });
+
+    durInp.addEventListener('focus', () => focusOn(durInp));
+    durInp.addEventListener('blur',  () => focusOff(durInp));
+    durInp.addEventListener('input', () => { song.duration = durInp.value ? parseFloat(durInp.value) : null; durInp.style.color = 'var(--text)'; _slDirty = true; });
 
     // Notas inline editables + badge vincular/cifrado a la derecha
     const notesRow = document.createElement("div");
@@ -7054,7 +7260,13 @@ function closeConcertMode() {
   clearInterval(_cm.timer);
   document.getElementById("concertMode").style.display = "none";
   navReset();
-  showLibrary();
+  const returnSetlistId = _currentSetlist?.id;
+  if (returnSetlistId) {
+    showSetlists();                  // abre la pantalla de repertorios (resetea _currentSetlist)
+    openSetlist(returnSetlistId);    // reabre el repertorio directamente
+  } else {
+    showLibrary();
+  }
 }
 
 function _cmRender() {
@@ -8769,7 +8981,7 @@ function drumPatternToHTML(dp, colorClass) {
   <!-- Estado semáforo + icono cifrado -->
   <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
     <div id="cmStatus" style="font-size:2.5rem;line-height:1;"></div>
-    <button id="cmScoreBtn" onclick="cmOpenScore()" title="Ver cifrado" style="display:none;background:transparent;border:none;cursor:pointer;font-size:1.6rem;line-height:1;opacity:0.7;transition:opacity 0.2s;padding:0;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">📄</button>
+    <button id="cmScoreBtn" onclick="cmOpenScore()" title="Ver cifrado" style="display:none;background:rgba(255,255,255,0.05);border:2px solid var(--muted);border-radius:8px;cursor:pointer;font-size:1.4rem;line-height:1;transition:border-color 0.2s,background 0.2s;padding:8px 14px;" onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.borderColor='var(--muted)';this.style.background='rgba(255,255,255,0.05)'">📄</button>
   </div>
 
   <!-- Título -->
@@ -8937,6 +9149,181 @@ function drumPatternToHTML(dp, colorClass) {
 </div>
 <button id="btnImmersive" onclick="toggleImmersive()" title="Modo inmersivo">⛶</button>
 
+<style>
+/* ══════════════════════════════════════════════
+   🦅 EAGLE MODE — compacto máximo, solo CSS
+   Todos los estilos dentro de body.eagle-mode
+   No toca nada del CSS original.
+══════════════════════════════════════════════ */
+
+/* Contenedor principal: menos gap entre secciones */
+body.eagle-mode .container { gap: 2px; }
+
+/* ── SECTION BLOCK: sin caja, barra vertical de color ── */
+body.eagle-mode .section-block {
+  border: none !important;
+  border-radius: 0 !important;
+  border-left: 6px solid var(--eagle-sec-color, var(--dim)) !important;
+  margin-bottom: 0 !important;
+  padding-left: 0;
+}
+
+/* Section header: invisible por defecto en eagle,
+   solo la barra izquierda del block lo delata */
+body.eagle-mode .section-header {
+  display: none;
+}
+
+/* Cuando la sección está activa (click), el header aparece flotando */
+body.eagle-mode .section-block.eagle-active .section-header {
+  display: flex;
+  padding: 3px 8px;
+  gap: 4px;
+  background: var(--surface2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-left: none !important;
+}
+
+/* En readonly+eagle: el header nunca aparece, solo el label JS */
+body.eagle-mode.readonly .section-block.eagle-active .section-header { display: none !important; }
+
+/* En eagle-active, los btn-icon se ven pequeños */
+body.eagle-mode .section-block.eagle-active .btn-icon {
+  font-size: 0.7rem;
+  padding: 1px 3px;
+}
+
+/* Ocultar elementos verbosos del header incluso cuando está activo */
+body.eagle-mode .section-block.eagle-active .section-lyric-input { display: none; }
+body.eagle-mode .section-block.eagle-active .drag-handle          { font-size: 0.7rem; }
+body.eagle-mode .section-block.eagle-active .collapse-arrow       { display: none; }
+
+/* Bars area: sin padding lateral, sin gap */
+body.eagle-mode .bars-area {
+  padding: 1px 0 1px 6px;
+  gap: 0;
+}
+
+/* ── ROW WRAP: sin caja, filas pegadas ── */
+body.eagle-mode .row-wrap {
+  background: transparent;
+}
+
+/* Bar line: sin caja, sin fondo, padding mínimo */
+body.eagle-mode .bar-line {
+  padding: 1px 4px 1px 10px;
+  min-height: 0;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+/* Comment row: sin caja */
+body.eagle-mode .comment-row {
+  padding: 0 4px 0 10px;
+  background: transparent !important;
+  border: none !important;
+  gap: 3px;
+}
+body.eagle-mode .row-wrap .comment-row { border-radius: 0; }
+
+/* Chord pills: compactas */
+body.eagle-mode .chord-pill {
+  padding: 0px 4px;
+  font-size: 0.85rem;
+}
+
+/* Separador de compás: más corto */
+body.eagle-mode .bar-div {
+  height: 16px;
+  margin: 0 3px;
+}
+
+/* Corchetes: menores */
+body.eagle-mode .rep-bracket {
+  font-size: 0.95rem;
+  padding: 0 2px;
+}
+
+/* Voz textarea: sin min-height, compacto */
+body.eagle-mode .voz-text {
+  min-height: 0;
+  padding: 1px 4px;
+  line-height: 1.25;
+}
+
+/* Drum preview: sin padding */
+body.eagle-mode .drum-preview-wrap { padding: 0; gap: 1px; }
+body.eagle-mode .drum-preview-bars { gap: 3px; }
+
+/* Row-right: menos gap, más pequeño */
+body.eagle-mode .row-right        { gap: 3px; padding-left: 4px; }
+body.eagle-mode .repeat-input     { width: 26px; font-size: 0.68rem; padding: 1px 2px; }
+body.eagle-mode .x-label          { font-size: 0.58rem; }
+
+/* Botones añadir (editar): ocultos por defecto,
+   aparecen cuando la sección está eagle-active */
+body.eagle-mode .add-row-btn,
+body.eagle-mode .add-bar-btn,
+body.eagle-mode .add-section-btn,
+body.eagle-mode .add-chord-in-bar,
+body.eagle-mode .add-row-inst-wrap { display: none !important; }
+
+body.eagle-mode:not(.readonly) .section-block.eagle-active .add-row-btn,
+body.eagle-mode:not(.readonly) .section-block.eagle-active .add-bar-btn,
+body.eagle-mode:not(.readonly) .section-block.eagle-active .add-chord-in-bar,
+body.eagle-mode:not(.readonly) .section-block.eagle-active .add-row-inst-wrap {
+  display: inline-flex !important;
+  font-size: 0.6rem;
+  padding: 2px 5px;
+}
+body.eagle-mode:not(.readonly) .section-block.eagle-active .add-row-btn {
+  display: flex !important;
+  padding: 3px 6px;
+  font-size: 0.6rem;
+}
+
+/* Drag handles: ocultos en eagle, visibles en eagle-active (solo editar) */
+body.eagle-mode .drag-handle                                          { display: none; }
+body.eagle-mode:not(.readonly) .section-block.eagle-active .drag-handle { display: inline; font-size: 0.7rem; }
+
+/* Section insert zones: mínimas */
+body.eagle-mode .section-insert { min-height: 3px; }
+
+/* En Tocar+eagle: línea horizontal fina entre secciones */
+body.eagle-mode.readonly .section-block {
+  border-bottom: 1px solid var(--border) !important;
+}
+[data-theme="neon"] .eagle-mode.readonly .section-block {
+  border-bottom: 1px solid rgba(0,255,231,0.35) !important;
+  box-shadow: 0 1px 0 rgba(0,255,231,0.08);
+}
+body.eagle-mode:not(.eagle-comments) .comment-row { display: none !important; }
+
+/* ☰ Secciones — solo visible en Tocar */
+body:not(.readonly) #btnEagleSections { display: none !important; }
+
+/* Botón eagle activo */
+#btnEagle.eagle-on {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-size: 1.1rem;
+  box-shadow: 0 0 14px rgba(0,255,231,0.5), 0 0 4px rgba(0,255,231,0.3);
+  transform: scale(1.12);
+}
+[data-theme="default"] #btnEagle.eagle-on {
+  box-shadow: 0 0 14px rgba(232,200,64,0.5), 0 0 4px rgba(232,200,64,0.3);
+}
+[data-theme="light"] #btnEagle.eagle-on {
+  box-shadow: 0 0 10px rgba(176,122,16,0.45);
+  color: #fff;
+}
+[data-theme="bluered"] #btnEagle.eagle-on {
+  box-shadow: 0 0 14px rgba(58,159,212,0.5), 0 0 4px rgba(58,159,212,0.3);
+}
+</style>
+
 <!-- Modal compartir link -->
 <div id="slShareModal" style="position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:24px 26px;width:100%;max-width:500px;display:flex;flex-direction:column;gap:14px;">
@@ -9070,8 +9457,207 @@ function drumPatternToHTML(dp, colorClass) {
 
 <script>
 /* ══════════════════════════════════════════════
-   IMMERSIVE MODE — toggle header/footer
+   🦅 EAGLE MODE
 ══════════════════════════════════════════════ */
+let _eagleOn       = false;
+let _eagleSections = true;
+let _eagleComments = false;
+let _eagleActiveBlock = null;
+let _eagleClickOutside = null;
+
+function _eagleSyncMode() {
+  // Limpiar estado de sección activa y labels al cambiar de modo
+  _eagleDeactivateSection();
+  document.querySelectorAll('.eagle-sec-label-global').forEach(el => el.remove());
+
+  // Resetear secciones: en Tocar OFF por defecto, en Editar no aplica
+  _eagleSections = false;
+  document.body.classList.add('eagle-no-sections');
+
+  // Re-aplicar colores y bindings
+  _eagleApplySectionColors();
+  _eagleBindSections();
+  _eagleUpdateToggleBtns();
+}
+
+function _eagleApplySectionColors() {
+  document.querySelectorAll('.section-block[data-secid]').forEach(block => {
+    const secId = block.dataset.secid;
+    const sec   = songData.sections.find(s => s.id === secId);
+    if (!sec) return;
+    const color = getSectionColor(sec.name);
+    block.style.setProperty('--eagle-sec-color', color || 'var(--dim)');
+    if (color) {
+      block.style.borderLeftColor  = color;
+      block.style.backgroundColor  = color + '12';
+    } else {
+      block.style.borderLeftColor  = '';
+      block.style.backgroundColor  = '';
+    }
+  });
+}
+
+function _eagleActivateSection(block, e) {
+  if (!_eagleOn) return;
+  // En Tocar: si secciones globales están activas, el click no hace nada
+  if (_readonly && _eagleSections) return;
+
+  e.stopPropagation();
+
+  // Toggle: si era la misma, cerrar
+  if (_eagleActiveBlock === block) {
+    _eagleDeactivateSection();
+    return;
+  }
+
+  // En editar: cerrar la anterior antes de abrir la nueva
+  if (!_readonly) _eagleDeactivateSection();
+
+  _eagleActiveBlock = block;
+  block.classList.add('eagle-active');
+
+  // En readonly: mostrar solo el nombre, solo si no hay ya label (individual o global)
+  if (_readonly) {
+    const secId = block.dataset.secid;
+    const existingLabel = block.querySelector('.eagle-sec-label-global, #eagleSecLabel-ind-' + secId);
+    if (!existingLabel) {
+      const sec   = songData.sections.find(s => s.id === secId);
+      const color = getSectionColor(sec?.name) || 'var(--accent2)';
+      const tag   = document.createElement('div');
+      tag.id = 'eagleSecLabel-ind-' + secId;
+      tag.textContent = sec?.name || '';
+      tag.style.cssText = `
+        font-family:'Space Mono',monospace;font-size:0.65rem;font-weight:700;
+        letter-spacing:0.12em;text-transform:uppercase;
+        color:${color};padding:2px 8px 2px 10px;
+        pointer-events:none;user-select:none;
+      `;
+      block.insertBefore(tag, block.firstChild);
+    }
+    // Sin listener de click fuera — solo toggle en la misma sección
+  } else {
+    // En editar: cerrar al click fuera
+    _eagleClickOutside = (ev) => {
+      if (!block.contains(ev.target)) _eagleDeactivateSection();
+    };
+    setTimeout(() => document.addEventListener('click', _eagleClickOutside), 10);
+  }
+}
+
+function _eagleDeactivateSection() {
+  if (_eagleActiveBlock) {
+    _eagleActiveBlock.classList.remove('eagle-active');
+    // Quitar label individual de readonly si existe
+    const secId = _eagleActiveBlock.dataset?.secid;
+    if (secId) {
+      const lbl = document.getElementById('eagleSecLabel-ind-' + secId);
+      if (lbl) lbl.remove();
+    }
+    _eagleActiveBlock = null;
+  }
+  if (_eagleClickOutside) {
+    document.removeEventListener('click', _eagleClickOutside);
+    _eagleClickOutside = null;
+  }
+}
+
+function _eagleBindSections() {
+  document.querySelectorAll('.section-block[data-secid]').forEach(block => {
+    if (block._eagleBound) return;   // ya tiene listener, no duplicar
+    block._eagleBound = true;
+    block.addEventListener('click', (e) => _eagleActivateSection(block, e));
+  });
+}
+
+function toggleEagleMode() {
+  _eagleOn = !_eagleOn;
+  const btn     = document.getElementById('btnEagle');
+  const toggles = document.getElementById('eagleToggles');
+
+  document.body.classList.toggle('eagle-mode', _eagleOn);
+
+  if (_eagleOn) {
+    btn.classList.add('eagle-on');
+    btn.title = 'Modo Águila activo — pulsa para desactivar';
+    toggles.style.display = 'flex';
+
+    _eagleSections = false;
+    _eagleComments = false;
+    document.body.classList.remove('eagle-no-sections', 'eagle-comments');
+    document.body.classList.add('eagle-no-sections');
+    _eagleUpdateToggleBtns();
+    _eagleApplySectionColors();
+    _eagleBindSections();
+    if (typeof resizeAllVozTextareas === 'function') resizeAllVozTextareas();
+  } else {
+    btn.classList.remove('eagle-on');
+    btn.title = 'Modo Águila — vista compacta';
+    toggles.style.display = 'none';
+    document.body.classList.remove('eagle-no-sections', 'eagle-comments');
+    _eagleDeactivateSection();
+    document.querySelectorAll('.eagle-sec-label-global').forEach(el => el.remove());
+    // Limpiar colores inline
+    document.querySelectorAll('.section-block[data-secid]').forEach(b => {
+      b.style.removeProperty('--eagle-sec-color');
+      b.style.borderLeftColor = '';
+    });
+    if (typeof resizeAllVozTextareas === 'function') resizeAllVozTextareas();
+  }
+}
+
+function eagleToggleSections() {
+  _eagleSections = !_eagleSections;
+  document.body.classList.toggle('eagle-no-sections', !_eagleSections);
+  _eagleDeactivateSection(); // cerrar cualquier activa individual
+
+  if (_eagleSections) {
+    // Mostrar nombre en todas las secciones a la vez
+    document.querySelectorAll('.section-block[data-secid]').forEach(block => {
+      if (document.getElementById('eagleSecLabel-' + block.dataset.secid)) return;
+      const sec   = songData.sections.find(s => s.id === block.dataset.secid);
+      const color = getSectionColor(sec?.name) || 'var(--accent2)';
+      const tag   = document.createElement('div');
+      tag.id = 'eagleSecLabel-' + block.dataset.secid;
+      tag.className = 'eagle-sec-label-global';
+      tag.textContent = sec?.name || '';
+      tag.style.cssText = `
+        font-family:'Space Mono',monospace;font-size:0.65rem;font-weight:700;
+        letter-spacing:0.12em;text-transform:uppercase;
+        color:${color};padding:2px 8px 2px 10px;
+        pointer-events:none;user-select:none;
+      `;
+      block.insertBefore(tag, block.firstChild);
+    });
+  } else {
+    // Quitar todos los labels globales
+    document.querySelectorAll('.eagle-sec-label-global').forEach(el => el.remove());
+  }
+  _eagleUpdateToggleBtns();
+}
+
+function eagleToggleComments() {
+  _eagleComments = !_eagleComments;
+  document.body.classList.toggle('eagle-comments', _eagleComments);
+  _eagleUpdateToggleBtns();
+}
+
+function _eagleUpdateToggleBtns() {
+  const btnSec = document.getElementById('btnEagleSections');
+  const btnCom = document.getElementById('btnEagleComments');
+  if (btnSec) {
+    btnSec.style.background  = _eagleSections ? 'var(--accent)'  : 'transparent';
+    btnSec.style.color       = _eagleSections ? 'var(--bg)'      : 'var(--muted)';
+    btnSec.style.borderColor = _eagleSections ? 'var(--accent)'  : 'var(--border)';
+  }
+  if (btnCom) {
+    btnCom.style.background  = _eagleComments ? 'var(--accent2)' : 'transparent';
+    btnCom.style.color       = _eagleComments ? '#fff'           : 'var(--muted)';
+    btnCom.style.borderColor = _eagleComments ? 'var(--accent2)' : 'var(--border)';
+  }
+}
+
+
+
 let _immersiveActive = false;
 
 /* Pantallas donde el botón debe aparecer */
@@ -9131,7 +9717,6 @@ function toggleImmersive() {
 /* Exponer helpers para que las funciones de navegación los llamen */
 window._immersiveDeactivate = _immersiveDeactivate;
 window._immersiveUpdateButtonVisibility = _immersiveUpdateButtonVisibility;
-
 /* Init: calcular visibilidad del botón al cargar */
 document.addEventListener('DOMContentLoaded', function() {
   _immersiveUpdateButtonVisibility();
@@ -9201,6 +9786,8 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 })();
 </script>
+
+<div id="speedPicker"></div>
 
 </body>
 </html>
