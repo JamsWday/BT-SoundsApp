@@ -3253,6 +3253,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     <span class="lib-user" id="libUserName"></span>
     <button class="btn btn-primary" onclick="newSong()">＋ Nueva canción</button>
     <button class="btn" onclick="showSetlists()">🎭 Repertorios</button>
+    <button class="btn" onclick="showCalendar()" style="border-color:var(--accent2);color:var(--accent2);">📅 Eventos</button>
     <button class="lib-cfg-btn" onclick="openLibConfig()" title="Configuración de la biblioteca">⚙ Config</button>
     <button class="btn" onclick="doLogout()">Salir</button>
   </div>
@@ -3339,6 +3340,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     <div class="mhdr-row1">
       <button class="btn" onclick="showLibrary()" title="Volver a la biblioteca">🎶 Biblioteca</button>
       <button class="btn" onclick="showSetlists()" title="Ver repertorios">🎭 Repertorios</button>
+      <button class="btn hdr-icon-btn" onclick="showCalendar()" title="Ver eventos" style="border-color:var(--accent2);color:var(--accent2);">📅</button>
       <button class="btn hdr-icon-btn" id="btnTheme" onclick="cycleTheme()" title="Cambiar tema de color">🌙</button>
     </div>
 
@@ -8875,6 +8877,7 @@ function drumPatternToHTML(dp, colorClass) {
     <button class="btn" id="slPdfBtn" onclick="exportSetlistPDF()" style="display:none">🖨 PDF</button>
     <button class="btn hdr-icon-btn" id="slShareBtn" onclick="openShareModal()" title="Compartir repertorio" style="display:none">🔗</button>
     <button class="btn" onclick="closeSetlists()">🎶 Biblioteca</button>
+    <button class="btn" onclick="showCalendar()" style="border-color:var(--accent2);color:var(--accent2);">📅 Eventos</button>
   </div>
   <!-- Lista de repertorios -->
   <div id="slList" class="lib-body" style="display:flex;flex-direction:column;">
@@ -9788,6 +9791,1148 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <div id="speedPicker"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     CALENDAR SCREEN
+══════════════════════════════════════════════════════════ -->
+<style>
+/* ── Calendar Screen ── */
+#calendarScreen {
+  position: fixed; inset: 0; z-index: 7600;
+  background: var(--bg);
+  display: none; flex-direction: column;
+  overflow: hidden;
+}
+#calendarScreen.open { display: flex; }
+
+/* Header */
+.cal-header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent2);
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.cal-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem; color: var(--accent2);
+  flex: 1; min-width: 120px;
+}
+
+/* Nav row */
+.cal-nav {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px; flex-shrink: 0;
+}
+.cal-nav-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 1rem; font-weight: 700;
+  color: var(--text); flex: 1; text-align: center;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.cal-nav-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem; padding: 6px 12px;
+  border-radius: 5px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted);
+  cursor: pointer; transition: all 0.15s;
+}
+.cal-nav-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+.cal-today-btn {
+  border-color: var(--accent2); color: var(--accent2);
+  font-weight: 700;
+}
+.cal-today-btn:hover { background: rgba(196,95,58,0.1); }
+
+/* Legend */
+.cal-legend {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 20px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.cal-legend-item {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'Space Mono', monospace; font-size: 0.62rem;
+  color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.cal-legend-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.cal-ev-ensayo  { background: #3dba6e; }
+.cal-ev-concierto { background: #e84040; }
+.cal-ev-otro    { background: #3a9fd4; }
+
+/* Body */
+.cal-body {
+  flex: 1; overflow-y: auto; padding: 16px 12px;
+}
+
+/* Grid */
+.cal-grid {
+  max-width: 900px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-day-name {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); text-align: center; padding: 6px 2px;
+}
+.cal-day-name:first-child, .cal-day-name:last-child { color: var(--accent2); }
+
+.cal-cell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px; min-height: 80px;
+  display: flex; flex-direction: column;
+  transition: border-color 0.15s;
+  position: relative; overflow: hidden;
+  cursor: default;
+}
+.cal-cell:hover { border-color: var(--accent2); }
+.cal-cell.today { border-color: var(--accent) !important; background: rgba(0,255,231,0.04); }
+[data-theme="light"] .cal-cell.today { border-color: #b07a10 !important; background: rgba(176,122,16,0.04); }
+[data-theme="bluered"] .cal-cell.today { border-color: #3a9fd4 !important; }
+.cal-cell.other-month { background: var(--bg); opacity: 0.6; }
+.cal-cell.other-month .cal-cell-num { color: var(--dim); }
+.cal-cell.weekend .cal-cell-num { color: var(--accent2); }
+
+/* ── TOP ZONE: día + eventos → abre panel ── */
+.cal-cell-top {
+  flex: 1; display: flex; flex-direction: column;
+  cursor: pointer; padding-bottom: 3px;
+  min-height: 0;
+}
+.cal-cell-top:hover { background: rgba(255,255,255,0.03); }
+
+.cal-cell-num {
+  font-family: 'Space Mono', monospace; font-size: 0.75rem;
+  font-weight: 700; padding: 5px 7px 2px;
+  color: var(--text); flex-shrink: 0; line-height: 1;
+}
+.cal-cell.today .cal-cell-num {
+  background: var(--accent); color: var(--bg);
+  border-radius: 50%; width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; margin: 4px 6px 2px; font-size: 0.68rem;
+}
+[data-theme="light"] .cal-cell.today .cal-cell-num { background: #b07a10; color: #fff; }
+[data-theme="bluered"] .cal-cell.today .cal-cell-num { background: #3a9fd4; }
+
+/* Event icons row (not chips, just icons for compact view) */
+.cal-ev-icons {
+  display: flex; flex-wrap: wrap; gap: 2px;
+  padding: 1px 5px 3px; flex: 1; align-content: flex-start;
+}
+.cal-ev-icon {
+  font-size: 0.72rem; line-height: 1; cursor: pointer;
+}
+/* Desktop: show chip text */
+.cal-chips { display: flex; flex-direction: column; gap: 2px; padding: 0 4px; flex: 1; overflow: hidden; }
+.cal-chip {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.6rem;
+  padding: 2px 5px; border-radius: 3px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; line-height: 1.4;
+}
+.cal-chip.ensayo   { background: rgba(61,186,110,0.25); color: #3dba6e; }
+.cal-chip.concierto { background: rgba(232,64,64,0.25); color: #ff6666; }
+.cal-chip.otro     { background: rgba(58,159,212,0.25); color: #3a9fd4; }
+
+/* ── BOTTOM ZONE: disponibilidad → toggle propio ── */
+.cal-avail-zone {
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 3px 4px;
+  min-height: 26px;
+  gap: 2px; flex-wrap: wrap;
+  cursor: pointer;
+  background: rgba(0,0,0,0.08);
+  transition: background 0.15s;
+  flex-shrink: 0;
+  user-select: none; -webkit-user-select: none;
+  -webkit-touch-callout: none; touch-action: manipulation;
+}
+.cal-avail-zone:hover { background: rgba(255,255,255,0.05); }
+.cal-avail-zone:empty::after {
+  content: '+';
+  font-size: 0.65rem; color: var(--dim);
+  font-family: 'Space Mono', monospace;
+  margin: auto;
+}
+
+/* Avatar dots — size adapts to count */
+.cal-avail-dot {
+  border-radius: 50%; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace;
+  transition: transform 0.12s, width 0.15s, height 0.15s, font-size 0.15s;
+  flex-shrink: 0; border: 1.5px solid transparent;
+  user-select: none; -webkit-user-select: none;
+  -webkit-touch-callout: none; touch-action: manipulation;
+}
+.cal-avail-dot.mine { cursor: pointer; }
+.cal-avail-dot.mine:hover { transform: scale(1.15); }
+.cal-avail-dot.yes { background: rgba(61,186,110,0.35); color: #3dba6e; border-color: #3dba6e; }
+.cal-avail-dot.no  { background: rgba(232,64,64,0.35);  color: #ff6666; border-color: #e84040; }
+
+/* Size classes for 1-4 visible avatars */
+.cal-avail-zone[data-count="1"] .cal-avail-dot { width:20px; height:20px; font-size:0.65rem; }
+.cal-avail-zone[data-count="2"] .cal-avail-dot { width:18px; height:18px; font-size:0.6rem;  }
+.cal-avail-zone[data-count="3"] .cal-avail-dot { width:16px; height:16px; font-size:0.55rem; }
+.cal-avail-zone[data-count="4"] .cal-avail-dot { width:15px; height:15px; font-size:0.52rem; }
+
+/* ── DAY PANEL (slide-in from right) ── */
+.cal-day-panel {
+  position: fixed; top: 0; right: -420px; width: 420px; max-width: 100vw;
+  height: 100vh; z-index: 8000;
+  background: var(--surface);
+  border-left: 2px solid var(--accent2);
+  display: flex; flex-direction: column;
+  transition: right 0.3s cubic-bezier(.4,0,.2,1);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+}
+.cal-day-panel.open { right: 0; }
+
+.cal-panel-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--surface2);
+}
+.cal-panel-date {
+  flex: 1;
+}
+.cal-panel-date-day {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; color: var(--accent2); line-height: 1;
+}
+.cal-panel-date-full {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px;
+}
+.cal-panel-close {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 5px; padding: 6px 10px;
+  cursor: pointer; font-size: 0.9rem; transition: all 0.15s;
+  flex-shrink: 0;
+}
+.cal-panel-close:hover { border-color: var(--accent2); color: var(--accent2); }
+
+.cal-panel-body {
+  flex: 1; overflow-y: auto; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+/* My availability */
+.cal-my-avail {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px;
+}
+.cal-my-avail-title {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); margin-bottom: 8px;
+}
+.cal-avail-btns { display: flex; gap: 6px; }
+.cal-avail-btn {
+  flex: 1; padding: 8px 10px; border-radius: 6px;
+  font-family: 'Space Mono', monospace; font-size: 0.72rem;
+  font-weight: 700; letter-spacing: 0.06em;
+  border: 2px solid transparent; cursor: pointer;
+  transition: all 0.15s;
+}
+.cal-avail-btn.yes-btn {
+  background: rgba(61,186,110,0.15); color: #3dba6e;
+  border-color: rgba(61,186,110,0.4);
+}
+.cal-avail-btn.yes-btn:hover,
+.cal-avail-btn.yes-btn.active {
+  background: #3dba6e; color: var(--bg); border-color: #3dba6e;
+}
+.cal-avail-btn.no-btn {
+  background: rgba(232,64,64,0.15); color: #ff6666;
+  border-color: rgba(232,64,64,0.4);
+}
+.cal-avail-btn.no-btn:hover,
+.cal-avail-btn.no-btn.active {
+  background: #e84040; color: #fff; border-color: #e84040;
+}
+
+/* Band availability */
+.cal-band-avail { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.cal-band-avail-title {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); margin-bottom: 8px;
+}
+.cal-member-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cal-member-row:last-child { border-bottom: none; }
+.cal-member-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace; font-size: 0.62rem;
+  font-weight: 700; flex-shrink: 0; border: 2px solid transparent;
+}
+.cal-member-avatar.yes { background: rgba(61,186,110,0.2); color: #3dba6e; border-color: #3dba6e; }
+.cal-member-avatar.no  { background: rgba(232,64,64,0.2);  color: #ff6666; border-color: #e84040; }
+.cal-member-avatar.none { background: var(--dim); color: var(--muted); }
+.cal-member-info { flex: 1; min-width: 0; }
+.cal-member-name { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.82rem; color: var(--text); }
+.cal-member-role { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); }
+.cal-member-status { font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; }
+.cal-member-status.yes { color: #3dba6e; }
+.cal-member-status.no  { color: #ff6666; }
+.cal-member-status.none { color: var(--dim); }
+
+/* Events section */
+.cal-panel-events-title {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.cal-panel-events-title button {
+  margin-left: auto; font-family: 'Space Mono', monospace; font-size: 0.62rem;
+  padding: 4px 9px; border-radius: 4px; border: 1px solid var(--accent2);
+  background: transparent; color: var(--accent2); cursor: pointer;
+  transition: all 0.12s;
+}
+.cal-panel-events-title button:hover { background: rgba(196,95,58,0.15); }
+
+.cal-event-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+  border-left: 4px solid var(--dim);
+  position: relative;
+}
+.cal-event-card.ensayo   { border-left-color: #3dba6e; }
+.cal-event-card.concierto { border-left-color: #e84040; }
+.cal-event-card.otro     { border-left-color: #3a9fd4; }
+.cal-event-title {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.88rem;
+  font-weight: 600; color: var(--text); margin-bottom: 4px;
+}
+.cal-event-meta {
+  font-family: 'Space Mono', monospace; font-size: 0.62rem;
+  color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px;
+}
+.cal-event-meta span { display: flex; align-items: center; gap: 3px; }
+.cal-event-notes {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.75rem;
+  color: var(--muted); margin-top: 5px; font-style: italic;
+}
+.cal-event-actions {
+  display: flex; gap: 5px; margin-top: 8px;
+}
+.cal-event-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); cursor: pointer;
+  transition: all 0.12s;
+}
+.cal-event-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cal-event-btn.danger:hover { border-color: #e84040; color: #e84040; }
+.cal-setlist-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  color: var(--accent); padding: 3px 8px; border-radius: 4px;
+  border: 1px solid rgba(0,255,231,0.3); background: rgba(0,255,231,0.05);
+  cursor: pointer; transition: all 0.12s; text-decoration: none;
+}
+.cal-setlist-link:hover { background: rgba(0,255,231,0.12); }
+
+/* Conflict warning */
+.cal-conflict-warn {
+  background: rgba(232,64,64,0.12);
+  border: 1px solid rgba(232,64,64,0.4);
+  border-radius: 6px; padding: 8px 12px;
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.75rem;
+  color: #ff8888;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* ── EVENT FORM MODAL ── */
+.cal-form-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.85);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.cal-form-overlay.open { display: flex; }
+.cal-form-modal {
+  background: var(--surface); border: 1px solid var(--accent2);
+  border-radius: 12px; padding: 24px 22px;
+  width: 100%; max-width: 460px; max-height: 90vh;
+  display: flex; flex-direction: column; gap: 14px; overflow-y: auto;
+}
+.cal-form-modal h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem; color: var(--accent2);
+}
+.cal-form-row { display: flex; flex-direction: column; gap: 4px; }
+.cal-form-label {
+  font-family: 'Space Mono', monospace; font-size: 0.62rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+}
+.cal-form-input {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 12px; color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.88rem;
+  outline: none; width: 100%; transition: border-color 0.15s;
+}
+.cal-form-input:focus { border-color: var(--accent2); }
+.cal-form-select {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 12px; color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.88rem;
+  outline: none; width: 100%; cursor: pointer;
+  transition: border-color 0.15s; color-scheme: dark;
+}
+.cal-form-select:focus { border-color: var(--accent2); }
+.cal-form-row2 { display: flex; gap: 10px; }
+.cal-form-row2 .cal-form-row { flex: 1; }
+.cal-form-actions { display: flex; gap: 8px; margin-top: 4px; }
+.cal-form-actions .btn { flex: 1; text-align: center; justify-content: center; }
+
+/* Conflict banner inside form */
+.cal-form-conflict {
+  background: rgba(232,64,64,0.1); border: 1px solid rgba(232,64,64,0.35);
+  border-radius: 6px; padding: 8px 12px; display: none;
+  font-family: 'Space Mono', monospace; font-size: 0.65rem;
+  color: #ff8888; line-height: 1.5;
+}
+.cal-form-conflict.show { display: block; }
+
+/* Overlay background dim when panel open */
+.cal-overlay-dim {
+  position: fixed; inset: 0; z-index: 7999;
+  background: rgba(0,0,0,0.4);
+  display: none;
+}
+.cal-overlay-dim.open { display: block; }
+
+@media (max-width: 640px) {
+  .cal-cell { min-height: 72px; }
+  .cal-chip  { display: none; }
+  .cal-chips { display: none; }
+  .cal-day-panel { width: 100vw; }
+
+  .cal-cell-num { font-size: 0.82rem; padding: 5px 6px 2px; }
+  .cal-cell.today .cal-cell-num { width: 26px; height: 26px; font-size: 0.75rem; margin: 3px 5px 2px; }
+
+  .cal-day-name  { font-size: 0.68rem; padding: 6px 1px; }
+  .cal-nav-title { font-size: 1rem; }
+  .cal-nav-btn   { font-size: 0.75rem; padding: 6px 10px; }
+
+  .cal-ev-icons  { padding: 1px 4px 2px; }
+  .cal-ev-icon   { font-size: 0.8rem; }
+
+  .cal-avail-zone { min-height: 24px; padding: 2px 3px; }
+  .cal-avail-zone[data-count="1"] .cal-avail-dot { width:20px; height:20px; font-size:0.66rem; }
+  .cal-avail-zone[data-count="2"] .cal-avail-dot { width:18px; height:18px; font-size:0.6rem; }
+  .cal-avail-zone[data-count="3"] .cal-avail-dot { width:16px; height:16px; font-size:0.56rem; }
+  .cal-avail-zone[data-count="4"] .cal-avail-dot { width:15px; height:15px; font-size:0.52rem; }
+}
+</style>
+
+<!-- Calendar Screen HTML -->
+<div id="calendarScreen">
+  <div class="cal-header">
+    <h1>📅 Eventos</h1>
+    <span class="lib-user" id="calUserName"></span>
+    <button class="btn" onclick="closeCalendar()">🎶 Biblioteca</button>
+    <button class="btn" onclick="closeCalendarToSetlists()">🎭 Repertorios</button>
+    <button class="btn" onclick="doLogout()">Salir</button>
+  </div>
+  <div class="cal-nav">
+    <button class="cal-nav-btn" onclick="calPrevMonth()">‹ Anterior</button>
+    <span class="cal-nav-title" id="calMonthTitle">—</span>
+    <button class="cal-nav-btn" onclick="calNextMonth()">Siguiente ›</button>
+    <button class="cal-nav-btn cal-today-btn" onclick="calGoToday()">Hoy</button>
+  </div>
+  <div class="cal-legend">
+    <span class="cal-legend-item"><span class="cal-legend-dot cal-ev-ensayo"></span>🎸 Ensayo</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot cal-ev-concierto"></span>🎤 Concierto</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot cal-ev-otro"></span>📌 Otro</span>
+    <span style="margin-left:auto;font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);">
+      <span style="color:#3dba6e;font-weight:700;">●</span> puede
+      <span style="color:#e84040;font-weight:700;margin-left:6px;">●</span> no puede
+      <span style="color:var(--dim);font-weight:700;margin-left:6px;">●</span> sin responder
+    </span>
+  </div>
+  <div class="cal-body">
+    <div class="cal-grid" id="calGrid">
+      <div class="cal-day-name">Lun</div>
+      <div class="cal-day-name">Mar</div>
+      <div class="cal-day-name">Mié</div>
+      <div class="cal-day-name">Jue</div>
+      <div class="cal-day-name">Vie</div>
+      <div class="cal-day-name">Sáb</div>
+      <div class="cal-day-name">Dom</div>
+    </div>
+  </div>
+</div>
+
+<!-- Day panel overlay dim -->
+<div class="cal-overlay-dim" id="calOverlayDim" onclick="calCloseDayPanel()"></div>
+
+<!-- Day panel -->
+<div class="cal-day-panel" id="calDayPanel">
+  <div class="cal-panel-header">
+    <div class="cal-panel-date">
+      <div class="cal-panel-date-day" id="calPanelDay">—</div>
+      <div class="cal-panel-date-full" id="calPanelDateFull">—</div>
+    </div>
+    <button class="cal-panel-close" onclick="calCloseDayPanel()">✕</button>
+  </div>
+  <div class="cal-panel-body" id="calPanelBody">
+    <!-- Filled dynamically -->
+  </div>
+</div>
+
+<!-- Event form modal -->
+<div class="cal-form-overlay" id="calFormOverlay">
+  <div class="cal-form-modal">
+    <h3 id="calFormTitle">Nuevo evento</h3>
+    <input type="hidden" id="calFormEventId" value="" />
+
+    <div class="cal-form-row">
+      <label class="cal-form-label">Tipo *</label>
+      <select class="cal-form-select" id="calFormType" onchange="calFormCheckConflict()">
+        <option value="ensayo">🎸 Ensayo</option>
+        <option value="concierto">🎤 Concierto</option>
+        <option value="otro">📌 Otro</option>
+      </select>
+    </div>
+
+    <div class="cal-form-row">
+      <label class="cal-form-label">Título *</label>
+      <input class="cal-form-input" id="calFormName" placeholder="Ensayo local, Concierto verano..." />
+    </div>
+
+    <div class="cal-form-row2">
+      <div class="cal-form-row">
+        <label class="cal-form-label">Fecha *</label>
+        <input class="cal-form-input" type="date" id="calFormDate" onchange="calFormCheckConflict()" style="color-scheme:dark;" />
+      </div>
+      <div class="cal-form-row">
+        <label class="cal-form-label">Hora</label>
+        <input class="cal-form-input" type="time" id="calFormTime" style="color-scheme:dark;" />
+      </div>
+    </div>
+
+    <div class="cal-form-row">
+      <label class="cal-form-label">Lugar / Sala</label>
+      <input class="cal-form-input" id="calFormVenue" placeholder="Local de ensayo, Sala Caracol..." />
+    </div>
+
+    <div class="cal-form-row">
+      <label class="cal-form-label">Repertorio vinculado</label>
+      <select class="cal-form-select" id="calFormSetlist">
+        <option value="">— Sin repertorio —</option>
+      </select>
+    </div>
+
+    <div class="cal-form-row">
+      <label class="cal-form-label">Notas</label>
+      <textarea class="cal-form-input" id="calFormNotes" placeholder="Notas, cambios de hora, quién trae qué..." rows="4" style="resize:vertical;min-height:80px;line-height:1.5;font-family:'IBM Plex Sans',sans-serif;"></textarea>
+    </div>
+
+    <div class="cal-form-conflict" id="calFormConflict"></div>
+
+    <div class="cal-form-actions">
+      <button class="btn btn-primary" onclick="calSaveEvent()">✓ Guardar</button>
+      <button class="btn" onclick="calCloseForm()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CALENDAR MODULE
+// ══════════════════════════════════════════════════════════
+
+const CAL_MEMBERS = [
+  { key: 'marco',   name: 'Marco',   role: '🎸 Guitarra',  initials: 'MA' },
+  { key: 'juan',    name: 'Juan',    role: '🎸🎤 Voz/Guit', initials: 'JU' },
+  { key: 'hugo',    name: 'Hugo',    role: '🎸 Bajo',       initials: 'HU' },
+  { key: 'sergito', name: 'Sergito', role: '🥁 Batería',    initials: 'SE' },
+];
+
+let _calYear  = new Date().getFullYear();
+let _calMonth = new Date().getMonth(); // 0-based
+let _calEvents = [];       // from cal_events
+let _calAvail  = {};       // { "YYYY-MM-DD": { member_key: 'yes'|'no' } }
+let _calOpenDate = null;   // currently open day panel date string
+
+const _MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const _DAY_NAMES   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+
+// ── Swipe to change month ───────────────────────────────
+(function() {
+  let _tx = 0, _active = false;
+  function onStart(e) {
+    _tx = (e.touches ? e.touches[0] : e).clientX;
+    _active = true;
+  }
+  function onEnd(e) {
+    if (!_active) return;
+    _active = false;
+    const dx = (e.changedTouches ? e.changedTouches[0] : e).clientX - _tx;
+    if (Math.abs(dx) < 50) return; // min 50px
+    if (dx < 0) calNextMonth(); else calPrevMonth();
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const body = document.getElementById('calGrid');
+    const screen = document.getElementById('calendarScreen');
+    screen.addEventListener('touchstart', onStart, { passive: true });
+    screen.addEventListener('touchend',   onEnd,   { passive: true });
+  });
+})();
+
+// ── Navigation ──────────────────────────────────────────
+function showCalendar() {
+  window._immersiveDeactivate && window._immersiveDeactivate();
+  window._immersiveResetZoom  && window._immersiveResetZoom();
+  document.getElementById('libraryScreen').classList.remove('open');
+  document.getElementById('setlistScreen').style.display = 'none';
+  document.getElementById('calendarScreen').classList.add('open');
+  document.getElementById('calUserName').textContent =
+    _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || '';
+  _calRender();
+  _calLoadData();
+}
+
+function closeCalendar() {
+  document.getElementById('calendarScreen').classList.remove('open');
+  calCloseDayPanel();
+  showLibrary();
+}
+
+function closeCalendarToSetlists() {
+  document.getElementById('calendarScreen').classList.remove('open');
+  calCloseDayPanel();
+  showSetlists();
+}
+
+function calPrevMonth() {
+  _calMonth--;
+  if (_calMonth < 0) { _calMonth = 11; _calYear--; }
+  _calRender();
+}
+function calNextMonth() {
+  _calMonth++;
+  if (_calMonth > 11) { _calMonth = 0; _calYear++; }
+  _calRender();
+}
+function calGoToday() {
+  const now = new Date();
+  _calYear  = now.getFullYear();
+  _calMonth = now.getMonth();
+  _calRender();
+}
+
+// ── Load data ───────────────────────────────────────────
+async function _calLoadData() {
+  // Load events for ±1 month around current view
+  const from = new Date(_calYear, _calMonth - 1, 1).toISOString().slice(0,10);
+  const to   = new Date(_calYear, _calMonth + 2, 0).toISOString().slice(0,10);
+
+  const [evRes, avRes] = await Promise.all([
+    _sb.from('cal_events').select('*').gte('date', from).lte('date', to).order('date'),
+    _sb.from('cal_availability').select('*').gte('date', from).lte('date', to)
+  ]);
+
+  _calEvents = evRes.data || [];
+
+  // Build avail map: { 'YYYY-MM-DD': { member_key: 'yes'|'no' } }
+  _calAvail = {};
+  (avRes.data || []).forEach(row => {
+    if (!_calAvail[row.date]) _calAvail[row.date] = {};
+    _calAvail[row.date][row.member_key] = row.status;
+  });
+
+  _calRender();
+
+  // If a day panel is open, refresh it
+  if (_calOpenDate) _calOpenDayPanel(_calOpenDate);
+}
+
+// ── Render grid ─────────────────────────────────────────
+function _calRender() {
+  document.getElementById('calMonthTitle').textContent =
+    `${_MONTH_NAMES[_calMonth]} ${_calYear}`;
+
+  const grid  = document.getElementById('calGrid');
+  // Remove old cells (keep day-name headers = first 7 children)
+  while (grid.children.length > 7) grid.removeChild(grid.lastChild);
+
+  const today   = new Date();
+  const todayStr = _dateStr(today);
+
+  // First day of month (0=Sun..6=Sat) → shift to Mon=0
+  const firstDow = new Date(_calYear, _calMonth, 1).getDay();
+  const startOffset = (firstDow === 0) ? 6 : firstDow - 1; // Mon-based
+
+  const daysInMonth   = new Date(_calYear, _calMonth + 1, 0).getDate();
+  const daysInPrevMon = new Date(_calYear, _calMonth, 0).getDate();
+  const totalCells    = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+  for (let i = 0; i < totalCells; i++) {
+    let day, month, year, isOther;
+    if (i < startOffset) {
+      // prev month
+      day   = daysInPrevMon - startOffset + 1 + i;
+      month = _calMonth - 1;
+      year  = _calYear;
+      if (month < 0) { month = 11; year--; }
+      isOther = true;
+    } else if (i < startOffset + daysInMonth) {
+      day   = i - startOffset + 1;
+      month = _calMonth;
+      year  = _calYear;
+      isOther = false;
+    } else {
+      day   = i - startOffset - daysInMonth + 1;
+      month = _calMonth + 1;
+      year  = _calYear;
+      if (month > 11) { month = 0; year++; }
+      isOther = true;
+    }
+
+    const ds   = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dow  = new Date(year, month, day).getDay(); // 0=Sun
+    const isWeekend = dow === 0 || dow === 6;
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' +
+      (isOther ? ' other-month' : '') +
+      (ds === todayStr ? ' today' : '') +
+      (isWeekend ? ' weekend' : '');
+    cell.dataset.date = ds;
+
+    // ── TOP ZONE: día + iconos de evento → abre panel ──
+    const top = document.createElement('div');
+    top.className = 'cal-cell-top';
+    top.addEventListener('click', () => _calOpenDayPanel(ds));
+
+    const numEl = document.createElement('div');
+    numEl.className = 'cal-cell-num';
+    numEl.textContent = day;
+    top.appendChild(numEl);
+
+    // Event icons (emoji only, compact)
+    const dayEvents = _calEvents.filter(e => e.date === ds);
+    if (dayEvents.length) {
+      const isMobile = window.innerWidth <= 640;
+      if (isMobile) {
+        // Mobile: just emoji icons
+        const iconsRow = document.createElement('div');
+        iconsRow.className = 'cal-ev-icons';
+        dayEvents.slice(0, 4).forEach(ev => {
+          const ic = document.createElement('span');
+          ic.className = 'cal-ev-icon';
+          ic.textContent = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : '📌';
+          ic.title = ev.title || '';
+          iconsRow.appendChild(ic);
+        });
+        top.appendChild(iconsRow);
+      } else {
+        // Desktop: text chips
+        const chips = document.createElement('div');
+        chips.className = 'cal-chips';
+        dayEvents.slice(0, 3).forEach(ev => {
+          const chip = document.createElement('div');
+          chip.className = `cal-chip ${ev.type || 'otro'}`;
+          const icon = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : '📌';
+          chip.textContent = `${icon} ${ev.title || '—'}`;
+          chips.appendChild(chip);
+        });
+        if (dayEvents.length > 3) {
+          const more = document.createElement('div');
+          more.className = 'cal-chip otro';
+          more.textContent = `+${dayEvents.length-3} más`;
+          chips.appendChild(more);
+        }
+        top.appendChild(chips);
+      }
+    }
+    cell.appendChild(top);
+
+    // ── BOTTOM ZONE: disponibilidad → tap cicla tu estado ──
+    const zone = _calBuildAvailZone(ds);
+    cell.appendChild(zone);
+
+    grid.appendChild(cell);
+  }
+}
+
+// ── Day panel ────────────────────────────────────────────
+function _calOpenDayPanel(dateStr) {
+  _calOpenDate = dateStr;
+
+  const d    = new Date(dateStr + 'T12:00:00');
+  const day  = d.getDate();
+  const dow  = _DAY_NAMES[d.getDay()];
+  const monthName = _MONTH_NAMES[d.getMonth()];
+  const year = d.getFullYear();
+
+  document.getElementById('calPanelDay').textContent = day;
+  document.getElementById('calPanelDateFull').textContent =
+    `${dow}, ${monthName} ${year}`.toUpperCase();
+
+  _calRenderPanelBody(dateStr);
+
+  document.getElementById('calDayPanel').classList.add('open');
+  document.getElementById('calOverlayDim').classList.add('open');
+}
+
+function _calRenderPanelBody(dateStr) {
+  const body = document.getElementById('calPanelBody');
+  body.innerHTML = '';
+
+  const myKey = _calMyKey();
+
+  // ── My availability ──
+  const dayAvail = _calAvail[dateStr] || {};
+  const myStatus = dayAvail[myKey] || 'none';
+
+  const mySection = document.createElement('div');
+  mySection.className = 'cal-my-avail';
+  mySection.innerHTML = `
+    <div class="cal-my-avail-title">🙋 Mi disponibilidad</div>
+    <div class="cal-avail-btns">
+      <button class="cal-avail-btn yes-btn ${myStatus==='yes'?'active':''}"
+        onclick="calSetAvail('${dateStr}','${myKey}','yes')">✓ Puedo</button>
+      <button class="cal-avail-btn no-btn ${myStatus==='no'?'active':''}"
+        onclick="calSetAvail('${dateStr}','${myKey}','no')">✗ No puedo</button>
+    </div>`;
+  body.appendChild(mySection);
+
+  // ── Band availability ──
+  const bandSection = document.createElement('div');
+  bandSection.className = 'cal-band-avail';
+  let bandHtml = '<div class="cal-band-avail-title">👥 Disponibilidad del grupo</div>';
+  CAL_MEMBERS.forEach(m => {
+    const st = dayAvail[m.key] || 'none';
+    const stLabel = st==='yes' ? '✓ Puede' : st==='no' ? '✗ No puede' : '— Sin responder';
+    bandHtml += `
+      <div class="cal-member-row">
+        <div class="cal-member-avatar ${st}">${m.initials}</div>
+        <div class="cal-member-info">
+          <div class="cal-member-name">${m.name}</div>
+          <div class="cal-member-role">${m.role}</div>
+        </div>
+        <div class="cal-member-status ${st}">${stLabel}</div>
+      </div>`;
+  });
+  bandSection.innerHTML = bandHtml;
+  body.appendChild(bandSection);
+
+  // ── Events ──
+  const dayEvents = _calEvents.filter(e => e.date === dateStr);
+  const evSection = document.createElement('div');
+
+  const evTitle = document.createElement('div');
+  evTitle.className = 'cal-panel-events-title';
+  evTitle.innerHTML = `📋 Eventos del día <button onclick="calOpenForm(null,'${dateStr}')">＋ Añadir</button>`;
+  evSection.appendChild(evTitle);
+
+  if (dayEvents.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-family:"IBM Plex Sans",sans-serif;font-size:0.78rem;color:var(--muted);padding:8px 0;';
+    empty.textContent = 'No hay eventos este día.';
+    evSection.appendChild(empty);
+  } else {
+    dayEvents.forEach(ev => {
+      const card = document.createElement('div');
+      card.className = `cal-event-card ${ev.type||'otro'}`;
+      const icon = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : '📌';
+      const typeLabel = ev.type==='ensayo' ? 'Ensayo' : ev.type==='concierto' ? 'Concierto' : 'Otro';
+
+      // Check conflicts
+      const noCount = CAL_MEMBERS.filter(m => (dayAvail[m.key]||'none')==='no').length;
+      const conflictHtml = (ev.type==='ensayo' || ev.type==='concierto') && noCount > 0
+        ? `<div class="cal-conflict-warn" style="margin-top:8px;font-size:0.7rem;">
+            ⚠️ ${noCount} miembro${noCount>1?'s':''} no puede${noCount>1?'n':''} este día
+           </div>` : '';
+
+      // Setlist link
+      let setlistHtml = '';
+      if (ev.setlist_id) {
+        setlistHtml = `<a class="cal-setlist-link" onclick="calOpenLinkedSetlist('${ev.setlist_id}')">
+          🎭 Ver repertorio
+        </a>`;
+      }
+
+      card.innerHTML = `
+        <div class="cal-event-title">${icon} ${ev.title||'—'}</div>
+        <div class="cal-event-meta">
+          <span>🏷 ${typeLabel}</span>
+          ${ev.time ? `<span>🕐 ${ev.time.slice(0,5)}</span>` : ''}
+          ${ev.venue ? `<span>📍 ${ev.venue}</span>` : ''}
+        </div>
+        ${ev.notes ? `<div class="cal-event-notes" style="white-space:pre-wrap;">${ev.notes}</div>` : ''}
+        ${conflictHtml}
+        <div class="cal-event-actions">
+          <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
+          <button class="cal-event-btn danger" onclick="calDeleteEvent('${ev.id}')">🗑</button>
+          ${setlistHtml}
+        </div>`;
+      evSection.appendChild(card);
+    });
+  }
+  body.appendChild(evSection);
+}
+
+function calCloseDayPanel() {
+  _calOpenDate = null;
+  document.getElementById('calDayPanel').classList.remove('open');
+  document.getElementById('calOverlayDim').classList.remove('open');
+}
+
+// ── Availability ─────────────────────────────────────────
+async function calSetAvail(dateStr, memberKey, status) {
+  if (!_currentUser) return;
+
+  // Upsert
+  const { error } = await _sb.from('cal_availability').upsert({
+    date: dateStr,
+    member_key: memberKey,
+    member_name: CAL_MEMBERS.find(m=>m.key===memberKey)?.name || memberKey,
+    status,
+    updated_by: _currentUser._displayName || _currentUser.email?.replace('@btb.com',''),
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'date,member_key' });
+
+  if (error) { console.error('Availability error:', error); return; }
+
+  // Update local cache
+  if (!_calAvail[dateStr]) _calAvail[dateStr] = {};
+  _calAvail[dateStr][memberKey] = status;
+
+  // Re-render grid cell and panel
+  _calRenderCell(dateStr);
+  if (_calOpenDate === dateStr) _calRenderPanelBody(dateStr);
+}
+
+// Build the bottom availability zone for a date
+function _calBuildAvailZone(dateStr) {
+  const myKey   = _calMyKey();
+  const dayAvail = _calAvail[dateStr] || {};
+
+  // Only show members who have responded (yes/no) + mine always shown if set
+  const visible = CAL_MEMBERS.filter(m => dayAvail[m.key] === 'yes' || dayAvail[m.key] === 'no');
+  const count   = visible.length;
+
+  const zone = document.createElement('div');
+  zone.className = 'cal-avail-zone';
+  zone.dataset.date = dateStr;
+  zone.dataset.count = count || 1; // min 1 for sizing
+
+  // Tap on empty zone = toggle my status
+  zone.addEventListener('click', e => {
+    e.stopPropagation();
+    calTapAvail(dateStr);
+  });
+
+  visible.forEach(m => {
+    const status = dayAvail[m.key];
+    const dot = document.createElement('div');
+    dot.className = `cal-avail-dot ${status}` + (m.key === myKey ? ' mine' : '');
+    dot.textContent = m.initials.charAt(0);
+    dot.title = `${m.name}: ${status==='yes'?'✓ puede':'✗ no puede'}`;
+    if (m.key === myKey) {
+      dot.addEventListener('click', e => { e.stopPropagation(); calTapAvail(dateStr); });
+    }
+    zone.appendChild(dot);
+  });
+
+  return zone;
+}
+
+function _calRenderCell(dateStr) {
+  const cell = document.querySelector(`[data-date="${dateStr}"]`);
+  if (!cell) return;
+  // Replace existing avail zone
+  const oldZone = cell.querySelector('.cal-avail-zone');
+  const newZone = _calBuildAvailZone(dateStr);
+  if (oldZone) cell.replaceChild(newZone, oldZone);
+  else cell.appendChild(newZone);
+}
+
+// Returns the member key for the logged-in user
+function _calMyKey() {
+  const me = (_currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || '').toLowerCase().trim();
+  const m = CAL_MEMBERS.find(m => m.key === me) ||
+            CAL_MEMBERS.find(m => m.name.toLowerCase() === me);
+  return m?.key || me;
+}
+
+// One-tap cycle: none→yes, yes→no, no→delete row (none)
+async function calTapAvail(dateStr) {
+  const myKey = _calMyKey();
+  const current = (_calAvail[dateStr] || {})[myKey] || 'none';
+  let next;
+  if (current === 'none') next = 'yes';
+  else if (current === 'yes') next = 'no';
+  else next = null; // delete → grey again
+
+  if (next) {
+    const { error } = await _sb.from('cal_availability').upsert({
+      date: dateStr, member_key: myKey,
+      member_name: CAL_MEMBERS.find(m=>m.key===myKey)?.name || myKey,
+      status: next,
+      updated_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'date,member_key' });
+    if (error) { console.error(error); return; }
+    if (!_calAvail[dateStr]) _calAvail[dateStr] = {};
+    _calAvail[dateStr][myKey] = next;
+  } else {
+    // Delete row
+    await _sb.from('cal_availability').delete().match({ date: dateStr, member_key: myKey });
+    if (_calAvail[dateStr]) delete _calAvail[dateStr][myKey];
+  }
+
+  _calRenderCell(dateStr);
+  if (_calOpenDate === dateStr) _calRenderPanelBody(dateStr);
+}
+
+// ── Event form ───────────────────────────────────────────
+let _calFormDate = null;
+
+async function calOpenForm(eventId, dateStr) {
+  // Populate setlist dropdown
+  const sel = document.getElementById('calFormSetlist');
+  sel.innerHTML = '<option value="">— Sin repertorio —</option>';
+  const { data: sls } = await _sb.from('setlists').select('id, name').order('name');
+  (sls||[]).forEach(sl => {
+    const opt = document.createElement('option');
+    opt.value = sl.id; opt.textContent = sl.name;
+    sel.appendChild(opt);
+  });
+
+  if (eventId) {
+    // Edit mode
+    const ev = _calEvents.find(e => e.id === eventId);
+    if (!ev) return;
+    document.getElementById('calFormTitle').textContent = 'Editar evento';
+    document.getElementById('calFormEventId').value = ev.id;
+    document.getElementById('calFormType').value    = ev.type   || 'otro';
+    document.getElementById('calFormName').value    = ev.title  || '';
+    document.getElementById('calFormDate').value    = ev.date   || '';
+    document.getElementById('calFormTime').value    = ev.time ? ev.time.slice(0,5) : '';
+    document.getElementById('calFormVenue').value   = ev.venue  || '';
+    document.getElementById('calFormNotes').value   = ev.notes  || '';
+    document.getElementById('calFormSetlist').value = ev.setlist_id || '';
+    _calFormDate = ev.date;
+  } else {
+    // New mode
+    document.getElementById('calFormTitle').textContent = 'Nuevo evento';
+    document.getElementById('calFormEventId').value = '';
+    document.getElementById('calFormType').value    = 'ensayo';
+    document.getElementById('calFormName').value    = '';
+    document.getElementById('calFormDate').value    = dateStr || '';
+    document.getElementById('calFormTime').value    = '';
+    document.getElementById('calFormVenue').value   = '';
+    document.getElementById('calFormNotes').value   = '';
+    document.getElementById('calFormSetlist').value = '';
+    _calFormDate = dateStr || null;
+  }
+  document.getElementById('calFormConflict').classList.remove('show');
+  document.getElementById('calFormOverlay').classList.add('open');
+  calFormCheckConflict();
+}
+
+function calCloseForm() {
+  document.getElementById('calFormOverlay').classList.remove('open');
+}
+
+function calFormCheckConflict() {
+  const dateStr = document.getElementById('calFormDate').value;
+  const type    = document.getElementById('calFormType').value;
+  const conflict = document.getElementById('calFormConflict');
+
+  if (!dateStr || (type !== 'ensayo' && type !== 'concierto')) {
+    conflict.classList.remove('show'); return;
+  }
+  const dayAvail = _calAvail[dateStr] || {};
+  const unavailable = CAL_MEMBERS.filter(m => (dayAvail[m.key]||'none')==='no');
+  if (unavailable.length > 0) {
+    conflict.textContent = `⚠️ ${unavailable.map(m=>m.name).join(', ')} no puede${unavailable.length>1?'n':''} este día`;
+    conflict.classList.add('show');
+  } else {
+    conflict.classList.remove('show');
+  }
+}
+
+async function calSaveEvent() {
+  const id       = document.getElementById('calFormEventId').value;
+  const type     = document.getElementById('calFormType').value;
+  const title    = document.getElementById('calFormName').value.trim();
+  const date     = document.getElementById('calFormDate').value;
+  const time     = document.getElementById('calFormTime').value || null;
+  const venue    = document.getElementById('calFormVenue').value.trim() || null;
+  const notes    = document.getElementById('calFormNotes').value.trim() || null;
+  const setlistId = document.getElementById('calFormSetlist').value || null;
+
+  if (!title || !date) { alert('Título y fecha son obligatorios.'); return; }
+
+  const payload = {
+    type, title, date, time, venue, notes,
+    setlist_id: setlistId,
+    created_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
+  };
+
+  let error;
+  if (id) {
+    ({ error } = await _sb.from('cal_events').update(payload).eq('id', id));
+  } else {
+    payload.created_at = new Date().toISOString();
+    ({ error } = await _sb.from('cal_events').insert(payload));
+  }
+
+  if (error) { alert('Error al guardar: ' + error.message); return; }
+
+  calCloseForm();
+  await _calLoadData();
+  if (_calOpenDate) _calOpenDayPanel(_calOpenDate);
+}
+
+async function calDeleteEvent(eventId) {
+  if (!confirm('¿Eliminar este evento?')) return;
+  const { error } = await _sb.from('cal_events').delete().eq('id', eventId);
+  if (error) { alert('Error al eliminar.'); return; }
+  await _calLoadData();
+  if (_calOpenDate) _calRenderPanelBody(_calOpenDate);
+}
+
+// ── Linked setlist ───────────────────────────────────────
+async function calOpenLinkedSetlist(setlistId) {
+  calCloseDayPanel();
+  document.getElementById('calendarScreen').classList.remove('open');
+  // Open setlists and then open the specific one
+  showSetlists();
+  // Wait for setlists to load, then open the specific one
+  setTimeout(async () => {
+    const { data } = await _sb.from('setlists').select('*').eq('id', setlistId).single();
+    if (data) openSetlistById && openSetlistById(data);
+  }, 600);
+}
+
+// ── Helper ───────────────────────────────────────────────
+function _dateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+</script>
 
 </body>
 </html>
