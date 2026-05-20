@@ -1115,6 +1115,7 @@ body.has-song-player { padding-bottom: 110px !important; }
 }
 body.editor-open #songPlayerBar { display: flex; }
 body.readonly #songPlayerBar { display: none !important; }
+body.readonly #songPlayerBar.has-audio { display: flex !important; }
 /* Borde accent solo cuando hay audio cargado */
 #songPlayerBar.has-audio { border-top-color: var(--accent); }
 /* En modo drum editor la barra se muestra dentro del modal, no fija */
@@ -10183,6 +10184,29 @@ document.addEventListener('DOMContentLoaded', function() {
 [data-theme="bluered"] .cal-cell.today { border-color: #3a9fd4 !important; }
 .cal-cell.other-month { background: var(--bg); opacity: 0.6; }
 .cal-cell.other-month .cal-cell-num { color: var(--dim); }
+
+/* ── Semáforo de ensayo ── */
+/* 2 verdes → borde amarillo */
+.cal-cell.rehearsal-possible {
+  border-color: #e8c840 !important;
+  box-shadow: 0 0 0 1px rgba(232,200,64,0.25);
+}
+/* 3 verdes → borde verde */
+.cal-cell.rehearsal-likely {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 0 1px rgba(76,175,125,0.3);
+}
+/* 4 verdes → borde verde parpadeante */
+.cal-cell.rehearsal-full {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 0 1px rgba(76,175,125,0.4);
+  animation: rehearsal-pulse 1.8s ease-in-out infinite;
+}
+@keyframes rehearsal-pulse {
+  0%   { box-shadow: 0 0 0 1px rgba(76,175,125,0.2),  0 0 6px  rgba(76,175,125,0.2);  border-color: var(--green); }
+  50%  { box-shadow: 0 0 0 2px rgba(76,175,125,0.7),  0 0 14px rgba(76,175,125,0.5);  border-color: var(--green); }
+  100% { box-shadow: 0 0 0 1px rgba(76,175,125,0.2),  0 0 6px  rgba(76,175,125,0.2);  border-color: var(--green); }
+}
 .cal-cell.weekend .cal-cell-num { color: var(--accent2); }
 
 /* ── TOP ZONE: día + eventos → abre panel ── */
@@ -10854,6 +10878,22 @@ function _calRender() {
     const zone = _calBuildAvailZone(ds);
     cell.appendChild(zone);
 
+    // ── SEMÁFORO DE ENSAYO ──────────────────────────────────────────
+    // Muestra el potencial de ensayo según disponibilidades confirmadas.
+    // HARDCODED a 4 miembros — cuando sea multibanda leer CAL_MEMBERS.length
+    // o un campo de configuración por banda.
+    const CAL_BAND_SIZE = 4;
+    const isPast    = ds < todayStr;
+    const hasEvent  = _calEvents.some(e => e.date === ds);
+    if (!isPast && !hasEvent && !isOther) {
+      const dayAvail  = _calAvail[ds] || {};
+      const yesCount  = CAL_MEMBERS.filter(m => dayAvail[m.key] === 'yes').length;
+      if      (yesCount >= CAL_BAND_SIZE) cell.classList.add('rehearsal-full');
+      else if (yesCount >= 3)             cell.classList.add('rehearsal-likely');
+      else if (yesCount >= 2)             cell.classList.add('rehearsal-possible');
+    }
+    // ───────────────────────────────────────────────────────────────
+
     grid.appendChild(cell);
   }
 }
@@ -11043,13 +11083,28 @@ function _calBuildAvailZone(dateStr) {
 }
 
 function _calRenderCell(dateStr) {
-  const cell = document.querySelector(`[data-date="${dateStr}"]`);
+  const cell = document.querySelector(`.cal-cell[data-date="${dateStr}"]`);
   if (!cell) return;
   // Replace existing avail zone
   const oldZone = cell.querySelector('.cal-avail-zone');
   const newZone = _calBuildAvailZone(dateStr);
   if (oldZone) cell.replaceChild(newZone, oldZone);
   else cell.appendChild(newZone);
+
+  // Actualizar semáforo de ensayo en tiempo real
+  cell.classList.remove('rehearsal-possible', 'rehearsal-likely', 'rehearsal-full');
+  const todayStr  = new Date().toISOString().slice(0,10);
+  const isPast    = dateStr < todayStr;
+  const hasEvent  = _calEvents.some(e => e.date === dateStr);
+  const isOther   = cell.classList.contains('other-month');
+  if (!isPast && !hasEvent && !isOther) {
+    const CAL_BAND_SIZE = 4; // hardcoded — ver comentario en calRenderMonth para escalar
+    const dayAvail  = _calAvail[dateStr] || {};
+    const yesCount  = CAL_MEMBERS.filter(m => dayAvail[m.key] === 'yes').length;
+    if      (yesCount >= CAL_BAND_SIZE) cell.classList.add('rehearsal-full');
+    else if (yesCount >= 3)             cell.classList.add('rehearsal-likely');
+    else if (yesCount >= 2)             cell.classList.add('rehearsal-possible');
+  }
 }
 
 // Returns the member key for the logged-in user
