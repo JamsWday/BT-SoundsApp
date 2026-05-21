@@ -1350,6 +1350,7 @@ body.readonly #eagleToggles,
 body.readonly #btnEagleSections,
 body.readonly #btnEagleComments { pointer-events: all; }
 body.readonly .section-name-input { pointer-events: none; }
+body.readonly .section-lyric-input { pointer-events: none; border-color: transparent !important; }
 body.readonly .section-lyric-input:placeholder-shown { display: none; }
 body.readonly .repeat-input { pointer-events: none; border-color: transparent !important; background: transparent !important; }
 body.readonly .comment-input { pointer-events: none; border-color: transparent !important; }
@@ -1369,7 +1370,8 @@ body.readonly .comment-inst-btn { pointer-events: none; opacity: 0.4; }
 body.readonly .comment-input { display: block; }
 body.readonly .comment-input::placeholder { color: transparent; }
 
-/* En eagle+Tocar: ocultar comment-row si el input está vacío */
+/* En Tocar (normal y eagle): ocultar comment-row si el input está vacío */
+body.readonly .comment-row:has(.comment-input:placeholder-shown) { display: none !important; }
 body.eagle-mode.readonly .comment-row:has(.comment-input:placeholder-shown) { display: none !important; }
 
 /* Right side: only show repeat badge, hide controls */
@@ -2921,6 +2923,8 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
 .inst-pill:hover { border-color: var(--accent); color: var(--accent); }
 .inst-pill.active { font-weight: 700; }
 .inst-pill-all.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+/* Modo solo-secciones: ningún instrumento activo */
+.inst-pill-all.sections-only { border-style: dashed; border-color: var(--muted); color: var(--muted); background: transparent; font-weight: 700; opacity: 0.75; }
 
 /* Borde de color constante por instrumento (activo e inactivo) */
 .inst-pill-guit1 { border-color: var(--inst-guit1); }
@@ -3289,14 +3293,77 @@ body.readonly #cmReturnBtn[style*="display: flex"] { display: flex !important; }
 body.readonly .mhdr-row2 > #btnReadonly { display: none !important; }
 body.readonly #btnReadonlyPlay { display: inline-flex !important; }
 
-/* Sección activa resaltada */
+/* Sección activa resaltada — visible en todos los temas, especialmente oscuros */
 .section-block.sync-active {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 2px rgba(0,255,231,0.2);
-  transition: border-color 0.3s, box-shadow 0.3s;
+  border-width: 2px !important;
+  box-shadow:
+    0 0 0 3px rgba(0,255,231,0.35),
+    0 0 18px rgba(0,255,231,0.18),
+    inset 0 0 0 1px rgba(0,255,231,0.12);
+  background: rgba(0,255,231,0.06) !important;
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
 }
-[data-theme="light"]   .section-block.sync-active { box-shadow: 0 0 0 2px rgba(176,122,16,0.2); }
-[data-theme="bluered"] .section-block.sync-active { box-shadow: 0 0 0 2px rgba(58,159,212,0.2); }
+
+/* El encabezado de la sección activa también se ilumina */
+.section-block.sync-active .section-header {
+  background: rgba(0,255,231,0.10) !important;
+  border-bottom-color: rgba(0,255,231,0.35) !important;
+}
+.section-block.sync-active .section-name-input {
+  color: var(--accent) !important;
+  border-color: rgba(0,255,231,0.55) !important;
+  background: rgba(0,255,231,0.12) !important;
+  text-shadow: 0 0 8px rgba(0,255,231,0.5);
+}
+
+/* Tema claro */
+[data-theme="light"] .section-block.sync-active {
+  box-shadow:
+    0 0 0 3px rgba(176,122,16,0.4),
+    0 0 12px rgba(176,122,16,0.15);
+  background: rgba(176,122,16,0.06) !important;
+}
+[data-theme="light"] .section-block.sync-active .section-header {
+  background: rgba(176,122,16,0.09) !important;
+  border-bottom-color: rgba(176,122,16,0.35) !important;
+}
+[data-theme="light"] .section-block.sync-active .section-name-input {
+  color: #b07a10 !important;
+  border-color: rgba(176,122,16,0.5) !important;
+  background: rgba(176,122,16,0.1) !important;
+  text-shadow: none;
+}
+
+/* Tema azul/granate */
+[data-theme="bluered"] .section-block.sync-active {
+  box-shadow:
+    0 0 0 3px rgba(58,159,212,0.45),
+    0 0 18px rgba(58,159,212,0.2),
+    inset 0 0 0 1px rgba(58,159,212,0.15);
+  background: rgba(58,159,212,0.07) !important;
+}
+[data-theme="bluered"] .section-block.sync-active .section-header {
+  background: rgba(58,159,212,0.12) !important;
+  border-bottom-color: rgba(58,159,212,0.4) !important;
+}
+[data-theme="bluered"] .section-block.sync-active .section-name-input {
+  color: #3a9fd4 !important;
+  border-color: rgba(58,159,212,0.55) !important;
+  background: rgba(58,159,212,0.12) !important;
+  text-shadow: 0 0 8px rgba(58,159,212,0.4);
+}
+
+/* En modo Tocar, las secciones NO activas se atenúan ligeramente para que
+   la activa destaque aún más — solo en temas oscuros */
+body.readonly .section-block:not(.sync-active) {
+  opacity: 0.72;
+  transition: opacity 0.3s;
+}
+body.readonly .section-block.sync-active {
+  opacity: 1 !important;
+}
+[data-theme="light"] body.readonly .section-block:not(.sync-active) { opacity: 0.80; }
 .calib-overlay {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(0,0,0,0.88);
@@ -4713,10 +4780,30 @@ function render() {
   // Apply active instrument filter after render
   applyInstFilter();
 
-  // 🦅 Eagle mode: re-apply colors and section click bindings after render
+  // 🦅 Eagle mode: re-apply colors, labels and section click bindings after render
   if (typeof _eagleOn !== 'undefined' && _eagleOn) {
     _eagleApplySectionColors();
     _eagleBindSections();
+    // En editar: regenerar los labels de sección (siempre visibles)
+    if (!_readonly && _eagleSections) {
+      document.querySelectorAll('.eagle-sec-label-global').forEach(el => el.remove());
+      document.querySelectorAll('.section-block[data-secid]').forEach(block => {
+        if (document.getElementById('eagleSecLabel-' + block.dataset.secid)) return;
+        const sec   = songData.sections.find(s => s.id === block.dataset.secid);
+        const color = getSectionColor(sec?.name) || 'var(--accent2)';
+        const tag   = document.createElement('div');
+        tag.id = 'eagleSecLabel-' + block.dataset.secid;
+        tag.className = 'eagle-sec-label-global';
+        tag.textContent = sec?.name || '';
+        tag.style.cssText = `
+          font-family:'Space Mono',monospace;font-size:0.65rem;font-weight:700;
+          letter-spacing:0.12em;text-transform:uppercase;
+          color:${color};padding:2px 8px 2px 10px;
+          pointer-events:none;user-select:none;
+        `;
+        block.insertBefore(tag, block.firstChild);
+      });
+    }
   }
 }
 
@@ -4737,21 +4824,32 @@ let _activeInst = new Set(["all"]);
 
 function toggleInstFilter(inst) {
   if (inst === "all") {
-    _activeInst = new Set(["all"]);
+    // Si "Todos" ya está activo → modo solo-secciones (vacío)
+    // Si está en modo solo-secciones o con filtros individuales → volver a Todos
+    if (_activeInst.has("all")) {
+      _activeInst = new Set(); // solo secciones
+    } else {
+      _activeInst = new Set(["all"]); // volver a mostrar todo
+    }
   } else {
     _activeInst.delete("all");
     if (_activeInst.has(inst)) {
       _activeInst.delete(inst);
-      if (_activeInst.size === 0) _activeInst = new Set(["all"]);
+      // Si queda vacío → modo solo-secciones (NO vuelve a "all" automáticamente)
     } else {
       _activeInst.add(inst);
     }
   }
   // Update pill UI
+  const allPill = document.querySelector(".inst-pill-all");
   document.querySelectorAll(".inst-pill").forEach(pill => {
     const key = pill.dataset.inst;
     pill.classList.toggle("active", _activeInst.has(key));
   });
+  // Modo solo-secciones: pill "Todos" con estilo especial
+  if (allPill) {
+    allPill.classList.toggle("sections-only", _activeInst.size === 0);
+  }
   applyInstFilter();
 }
 
@@ -4774,6 +4872,7 @@ function applyInstFilter() {
 // ═══════════════════════════════════════════════
 function _visibleRows(sec) {
   if (_activeInst.has("all")) return sec.rows;
+  if (_activeInst.size === 0) return []; // modo solo-secciones
   return sec.rows.filter(row => _activeInst.has(row.instrument || "guit1"));
 }
 
@@ -9483,10 +9582,13 @@ body.eagle-mode .section-block.eagle-active .btn-icon {
 }
 
 /* Ocultar elementos verbosos del header incluso cuando está activo */
-body.eagle-mode .section-block.eagle-active .section-lyric-input { display: none; }
+/* body.eagle-mode .section-block.eagle-active .section-lyric-input { display: none; } */
+/* Lyric visible cuando la sección está activa en eagle mode */
+body.eagle-mode .section-block.eagle-active .section-lyric-input { display: inline-block; }
 body.eagle-mode .section-block.eagle-active .drag-handle          { font-size: 0.7rem; }
 body.eagle-mode .section-block.eagle-active .collapse-arrow       { display: none; }
-
+/* Empujar botones a la derecha (el lyricIn ya no actúa de espaciador) */
+body.eagle-mode .section-block.eagle-active .audio-btn.btn-icon   { margin-left: auto; }
 /* Bars area: sin padding lateral, sin gap */
 body.eagle-mode .bars-area {
   padding: 1px 0 1px 6px;
@@ -9870,10 +9972,35 @@ function toggleEagleMode() {
     btn.title = 'Modo Águila activo — pulsa para desactivar';
     toggles.style.display = 'flex';
 
-    _eagleSections = false;
     _eagleComments = false;
     document.body.classList.remove('eagle-no-sections', 'eagle-comments');
-    document.body.classList.add('eagle-no-sections');
+
+    if (_readonly) {
+      // Tocar: secciones OFF por defecto (usuario las activa con botón)
+      _eagleSections = false;
+      document.body.classList.add('eagle-no-sections');
+    } else {
+      // Editar: secciones siempre visibles, sin botón
+      _eagleSections = true;
+      document.querySelectorAll('.eagle-sec-label-global').forEach(el => el.remove());
+      document.querySelectorAll('.section-block[data-secid]').forEach(block => {
+        if (document.getElementById('eagleSecLabel-' + block.dataset.secid)) return;
+        const sec   = songData.sections.find(s => s.id === block.dataset.secid);
+        const color = getSectionColor(sec?.name) || 'var(--accent2)';
+        const tag   = document.createElement('div');
+        tag.id = 'eagleSecLabel-' + block.dataset.secid;
+        tag.className = 'eagle-sec-label-global';
+        tag.textContent = sec?.name || '';
+        tag.style.cssText = `
+          font-family:'Space Mono',monospace;font-size:0.65rem;font-weight:700;
+          letter-spacing:0.12em;text-transform:uppercase;
+          color:${color};padding:2px 8px 2px 10px;
+          pointer-events:none;user-select:none;
+        `;
+        block.insertBefore(tag, block.firstChild);
+      });
+    }
+
     _eagleUpdateToggleBtns();
     _eagleApplySectionColors();
     _eagleBindSections();
