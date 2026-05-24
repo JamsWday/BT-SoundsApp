@@ -726,7 +726,8 @@ body {
   border-radius: 8px;
   padding: 12px 14px;
   z-index: 9999;
-  min-width: 220px;
+  min-width: 280px;
+  max-width: 320px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.8);
 }
 .chord-popup.open { display: block; }
@@ -752,6 +753,120 @@ body {
 }
 .chord-popup input[type="text"]:focus { border-color: var(--accent); }
 .popup-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+/* ── INPUT WRAPPER (for dropdown positioning) ── */
+.popup-input-wrap { position: relative; }
+
+/* ── AUTOCOMPLETE DROPDOWN ── */
+.chord-autocomplete {
+  position: absolute;
+  left: 0; right: 0;
+  top: calc(100% + 2px);
+  background: #12121e;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  z-index: 10001;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.8);
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+.chord-autocomplete:empty { display: none; }
+.ac-group-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 6px 10px 3px;
+  border-top: 1px solid #2a2a3a;
+}
+.ac-group-label:first-child { border-top: none; }
+.ac-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.ac-item:hover, .ac-item.ac-active {
+  background: rgba(255,255,255,0.07);
+  color: var(--accent);
+}
+.ac-item-name { font-weight: 700; flex: 0 0 auto; min-width: 52px; }
+.ac-item-desc { font-size: 0.62rem; color: var(--dim); flex: 1; }
+
+/* ── HARMONIC SUGGESTIONS ── */
+.chord-suggestions {
+  margin-top: 9px;
+  max-height: 130px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+  position: relative;
+  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}
+.chord-suggestions.no-overflow {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+.sug-header {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sug-header::after { content:''; flex:1; height:1px; background:#2a2a3a; }
+.sug-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sug-chip {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.13s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.sug-chip:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
+.sug-chip.type-key     { background:rgba(0,255,231,0.08);  border-color:rgba(0,255,231,0.25);  color:#00ffe7; }
+.sug-chip.type-fifth   { background:rgba(57,255,20,0.08);  border-color:rgba(57,255,20,0.25);  color:#39ff14; }
+.sug-chip.type-rel     { background:rgba(255,45,120,0.08); border-color:rgba(255,45,120,0.3);  color:#ff2d78; }
+.sug-chip.type-cadence { background:rgba(255,200,0,0.08);  border-color:rgba(255,200,0,0.25);  color:#ffc800; }
+.sug-chip.type-jazz    { background:rgba(180,100,255,0.1); border-color:rgba(180,100,255,0.3); color:#b464ff; }
+.sug-chip.type-flam    { background:rgba(255,100,30,0.1);  border-color:rgba(255,100,30,0.3);  color:#ff641e; }
+.sug-chip.type-rock    { background:rgba(255,60,60,0.1);   border-color:rgba(255,60,60,0.3);   color:#ff3c3c; }
+.sug-chip-icon { font-size:0.7rem; opacity:0.8; }
+
+[data-theme="light"] .chord-autocomplete { background:#fff; border-color:#b07a10; }
+[data-theme="light"] .ac-group-label { color:#b0b0b8; border-top-color:#e8e8e0; }
+[data-theme="light"] .ac-item { color:#1a1a20; }
+[data-theme="light"] .ac-item:hover,[data-theme="light"] .ac-item.ac-active { background:rgba(176,122,16,0.08); color:#b07a10; }
+[data-theme="light"] .ac-item-desc { color:#b0b0b8; }
+[data-theme="light"] .chord-suggestions .sug-header { color:#b0b0b8; }
+[data-theme="light"] .chord-suggestions .sug-header::after { background:#e0e0d8; }
+[data-theme="light"] .sug-chip.type-key     { background:rgba(176,122,16,0.1); border-color:rgba(176,122,16,0.3); color:#8a5c00; }
+[data-theme="light"] .sug-chip.type-fifth   { background:rgba(46,139,87,0.1);  border-color:rgba(46,139,87,0.3);  color:#1a6b3a; }
+[data-theme="light"] .sug-chip.type-rel     { background:rgba(192,64,26,0.1);  border-color:rgba(192,64,26,0.3);  color:#c0401a; }
+[data-theme="light"] .sug-chip.type-cadence { background:rgba(180,130,0,0.1);  border-color:rgba(180,130,0,0.3);  color:#7a5800; }
+[data-theme="light"] .sug-chip.type-jazz    { background:rgba(120,60,200,0.1); border-color:rgba(120,60,200,0.3); color:#7030c0; }
+[data-theme="light"] .sug-chip.type-flam    { background:rgba(200,80,20,0.1);  border-color:rgba(200,80,20,0.3);  color:#b04010; }
+[data-theme="light"] .sug-chip.type-rock    { background:rgba(200,40,40,0.1);  border-color:rgba(200,40,40,0.3);  color:#a02020; }
 .pbtn {
   flex: 1;
   padding: 5px 8px;
@@ -1343,7 +1458,7 @@ body.readonly .artist-input,
 body.readonly .meta-input { pointer-events: none; border-color: transparent !important; }
 body.readonly #songKeyBar { pointer-events: none; }
 body.readonly #songKeyBar > div { background: transparent; border-color: transparent; padding-left: 0; }
-body.readonly #songKey { color: var(--accent) !important; font-size: 0.85rem; letter-spacing: 0.08em; }
+body.readonly #songKeyPill { pointer-events: none; font-size: 0.85rem; letter-spacing: 0.08em; border-color: transparent; background: transparent; }
 /* Eagle button and toggles must stay clickable in readonly */
 body.readonly #btnEagle,
 body.readonly #eagleToggles,
@@ -3664,10 +3779,12 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 <div id="songKeyBar" style="max-width:900px;margin:18px auto 0;padding:0 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
 
   <div style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
-    <label for="songKey" style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0;">🎵 Tonalidad</label>
-    <input class="meta-input" id="songKey" placeholder="Do Mayor, La menor..." title="Tonalidad (ej: Do Mayor, La menor)"
-      style="width:140px;"
-      oninput="songData.key = this.value" />
+    <label style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0;">🎵 Tonalidad</label>
+    <span id="songKeyPill" onclick="openKeyPopup(this)" title="Editar tonalidad"
+      style="font-family:'Space Mono',monospace;font-size:0.82rem;font-weight:700;
+             padding:4px 10px;border-radius:5px;cursor:pointer;transition:all 0.15s;
+             border:1px solid var(--border);background:var(--bg);color:var(--accent);
+             min-width:80px;display:inline-block;text-align:center;">—</span>
   </div>
 
   <!-- Botón Eagle -->
@@ -4264,7 +4381,7 @@ function updateUndoButtons() {
 function syncHeaderInputs() {
   document.getElementById("songTitle").value  = songData.title || "";
   document.getElementById("songArtist").value = songData.artist || "";
-  document.getElementById("songKey").value    = songData.key || "";
+  _syncKeyPill();
 }
 
 // Keyboard shortcuts
@@ -4616,6 +4733,7 @@ function render() {
         barUnit.className = "bar-unit";
 
         bar.forEach((chord, ci) => {
+          if (chord === "") return; // compás vacío — solo muestra el +
           const pill = document.createElement("span");
           pill.className = "chord-pill";
           pill.innerHTML = fmtChord(chord);
@@ -4669,7 +4787,7 @@ function render() {
         addBar.className = "add-bar-btn";
         addBar.innerHTML = `<span style="font-size:1rem;line-height:1">+</span> compás`;
         addBar.title = "Añadir compás al final de esta línea";
-        addBar.addEventListener("click", () => { saveUndo(); row.bars.push(["C"]); render(); });
+        addBar.addEventListener("click", () => { saveUndo(); row.bars.push([""]); render(); });
         right.appendChild(addBar);
       }
 
@@ -4754,7 +4872,7 @@ function render() {
         if (inst.key === "voz") {
           sec.rows.push({ id: uid(), instrument: "voz", vozText: "", repeats: null, comment: "" });
         } else {
-          sec.rows.push({ id: uid(), instrument: inst.key, bars: [["C"],["G"],["Am"],["F"]], repeats: null, comment: "" });
+          sec.rows.push({ id: uid(), instrument: inst.key, bars: [[""]], repeats: null, comment: "" });
         }
         render();
         applyInstFilter();
@@ -4811,7 +4929,7 @@ function insertSectionAt(idx) {
   saveUndo();
   songData.sections.splice(idx, 0, {
     id: uid(), name: "Nueva sección", lyric: "", audio: null,
-    rows: [{ id: uid(), instrument: "guit1", bars: [["C"],["G"],["Am"],["F"]], repeats: null, comment: "" }]
+    rows: []
   });
   render();
   applyInstFilter();
@@ -4884,6 +5002,355 @@ function fmtChord(s) {
 }
 
 // ═══════════════════════════════════════════════
+// CHORD INTELLIGENCE — autocomplete + suggestions
+// ═══════════════════════════════════════════════
+
+// All chord suffixes with their description
+const _CHORD_SUFFIXES = [
+  { s: "",      g: "Mayor",    d: "Mayor" },
+  { s: "m",     g: "Menor",    d: "Menor" },
+  { s: "7",     g: "Séptima",  d: "Dom. 7ª" },
+  { s: "m7",    g: "Séptima",  d: "Menor 7ª" },
+  { s: "maj7",  g: "Séptima",  d: "Mayor 7ª" },
+  { s: "m7b5",  g: "Séptima",  d: "Semidism." },
+  { s: "dim",   g: "Disminuido", d: "Disminuido" },
+  { s: "dim7",  g: "Disminuido", d: "Dism. 7ª" },
+  { s: "aug",   g: "Aumentado",  d: "Aumentado" },
+  { s: "sus2",  g: "Suspendido", d: "Sus2" },
+  { s: "sus4",  g: "Suspendido", d: "Sus4" },
+  { s: "9",     g: "Extensión",  d: "9ª" },
+  { s: "m9",    g: "Extensión",  d: "Menor 9ª" },
+  { s: "maj9",  g: "Extensión",  d: "Mayor 9ª" },
+  { s: "11",    g: "Extensión",  d: "11ª" },
+  { s: "13",    g: "Extensión",  d: "13ª" },
+  { s: "add9",  g: "Extensión",  d: "Add9" },
+  { s: "6",     g: "Sexta",     d: "6ª Mayor" },
+  { s: "m6",    g: "Sexta",     d: "6ª Menor" },
+  { s: "7sus4", g: "Suspendido", d: "7 Sus4" },
+  { s: "5",     g: "Power",      d: "Power chord" },
+];
+
+const _NOTES = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+const _NOTE_ALT = { "Db":"C#","D#":"Eb","Gb":"F#","G#":"Ab","A#":"Bb" };
+
+// Normalize note to canonical form
+function _normNote(n) { return _NOTE_ALT[n] || n; }
+
+// Parse a chord string → { root, suffix } or null
+function _parseChord(s) {
+  if (!s) return null;
+  const m = s.match(/^([A-G][#b]?)(.*)/);
+  if (!m) return null;
+  return { root: _normNote(m[1]), suffix: m[2].trim() };
+}
+
+// Interval semitones from root
+function _noteAtInterval(root, semitones) {
+  const idx = _NOTES.indexOf(_normNote(root));
+  if (idx < 0) return null;
+  return _NOTES[(idx + semitones + 12) % 12];
+}
+
+// Build autocomplete suggestions for a typed string
+function _buildAutocomplete(text) {
+  if (!text) return [];
+  const t = text.trim();
+  // Try to parse root note
+  const m = t.match(/^([A-G][#b]?)(.*)/i);
+  if (!m) return [];
+  const rootRaw = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+  const root = _normNote(rootRaw);
+  if (!_NOTES.includes(root)) return [];
+  const suffixTyped = m[2].toLowerCase();
+
+  // Filter suffixes matching what was typed after the root
+  const matches = _CHORD_SUFFIXES.filter(c =>
+    c.s.toLowerCase().startsWith(suffixTyped)
+  );
+
+  // Group by category
+  const groups = {};
+  matches.forEach(c => {
+    if (!groups[c.g]) groups[c.g] = [];
+    groups[c.g].push({ name: root + c.s, desc: c.d });
+  });
+  return groups;
+}
+
+// ── Tonalidad autocomplete ──
+// Mapeo de nombres en español/inglés a chord notation
+// ── TONALIDAD — popup system ──────────────────────
+const _KEY_NAMES = [
+  { display: "Do Mayor",   chord: "C",   mode: "Mayor" },
+  { display: "Sol Mayor",  chord: "G",   mode: "Mayor" },
+  { display: "Re Mayor",   chord: "D",   mode: "Mayor" },
+  { display: "La Mayor",   chord: "A",   mode: "Mayor" },
+  { display: "Mi Mayor",   chord: "E",   mode: "Mayor" },
+  { display: "Si Mayor",   chord: "B",   mode: "Mayor" },
+  { display: "Fa Mayor",   chord: "F",   mode: "Mayor" },
+  { display: "Fa# Mayor",  chord: "F#",  mode: "Mayor" },
+  { display: "Sib Mayor",  chord: "Bb",  mode: "Mayor" },
+  { display: "Mib Mayor",  chord: "Eb",  mode: "Mayor" },
+  { display: "Lab Mayor",  chord: "Ab",  mode: "Mayor" },
+  { display: "Reb Mayor",  chord: "Db",  mode: "Mayor" },
+  { display: "La menor",   chord: "Am",  mode: "Menor" },
+  { display: "Mi menor",   chord: "Em",  mode: "Menor" },
+  { display: "Si menor",   chord: "Bm",  mode: "Menor" },
+  { display: "Fa# menor",  chord: "F#m", mode: "Menor" },
+  { display: "Do# menor",  chord: "C#m", mode: "Menor" },
+  { display: "Sol# menor", chord: "G#m", mode: "Menor" },
+  { display: "Re menor",   chord: "Dm",  mode: "Menor" },
+  { display: "Sol menor",  chord: "Gm",  mode: "Menor" },
+  { display: "Do menor",   chord: "Cm",  mode: "Menor" },
+  { display: "Fa menor",   chord: "Fm",  mode: "Menor" },
+  { display: "Sib menor",  chord: "Bbm", mode: "Menor" },
+  { display: "Mib menor",  chord: "Ebm", mode: "Menor" },
+];
+
+// Sincroniza el pill visual con songData.key
+function _syncKeyPill() {
+  const pill = document.getElementById("songKeyPill");
+  if (!pill) return;
+  const k = songData?.key || "";
+  pill.textContent = k || "—";
+  pill.style.color = k ? "var(--accent)" : "var(--dim)";
+  pill.style.borderColor = k ? "var(--accent)" : "var(--border)";
+}
+
+let _keyPopup = null;
+
+function openKeyPopup(anchor) {
+  if (_readonly) return;
+  // Cerrar si ya hay uno abierto
+  if (_keyPopup) { _keyPopup.remove(); _keyPopup = null; }
+
+  const pop = document.createElement("div");
+  pop.className = "chord-popup open";
+  pop.style.minWidth = "220px";
+
+  pop.innerHTML = `
+    <label>Tonalidad</label>
+    <div class="popup-input-wrap">
+      <input type="text" id="keyPopInput" placeholder="Ej: La menor, Do Mayor…"
+        value="${songData.key || ""}" spellcheck="false" autocomplete="off" />
+      <div class="chord-autocomplete" id="keyPopAC"></div>
+    </div>
+    <div class="popup-actions">
+      <button class="pbtn del" id="keyPopClear">✕ Quitar</button>
+      <button class="pbtn" id="keyPopCancel">Cancelar</button>
+      <button class="pbtn ok" id="keyPopOk">OK</button>
+    </div>
+  `;
+
+  document.body.appendChild(pop);
+  _keyPopup = pop;
+
+  // Posición bajo el pill
+  const rect = anchor.getBoundingClientRect();
+  let left = rect.left;
+  let top  = rect.bottom + 8;
+  if (left + 240 > window.innerWidth - 8) left = window.innerWidth - 248;
+  pop.style.left = left + "px";
+  pop.style.top  = top + "px";
+
+  const inp   = pop.querySelector("#keyPopInput");
+  const acBox = pop.querySelector("#keyPopAC");
+  let acItems = [];
+  let acIdx   = -1;
+
+  const applyKey = (val) => {
+    val = val ?? inp.value.trim();
+    saveUndo();
+    songData.key = val;
+    _syncKeyPill();
+    closeKeyPopup();
+  };
+
+  const refreshAC = () => {
+    const val = inp.value.trim().toLowerCase();
+    acBox.innerHTML = "";
+    acItems = [];
+    acIdx = -1;
+
+    const matches = val
+      ? _KEY_NAMES.filter(k =>
+          k.display.toLowerCase().includes(val) ||
+          k.chord.toLowerCase().startsWith(val))
+      : _KEY_NAMES; // sin texto → mostrar todas
+
+    ["Mayor","Menor"].forEach(mode => {
+      const group = matches.filter(k => k.mode === mode);
+      if (!group.length) return;
+      const gl = document.createElement("div");
+      gl.className = "ac-group-label";
+      gl.textContent = mode;
+      acBox.appendChild(gl);
+      group.forEach(k => {
+        const el = document.createElement("div");
+        el.className = "ac-item";
+        el.innerHTML = `<span class="ac-item-name">${k.display}</span><span class="ac-item-desc">${k.chord}</span>`;
+        el.addEventListener("mousedown", e => { e.preventDefault(); applyKey(k.display); });
+        acBox.appendChild(el);
+        acItems.push({ el, display: k.display });
+      });
+    });
+
+    acBox.style.display = acItems.length ? "block" : "none";
+  };
+
+  inp.addEventListener("input", refreshAC);
+
+  inp.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" && acItems.length) {
+      e.preventDefault();
+      acItems[acIdx]?.el.classList.remove("ac-active");
+      acIdx = (acIdx + 1) % acItems.length;
+      acItems[acIdx].el.classList.add("ac-active");
+      acItems[acIdx].el.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp" && acItems.length) {
+      e.preventDefault();
+      acItems[acIdx]?.el.classList.remove("ac-active");
+      acIdx = (acIdx - 1 + acItems.length) % acItems.length;
+      acItems[acIdx].el.classList.add("ac-active");
+      acItems[acIdx].el.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter") {
+      acIdx >= 0 ? applyKey(acItems[acIdx].display) : applyKey();
+    } else if (e.key === "Escape") {
+      closeKeyPopup();
+    }
+    e.stopPropagation();
+  });
+
+  pop.querySelector("#keyPopOk").addEventListener("click", () => applyKey());
+  pop.querySelector("#keyPopCancel").addEventListener("click", closeKeyPopup);
+  pop.querySelector("#keyPopClear").addEventListener("click", () => applyKey(""));
+
+  inp.focus();
+  inp.select();
+  refreshAC(); // mostrar todas al abrir
+
+  setTimeout(() => document.addEventListener("click", _keyOutside), 10);
+}
+
+function _keyOutside(e) {
+  if (_keyPopup && !_keyPopup.contains(e.target) &&
+      !e.target.closest("#songKeyPill")) {
+    closeKeyPopup();
+  }
+}
+
+function closeKeyPopup() {
+  if (_keyPopup) { _keyPopup.remove(); _keyPopup = null; }
+  document.removeEventListener("click", _keyOutside);
+}
+
+// Circle of fifths (major) in semitones from root
+const _CIRCLE_MAJOR = [0,7,2,9,4,11,5,10,3,8,1,6];
+
+// Given previous chord and song key, generate contextual suggestions
+function _buildSuggestions(prevChord, songKey) {
+  const suggestions = [];
+  const prev = _parseChord(prevChord);
+
+  // Resuelve la tonalidad — acepta tanto "La menor" como "Am"
+  const keyEntry = _KEY_NAMES.find(k =>
+    k.display.toLowerCase() === (songKey||"").toLowerCase() ||
+    k.chord.toLowerCase() === (songKey||"").toLowerCase()
+  );
+  const key = keyEntry ? _parseChord(keyEntry.chord) : _parseChord(songKey);
+
+  // ── 1. Key-based suggestions (from song key)
+  if (key) {
+    const diatonic = [
+      { iv: 0,  suf: "",   role: "I — Tónica" },
+      { iv: 2,  suf: "m",  role: "ii — Subdominante" },
+      { iv: 4,  suf: "m",  role: "iii — Mediante" },
+      { iv: 5,  suf: "",   role: "IV — Subdominante" },
+      { iv: 7,  suf: "",   role: "V — Dominante" },
+      { iv: 9,  suf: "m",  role: "vi — Relativo menor" },
+      { iv: 11, suf: "dim",role: "vii° — Sensible" },
+    ];
+    diatonic.forEach(d => {
+      const n = _noteAtInterval(key.root, d.iv);
+      if (n) suggestions.push({ chord: n + d.suf, type: "key", label: d.role });
+    });
+  }
+
+  if (prev) {
+    const isMajor = prev.suffix === "" || prev.suffix === "7" || prev.suffix === "maj7" || prev.suffix === "9";
+    const isMinor = prev.suffix.startsWith("m");
+
+    // ── 2. Circle of fifths: next natural step
+    const fifth = _noteAtInterval(prev.root, 7);
+    const fourth = _noteAtInterval(prev.root, 5);
+    if (fifth) suggestions.push({ chord: fifth + (isMinor ? "m" : ""), type: "fifth", label: "5ª ↑ círculo" });
+    if (fourth) suggestions.push({ chord: fourth + (isMinor ? "m" : ""), type: "fifth", label: "4ª ↑ círculo" });
+
+    // ── 3. Relative major/minor
+    if (isMajor) {
+      const rel = _noteAtInterval(prev.root, 9);
+      if (rel) suggestions.push({ chord: rel + "m", type: "rel", label: "Relativo menor" });
+    } else if (isMinor) {
+      const rel = _noteAtInterval(prev.root, 3);
+      if (rel) suggestions.push({ chord: rel, type: "rel", label: "Relativo mayor" });
+    }
+
+    // ── 4. Classic cadences
+    const dom = _noteAtInterval(prev.root, 7);
+    const sub = _noteAtInterval(prev.root, 5);
+    const lead = _noteAtInterval(prev.root, -1); // semitone below → leading tone resolution
+    if (dom) suggestions.push({ chord: dom + "7", type: "cadence", label: "V7 → resolución" });
+    if (sub) suggestions.push({ chord: sub + "m7", type: "cadence", label: "ii-V-I" });
+
+    // ── 5. Jazz: tritone substitution + extensions
+    const tritone = _noteAtInterval(prev.root, 6);
+    if (tritone) suggestions.push({ chord: tritone + "7",  type: "jazz", label: "Sust. tritono" });
+    suggestions.push({ chord: prev.root + "maj7", type: "jazz", label: "Extensión maj7" });
+    suggestions.push({ chord: prev.root + "9",    type: "jazz", label: "Extensión 9ª" });
+    const ii = _noteAtInterval(prev.root, 2);
+    if (ii) suggestions.push({ chord: ii + "m7b5", type: "jazz", label: "ii semidism." });
+
+    // ── 6. Flamenco: Phrygian / Andalusian cadence
+    // Andalusian cadence ends on E (or dominant of Am)
+    const phrygian = _noteAtInterval(prev.root, 1); // semitone up → Phrygian flavor
+    if (phrygian) suggestions.push({ chord: phrygian, type: "flam", label: "Frigio ↑" });
+    const below = _noteAtInterval(prev.root, -2);
+    if (below) suggestions.push({ chord: below, type: "flam", label: "Cadencia andaluza ↓" });
+    const e = _noteAtInterval(prev.root, -5); // typical resolution to E in flamenco
+    if (e) suggestions.push({ chord: e + "7", type: "flam", label: "Resolución flamenca" });
+
+    // ── 7. Rock: power chords + parallel
+    suggestions.push({ chord: prev.root + "5",  type: "rock", label: "Power chord" });
+    const parallel = isMajor ? prev.root + "m" : prev.root;
+    suggestions.push({ chord: parallel, type: "rock", label: isMajor ? "Paralelo menor" : "Paralelo mayor" });
+    const bVII = _noteAtInterval(prev.root, 10);
+    if (bVII) suggestions.push({ chord: bVII, type: "rock", label: "♭VII rock" });
+    const bIII = _noteAtInterval(prev.root, 3);
+    if (bIII) suggestions.push({ chord: bIII, type: "rock", label: "♭III blues-rock" });
+  }
+
+  // Deduplicate: dentro del mismo tipo no repetir, pero sí permitir
+  // que un acorde aparezca en tipos distintos (key vs rel vs jazz...)
+  const seenPerType = {};
+  return suggestions.filter(s => {
+    if (!seenPerType[s.type]) seenPerType[s.type] = new Set();
+    if (seenPerType[s.type].has(s.chord)) return false;
+    seenPerType[s.type].add(s.chord);
+    return true;
+  });
+}
+
+// Icon per suggestion type
+const _SUG_ICONS = {
+  key: "🎵", fifth: "🔄", rel: "↔️", cadence: "🎼",
+  jazz: "🎷", flam: "💃", rock: "🎸"
+};
+const _SUG_TITLES = {
+  key: "Tonalidad", fifth: "Círculo 5ªs", rel: "Relativo",
+  cadence: "Cadencia", jazz: "Jazz", flam: "Flamenco", rock: "Rock"
+};
+
+// ═══════════════════════════════════════════════
 // POPUP EDITOR — attached to body, fixed position
 // ═══════════════════════════════════════════════
 let _popup = null;
@@ -4896,10 +5363,31 @@ function openPopup(anchor, ctx) {
   pop.className = "chord-popup open";
 
   const isEdit = ctx.type === "edit";
+
+  // Get previous chord for harmonic context
+  let prevChord = null;
+  if (ctx.row && ctx.row.bars) {
+    const allChords = ctx.row.bars.flat();
+    if (isEdit && ctx.bi !== undefined && ctx.ci !== undefined) {
+      const idx = ctx.row.bars.slice(0, ctx.bi).flat().length + ctx.ci;
+      prevChord = allChords[idx - 1] || null;
+    } else if (ctx.bi !== undefined) {
+      const allBefore = ctx.row.bars.slice(0, ctx.bi).flat();
+      const curBar = ctx.row.bars[ctx.bi] || [];
+      prevChord = curBar[curBar.length - 1] || allBefore[allBefore.length - 1] || null;
+    }
+  }
+
+  const songKey = songData?.key || "";
+
   pop.innerHTML = `
     <label>${isEdit ? "Editar acorde" : "Nuevo acorde"}</label>
-    <input type="text" id="popInput" value="${isEdit ? esc(ctx.chord) : ""}"
-      placeholder="${isEdit ? ctx.chord : "Ej: Am7"}" spellcheck="false" autocomplete="off" />
+    <div class="popup-input-wrap">
+      <input type="text" id="popInput" value="${isEdit ? esc(ctx.chord) : ""}"
+        placeholder="${isEdit ? ctx.chord : "Ej: Am7, C, Fmaj7…"}" spellcheck="false" autocomplete="off" />
+      <div class="chord-autocomplete" id="popAC"></div>
+    </div>
+    <div class="chord-suggestions" id="popSug"></div>
     <div class="popup-actions">
       ${isEdit ? '<button class="pbtn del" id="popDel">🗑 Eliminar</button>' : ''}
       <button class="pbtn" id="popCancel">Cancelar</button>
@@ -4907,51 +5395,171 @@ function openPopup(anchor, ctx) {
     </div>
   `;
 
-  // Attach to body so no parent clips it
   document.body.appendChild(pop);
   _popup = { el: pop, anchor };
 
-  // Position below the anchor, adjust if it goes off screen
+  // Position
   const rect = anchor.getBoundingClientRect();
-  const popW = 220;
-  const popH = 130;
-  let top = rect.bottom + 8;
+  const popW = 300;
+  let top  = rect.bottom + 8;
   let left = rect.left;
-
-  // Keep within viewport
   if (left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
   if (left < 8) left = 8;
-  if (top + popH > window.innerHeight - 8) top = rect.top - popH - 8;
-
+  // Don't pre-calculate height — just keep it on screen if it overflows
   pop.style.top  = top + "px";
   pop.style.left = left + "px";
 
-  const input = pop.querySelector("#popInput");
-  input.focus();
-  input.select();
+  const input   = pop.querySelector("#popInput");
+  const acBox   = pop.querySelector("#popAC");
+  const sugBox  = pop.querySelector("#popSug");
+  let acItems   = [];
+  let acIdx     = -1;
 
-  const confirm = () => {
-    const val = input.value.trim();
-    if (isEdit) {
-      if (val) editChord(ctx, val);
-      else removeChord(ctx);
-    } else {
-      if (val) addChord(ctx, val);
-    }
+  // ── Confirm (set chord and close)
+  const applyChord = (val) => {
+    val = val || input.value.trim();
+    if (!val) { if (isEdit) removeChord(ctx); closePopup(); return; }
+    if (isEdit) editChord(ctx, val);
+    else addChord(ctx, val);
     closePopup();
   };
 
-  pop.querySelector("#popOk").addEventListener("click", confirm);
-  pop.querySelector("#popCancel").addEventListener("click", closePopup);
-  if (isEdit) pop.querySelector("#popDel").addEventListener("click", () => { removeChord(ctx); closePopup(); });
+  // ── Build autocomplete list
+  const refreshAC = () => {
+    const groups = _buildAutocomplete(input.value);
+    acBox.innerHTML = "";
+    acItems = [];
+    acIdx = -1;
+    Object.entries(groups).forEach(([gName, items]) => {
+      const gl = document.createElement("div");
+      gl.className = "ac-group-label";
+      gl.textContent = gName;
+      acBox.appendChild(gl);
+      items.forEach(item => {
+        const el = document.createElement("div");
+        el.className = "ac-item";
+        el.innerHTML = `<span class="ac-item-name">${item.name}</span><span class="ac-item-desc">${item.desc}</span>`;
+        el.addEventListener("mousedown", e => { e.preventDefault(); applyChord(item.name); });
+        acBox.appendChild(el);
+        acItems.push({ el, name: item.name });
+      });
+    });
+    // Show/hide
+    acBox.style.display = acItems.length ? "block" : "none";
+    // Reposition popup if near bottom
+    _repositionPopup(pop, rect);
+  };
+
+  // ── Build harmonic suggestions
+  const refreshSug = (currentVal) => {
+    const prev = currentVal || (isEdit ? ctx.chord : prevChord);
+    const sug = _buildSuggestions(prev, songKey);
+    sugBox.innerHTML = "";
+    if (!sug.length) return;
+
+    // Group by type
+    const grouped = {};
+    sug.forEach(s => {
+      if (!grouped[s.type]) grouped[s.type] = [];
+      grouped[s.type].push(s);
+    });
+
+    // Show all types
+    const typeOrder = ["key","fifth","rel","cadence","jazz","flam","rock"];
+
+    typeOrder.forEach(type => {
+      if (!grouped[type]) return;
+      const header = document.createElement("div");
+      header.className = "sug-header";
+      header.textContent = (_SUG_ICONS[type] || "") + " " + (_SUG_TITLES[type] || type);
+      sugBox.appendChild(header);
+
+      const chips = document.createElement("div");
+      chips.className = "sug-chips";
+      grouped[type].slice(0, 5).forEach(s => {
+        const chip = document.createElement("span");
+        chip.className = `sug-chip type-${type}`;
+        chip.title = s.label;
+        chip.textContent = s.chord;
+        chip.addEventListener("mousedown", e => { e.preventDefault(); applyChord(s.chord); });
+        chips.appendChild(chip);
+      });
+      sugBox.appendChild(chips);
+    });
+
+    // Fade indicator: only if content overflows
+    requestAnimationFrame(() => {
+      sugBox.classList.toggle("no-overflow", sugBox.scrollHeight <= sugBox.clientHeight);
+    });
+
+    sugBox.addEventListener("scroll", () => {
+      const atBottom = sugBox.scrollTop + sugBox.clientHeight >= sugBox.scrollHeight - 4;
+      sugBox.classList.toggle("no-overflow", atBottom);
+    });
+
+    _repositionPopup(pop, rect);
+  };
+
+  // Initial render
+  input.focus();
+  input.select();
+  if (isEdit) refreshAC();
+  refreshSug(isEdit ? ctx.chord : prevChord);
+
+  // ── Input events
+  input.addEventListener("input", () => {
+    refreshAC();
+    const val = input.value.trim();
+    // Refresh suggestions: if valid chord use it, if empty fall back to context
+    const parsed = _parseChord(val);
+    refreshSug(parsed ? val : (isEdit ? ctx.chord : prevChord));
+  });
 
   input.addEventListener("keydown", e => {
-    if (e.key === "Enter") confirm();
-    if (e.key === "Escape") closePopup();
+    // Navigate autocomplete with arrows
+    if (e.key === "ArrowDown" && acItems.length) {
+      e.preventDefault();
+      acItems[acIdx]?.el.classList.remove("ac-active");
+      acIdx = (acIdx + 1) % acItems.length;
+      acItems[acIdx].el.classList.add("ac-active");
+      acItems[acIdx].el.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp" && acItems.length) {
+      e.preventDefault();
+      acItems[acIdx]?.el.classList.remove("ac-active");
+      acIdx = (acIdx - 1 + acItems.length) % acItems.length;
+      acItems[acIdx].el.classList.add("ac-active");
+      acItems[acIdx].el.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter") {
+      if (acIdx >= 0 && acItems[acIdx]) {
+        e.preventDefault();
+        applyChord(acItems[acIdx].name);
+      } else {
+        applyChord();
+      }
+    } else if (e.key === "Escape") {
+      if (acBox.style.display !== "none") { acBox.style.display = "none"; acIdx = -1; }
+      else closePopup();
+    } else if (e.key === "Tab" && acIdx >= 0 && acItems[acIdx]) {
+      e.preventDefault();
+      input.value = acItems[acIdx].name;
+      acBox.style.display = "none";
+      acIdx = -1;
+    }
     e.stopPropagation();
   });
 
+  pop.querySelector("#popOk").addEventListener("click", () => applyChord());
+  pop.querySelector("#popCancel").addEventListener("click", closePopup);
+  if (isEdit) pop.querySelector("#popDel").addEventListener("click", () => { removeChord(ctx); closePopup(); });
+
   setTimeout(() => document.addEventListener("click", outsideClose), 10);
+}
+
+function _repositionPopup(pop, anchorRect) {
+  const popRect = pop.getBoundingClientRect();
+  if (popRect.bottom > window.innerHeight - 8) {
+    pop.style.top = Math.max(8, anchorRect.top - popRect.height - 8) + "px";
+  }
 }
 
 function outsideClose(e) {
@@ -5939,7 +6547,13 @@ function removeChord(ctx) {
 
 function addChord(ctx, val) {
   saveUndo();
-  ctx.row.bars[ctx.bi].push(val);
+  const bar = ctx.row.bars[ctx.bi];
+  // Si el compás solo tiene el placeholder vacío, reemplazarlo
+  if (bar.length === 1 && bar[0] === "") {
+    bar[0] = val;
+  } else {
+    bar.push(val);
+  }
   render();
 }
 
@@ -11398,6 +12012,701 @@ async function calOpenLinkedSetlist(setlistId) {
 function _dateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     HELP SYSTEM — botón flotante + modo pincha
+═══════════════════════════════════════════════ -->
+<style>
+/* ── Botón flotante ? ── */
+#helpBtn {
+  position: fixed;
+  top: 8px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  transition: all 0.2s;
+  user-select: none;
+}
+#helpBtn:hover { transform: scale(1.1); }
+#helpBtn.help-active {
+  background: var(--accent);
+  color: var(--bg);
+  animation: helpPulse 1.4s ease-in-out infinite;
+}
+@keyframes helpPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,255,231,0.4); }
+  50%      { box-shadow: 0 0 0 10px rgba(0,255,231,0); }
+}
+
+/* ── Cursor modo ayuda ── */
+body.help-mode * { cursor: help !important; }
+body.help-mode .chord-popup, body.help-mode .chord-popup * { cursor: default !important; }
+
+/* ── Banner de instrucciones ── */
+#helpBanner {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  text-align: center;
+  z-index: 9990;
+  font-weight: 700;
+}
+#helpBanner.show { display: block; }
+#helpBannerClose {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--bg);
+  font-size: 1rem;
+  cursor: pointer !important;
+  padding: 0 4px;
+  opacity: 0.7;
+}
+#helpBannerClose:hover { opacity: 1; }
+
+/* ── Tooltip de ayuda ── */
+#helpTooltip {
+  display: none;
+  position: fixed;
+  z-index: 9995;
+  max-width: 320px;
+  min-width: 240px;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+#helpTooltip.show { display: block; pointer-events: auto; }
+#helpTooltip .ht-zone {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#helpTooltip .ht-zone::after { content:''; flex:1; height:1px; background: rgba(0,255,231,0.2); }
+#helpTooltip .ht-title {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+#helpTooltip .ht-body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+#helpTooltip .ht-body strong { color: var(--text); font-weight: 600; }
+#helpTooltip .ht-tip {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--dim);
+  line-height: 1.4;
+}
+#helpTooltip .ht-close {
+  position: absolute;
+  top: 8px; right: 10px;
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+#helpTooltip .ht-close:hover { color: var(--text); }
+
+/* highlight del elemento al que apunta */
+.help-highlight {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px !important;
+  border-radius: 4px;
+}
+
+/* ── Panel detalle armonía ── */
+#helpDetailOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 10500;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#helpDetailOverlay.show { display: flex; }
+#helpDetailPanel {
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 20px 22px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 82vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.9);
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+#helpDetailPanel h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+#helpDetailPanel .hd-section {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+#helpDetailPanel .hd-section:last-child { border-bottom: none; margin-bottom: 0; }
+#helpDetailPanel .hd-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#helpDetailPanel .hd-label.type-key     { color: #00ffe7; }
+#helpDetailPanel .hd-label.type-fifth   { color: #39ff14; }
+#helpDetailPanel .hd-label.type-rel     { color: #ff2d78; }
+#helpDetailPanel .hd-label.type-cadence { color: #ffc800; }
+#helpDetailPanel .hd-label.type-jazz    { color: #b464ff; }
+#helpDetailPanel .hd-label.type-flam    { color: #ff641e; }
+#helpDetailPanel .hd-label.type-rock    { color: #ff3c3c; }
+#helpDetailPanel .hd-text {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.83rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+#helpDetailPanel .hd-text strong { color: var(--text); }
+#helpDetailPanel .hd-close {
+  position: absolute;
+  top: 12px; right: 14px;
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+#helpDetailPanel .hd-close:hover { color: var(--text); }
+.ht-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 5px 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ht-more-btn:hover { background: rgba(0,255,231,0.08); }
+[data-theme="light"] .ht-more-btn { border-color: #b07a10; color: #b07a10; }
+[data-theme="light"] .ht-more-btn:hover { background: rgba(176,122,16,0.08); }
+[data-theme="light"] #helpDetailPanel .hd-label.type-key     { color: #007a6a; }
+[data-theme="light"] #helpDetailPanel .hd-label.type-fifth   { color: #2e7a2e; }
+[data-theme="light"] #helpDetailPanel .hd-label.type-rel     { color: #c0401a; }
+[data-theme="light"] #helpDetailPanel .hd-label.type-cadence { color: #7a5800; }
+[data-theme="light"] #helpDetailPanel .hd-label.type-jazz    { color: #7030c0; }
+[data-theme="light"] #helpDetailPanel .hd-label.type-flam    { color: #b04010; }
+[data-theme="light"] #helpDetailPanel .hd-label.type-rock    { color: #a02020; }
+[data-theme="light"] #helpBtn.help-active { background: #b07a10; color: #fff; }
+[data-theme="light"] #helpBanner { background: #b07a10; color: #fff; }
+[data-theme="light"] #helpTooltip { background: #fff; border-color: #b07a10; }
+[data-theme="light"] #helpTooltip .ht-zone { color: #b07a10; }
+[data-theme="light"] #helpTooltip .ht-zone::after { background: rgba(176,122,16,0.2); }
+@keyframes helpPulseLight {
+  0%,100% { box-shadow: 0 0 0 0 rgba(176,122,16,0.4); }
+  50%      { box-shadow: 0 0 0 10px rgba(176,122,16,0); }
+}
+[data-theme="light"] #helpBtn.help-active { animation: helpPulseLight 1.4s ease-in-out infinite; }
+</style>
+
+<!-- Botón flotante -->
+<button id="helpBtn" onclick="toggleHelpMode()" title="Ayuda contextual — pincha en cualquier zona">?</button>
+
+<!-- Banner instrucción -->
+<div id="helpBanner">
+  🔍 Modo ayuda — pincha en cualquier zona para saber qué hace
+  <button id="helpBannerClose" onclick="exitHelpMode()">✕</button>
+</div>
+
+<!-- Tooltip -->
+<div id="helpTooltip">
+  <button class="ht-close" onclick="closeHelpTooltip()">✕</button>
+  <div class="ht-zone" id="htZone"></div>
+  <div class="ht-title" id="htTitle"></div>
+  <div class="ht-body" id="htBody"></div>
+  <div class="ht-tip" id="htTip"></div>
+  <button class="ht-more-btn" id="htMore" style="display:none">📖 Más detalle</button>
+</div>
+
+<!-- Panel detalle armonía -->
+<div id="helpDetailOverlay" onclick="if(event.target===this)closeHelpDetail()">
+  <div id="helpDetailPanel"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// HELP SYSTEM
+// ═══════════════════════════════════════════════
+
+// ── Contenido de ayuda por zona ──────────────────
+// Cada entrada: { zone, icon, title, body, tip }
+// Escalable: añade más entradas aquí para cubrir nuevas zonas
+const _HELP_MAP = [
+
+  // ── HEADER ──
+  { sel: ".title-input",
+    zone: "Header · Canción", icon: "🎵",
+    title: "Título de la canción",
+    body: "Escribe aquí el nombre de la canción. Se guarda con la canción y aparece en los exports (PDF, Word, compartir).",
+    tip: "💡 Puedes poner el nombre tal cual lo conocéis en el grupo." },
+
+  { sel: ".artist-input",
+    zone: "Header · Canción", icon: "🎤",
+    title: "Artista / Banda original",
+    body: "El autor o grupo que ha grabado la canción. Solo informativo, ayuda a identificar la versión en la biblioteca.",
+    tip: "💡 Si es una original vuestra, pon el nombre de la banda." },
+
+  { sel: ".meta-input[placeholder*='BPM'], #metaBpm",
+    zone: "Header · Tempo", icon: "♩",
+    title: "BPM — Beats Per Minute",
+    body: "La velocidad de la canción. <strong>120 BPM</strong> = 120 pulsos por minuto, que es un tempo moderado. Cuanto más alto, más rápida la canción.",
+    tip: "💡 Como baterista ya sabes esto mejor que nadie — es lo que marcan los metrónimos." },
+
+  { sel: "[placeholder*='4/4'], .meta-input[title*='compás'], #metaTime",
+    zone: "Header · Compás", icon: "🥁",
+    title: "Compás (Time Signature)",
+    body: "<strong>4/4</strong> = 4 tiempos por compás (el más común en rock/pop). <strong>3/4</strong> = vals. <strong>6/8</strong> = baladas lentas con subdivisión de 6.",
+    tip: "💡 En batería: el numerador te dice cuántos golpes hay entre un '1' y el siguiente." },
+
+  { sel: "#songKey, [placeholder*='tonalidad'], [placeholder*='menor']",
+    zone: "Editor · Armonía", icon: "🎵",
+    title: "Tonalidad de la canción",
+    body: "La 'casa' armónica de la canción — el acorde que suena como 'fin' o 'reposo'. <strong>Do Mayor</strong> usa las teclas blancas del piano. <strong>La menor</strong> es su relativo menor (mismas notas, diferente centro).",
+    tip: "💡 Esto alimenta las sugerencias armónicas del popup de acordes — si lo pones, las sugerencias serán más relevantes." },
+
+  { sel: "#btnReadonly, #btnReadonlyPlay",
+    zone: "Header · Modos", icon: "👁",
+    title: "Tocar / Editar",
+    body: "<strong>Modo Editar</strong>: puedes modificar todo — acordes, secciones, instrumentos.\n<strong>Modo Tocar</strong>: vista limpia para usar en el ensayo o concierto, con autoscroll y sincronía de banda.",
+    tip: "💡 En el ensayo activa 'Tocar' para no modificar nada por accidente." },
+
+  { sel: "#btnUndo",
+    zone: "Header · Edición", icon: "↩",
+    title: "Deshacer",
+    body: "Deshace el último cambio. Puedes deshacer múltiples pasos — ideal si te equivocas al editar acordes.",
+    tip: "💡 Atajo: Ctrl+Z (Cmd+Z en Mac)." },
+
+  { sel: "#btnRedo",
+    zone: "Header · Edición", icon: "↪",
+    title: "Rehacer",
+    body: "Rehace lo que acabas de deshacer.",
+    tip: "💡 Atajo: Ctrl+Y (Cmd+Y en Mac)." },
+
+  { sel: ".btn-save-cloud",
+    zone: "Header · Nube", icon: "☁",
+    title: "Guardar en la nube",
+    body: "Guarda la canción en Supabase (la base de datos del grupo). Todos los miembros verán los cambios la próxima vez que abran la canción.",
+    tip: "💡 Guarda seguido mientras editas, como en cualquier documento." },
+
+  { sel: "#btnTheme, #btnThemePill",
+    zone: "Header · Visual", icon: "🌙",
+    title: "Tema de color",
+    body: "Cambia el aspecto visual de la app entre <strong>Neón</strong> (oscuro futurista), <strong>Claro</strong> y <strong>Azul/Granate</strong>.",
+    tip: "💡 El tema Neón es más cómodo con luz baja en el escenario." },
+
+  // ── FILTROS INSTRUMENTO ──
+  { sel: ".inst-filter-bar, .inst-pill",
+    zone: "Editor · Filtros", icon: "🎸",
+    title: "Filtro por instrumento",
+    body: "Muestra solo las líneas del instrumento seleccionado. Útil para que cada músico vea solo su parte.\n<strong>💫 Todos</strong> = vista completa del grupo.",
+    tip: "💡 Juan puede filtrar por 'Juan' y ver solo su guitarra y su voz." },
+
+  // ── EAGLE MODE ──
+  { sel: "#btnEagle",
+    zone: "Editor · Vista", icon: "🦅",
+    title: "Modo Águila",
+    body: "Vista compacta que reduce el tamaño de todo para ver la canción completa de un vistazo — como mirar desde arriba.",
+    tip: "💡 Perfecto para repasar la estructura completa antes del ensayo." },
+
+  // ── SECCIONES ──
+  { sel: ".section-header, .section-name-input",
+    zone: "Editor · Estructura", icon: "📌",
+    title: "Sección",
+    body: "Una parte de la canción: Intro, Verso, Estribillo, Puente, Outro... Cada sección tiene sus propias líneas de acordes y puede tener audio adjunto.",
+    tip: "💡 Pincha en el nombre para editarlo. Arrastra el icono ⠿ para reordenar secciones." },
+
+  { sel: ".section-lyric-input",
+    zone: "Editor · Estructura", icon: "📝",
+    title: "Nota de sección",
+    body: "Un texto libre debajo del nombre de sección. Puedes poner la primera frase de la letra, una indicación de dinámica, o lo que quieras.",
+    tip: "💡 Ejemplos: 'Solo de guitarra', 'Más suave', 'x2 en concierto'." },
+
+  { sel: ".collapse-arrow",
+    zone: "Editor · Estructura", icon: "▼",
+    title: "Colapsar / expandir sección",
+    body: "Oculta o muestra el contenido de la sección para tener una vista más limpia cuando estás editando otra parte.",
+    tip: "💡 Útil en canciones largas para enfocarte en una sección." },
+
+  // ── BARRAS Y ACORDES ──
+  { sel: ".rep-bracket",
+    zone: "Editor · Acordes", icon: "𝄆",
+    title: "Corchetes de repetición",
+    body: "Los símbolos <strong>𝄆 … 𝄇</strong> marcan el inicio y fin de una línea de compases — igual que en la notación musical clásica.",
+    tip: "💡 El número en el cuadro de la derecha (×4) indica cuántas veces se repite esa línea." },
+
+  { sel: ".bar-div",
+    zone: "Editor · Acordes", icon: "|",
+    title: "Barra de compás",
+    body: "La línea vertical separa los compases. En un compás de 4/4 caben normalmente 1 o 2 acordes. <strong>Haz clic</strong> sobre la barra para eliminar ese compás.",
+    tip: "💡 Si eliminas un compás por error, usa Deshacer (Ctrl+Z)." },
+
+  { sel: ".chord-pill",
+    zone: "Editor · Acordes", icon: "🎸",
+    title: "Acorde",
+    body: "<strong>Haz clic</strong> para editar el acorde. Se abre el editor inteligente con autocompletado y sugerencias armónicas.\n\n<strong>C</strong> = Do Mayor · <strong>Am</strong> = La menor · <strong>G7</strong> = Sol séptima · <strong>Fmaj7</strong> = Fa mayor séptima",
+    tip: "💡 Como baterista no necesitas saber qué acorde es — pero saber si es mayor o menor te da info del carácter de esa parte." },
+
+  { sel: ".add-chord-in-bar",
+    zone: "Editor · Acordes", icon: "+",
+    title: "Añadir acorde en este compás",
+    body: "Abre el editor inteligente para escribir un acorde. Incluye <strong>autocompletado</strong> y <strong>sugerencias armónicas</strong> según el contexto de la canción.",
+    tip: "💡 Las sugerencias se calculan a partir del acorde anterior y la tonalidad de la canción.",
+    detail: "harmony" },
+
+  { sel: ".add-bar-btn",
+    zone: "Editor · Acordes", icon: "+",
+    title: "Añadir compás",
+    body: "Añade un compás vacío al final de esta línea. Al pinchar el <strong>+</strong> del compás nuevo se abre el editor con sugerencias armónicas.",
+    tip: "💡 Un compás de 4/4 suele tener 1 o 2 acordes. Añade los que necesites.",
+    detail: "harmony" },
+
+  { sel: ".repeat-input",
+    zone: "Editor · Acordes", icon: "×",
+    title: "Número de repeticiones",
+    body: "Cuántas veces se toca esta línea seguida. Si pones <strong>4</strong>, esa progresión de acordes se repite 4 veces.",
+    tip: "💡 Equivale a las casillas de repetición en partituras. Muy útil para estribillos que se repiten mucho." },
+
+  { sel: ".add-row-inst-wrap, .add-row-inst-btn",
+    zone: "Editor · Instrumentos", icon: "➕",
+    title: "Añadir línea de instrumento",
+    body: "Crea una nueva línea para un instrumento específico dentro de esta sección. Cada músico puede tener sus propios acordes o indicaciones.",
+    tip: "💡 Marco y Juan pueden tener acordes diferentes en la misma sección (guitarra rítmica vs melodía)." },
+
+  { sel: ".comment-row, .comment-input",
+    zone: "Editor · Notas", icon: "💬",
+    title: "Comentario de línea",
+    body: "Una nota libre asociada a esta línea de acordes. Puedes escribir indicaciones de ejecución, dinámica, efectos...",
+    tip: "💡 Ejemplos: 'Palmutear', 'Con distorsión', 'Piano en intro', 'Coro con Hugo'." },
+
+  { sel: ".voz-text",
+    zone: "Editor · Letra", icon: "🎤",
+    title: "Texto vocal / Letra",
+    body: "Campo libre para la línea de voz. Puedes poner la letra, la melodía escrita, o indicaciones para el cantante.",
+    tip: "💡 Si Juan canta, aquí va lo que necesita ver encima de los acordes." },
+
+  // ── MODO TOCAR ──
+  { sel: "#hdrBtnPlay, #hdrScroll, #zoneManual",
+    zone: "Modo Tocar · Scroll", icon: "▶",
+    title: "Autoscroll",
+    body: "Desplaza la pantalla automáticamente al ritmo de la canción para que no tengas que tocar el teléfono mientras tocas.",
+    tip: "💡 Ajusta la velocidad con el número (1-9). Pruébala antes del ensayo para calibrarla." },
+
+  { sel: "#speedVal",
+    zone: "Modo Tocar · Scroll", icon: "⚡",
+    title: "Velocidad de scroll",
+    body: "Del 1 (lento) al 9 (rápido). Pincha sobre el número para cambiarlo. La velocidad ideal depende del tempo de la canción y de tu posición respecto a la pantalla.",
+    tip: "💡 Para una canción de 120 BPM con formato normal, suele funcionar bien entre 3-5." },
+
+  { sel: "#scrollModeToggle, #toggleManualBtn, #toggleSyncBtn",
+    zone: "Modo Tocar · Scroll", icon: "⚙",
+    title: "Manual vs Sync",
+    body: "<strong>Manual</strong>: tú controlas cuándo empieza el scroll con el botón ▶.\n<strong>Sync</strong>: el scroll se sincroniza con el audio de la canción (si hay audio cargado).",
+    tip: "💡 Sync es espectacular para ensayos con backing track." },
+
+  { sel: "#btnBanda",
+    zone: "Modo Tocar · Banda", icon: "🐯",
+    title: "Modo Banda",
+    body: "Sincroniza el scroll con el resto de los músicos del grupo en tiempo real. Cuando uno avanza, todos avanzan.",
+    tip: "💡 Muy útil si el batería lleva el ritmo y los demás le siguen en la pantalla." },
+
+  { sel: "#btnCalibrate",
+    zone: "Modo Tocar · Sync", icon: "🎯",
+    title: "Calibrar secciones",
+    body: "Marca el tiempo exacto de inicio de cada sección mientras suena el audio. Luego el scroll salta automáticamente a la sección correcta.",
+    tip: "" },
+
+  // ── POPUP ACORDES ──
+  { sel: ".chord-popup, .popup-input-wrap",
+    zone: "Editor · Acordes", icon: "✏️",
+    title: "Editor de acordes inteligente",
+    body: "Al escribir un acorde aparece <strong>autocompletado</strong> con todos los tipos agrupados (Mayor, Menor, 7ª, Extensiones...). Usa ↑↓ para navegar, Enter para confirmar, Tab para autocompletar sin cerrar.",
+    tip: "💡 Escribe solo la nota (ej: 'A') y verás todos los acordes posibles de La." },
+
+  { sel: ".chord-suggestions, .sug-chips",
+    zone: "Editor · Armonía", icon: "🎼",
+    title: "Sugerencias armónicas",
+    body: "Acordes recomendados según el contexto musical. Pincha cualquier chip para insertar ese acorde directamente.",
+    tip: "💡 Las sugerencias cambian según el acorde anterior y la tonalidad de la canción.",
+    detail: "harmony" },
+
+  // ── AUDIO ──
+  { sel: "#songAudioPlayer, .sap-bar, #sapPlayBtn",
+    zone: "Editor · Audio", icon: "🎵",
+    title: "Reproductor de audio",
+    body: "Reproduce el backing track o referencia de la canción mientras editas o tocas. Puedes subir un MP3/WAV desde el botón ✎.",
+    tip: "💡 Útil para comparar lo que habéis transcrito con la canción original." },
+
+  { sel: ".sec-play-btn",
+    zone: "Editor · Audio", icon: "▶",
+    title: "Audio de sección",
+    body: "Reproduce el audio específico de esta sección (si se ha adjuntado uno). Ideal para referencias de intro, solo, etc.",
+    tip: "" },
+
+  // ── BIBLIOTECA / REPERTORIOS ──
+  { sel: "#libraryScreen, .lib-song-item, .lib-search",
+    zone: "Biblioteca", icon: "📚",
+    title: "Biblioteca de canciones",
+    body: "Todas las canciones guardadas en la nube del grupo. Puedes buscarlas, abrirlas para editar, o añadirlas a un repertorio.",
+    tip: "💡 Las canciones se comparten entre todos los miembros del grupo." },
+
+  { sel: "#setlistScreen, .setlist-item",
+    zone: "Repertorios", icon: "📋",
+    title: "Repertorios (Setlists)",
+    body: "Una lista ordenada de canciones para un concierto o ensayo. Puedes crear varios — uno por fecha, uno por estilo...",
+    tip: "💡 Desde el Modo Concierto puedes pasar canciones con un swipe." },
+
+  // ── CALENDARIO ──
+  { sel: "#calendarScreen, .cal-day",
+    zone: "Calendario", icon: "📅",
+    title: "Calendario de la banda",
+    body: "Gestiona ensayos, conciertos y otros eventos del grupo. Cada miembro puede marcar su disponibilidad por día.",
+    tip: "💡 Si alguien no puede un día, aparece un aviso al crear el evento." },
+
+  // ── DRUM EDITOR ──
+  { sel: ".drum-editor-overlay, #drumEditorOverlay",
+    zone: "Editor · Batería", icon: "🥁",
+    title: "Editor de batería",
+    body: "Editor visual de patrones rítmicos. Activa los tiempos en la cuadrícula para crear el patrón de Sergito.",
+    tip: "💡 Cada fila es un elemento de la batería: bombo, caja, hi-hat, etc." },
+];
+
+// ── Estado del sistema de ayuda
+let _helpActive = false;
+let _helpHighlighted = null;
+
+function toggleHelpMode() {
+  _helpActive ? exitHelpMode() : enterHelpMode();
+}
+
+function enterHelpMode() {
+  _helpActive = true;
+  document.body.classList.add("help-mode");
+  document.getElementById("helpBtn").classList.add("help-active");
+  document.getElementById("helpBanner").classList.add("show");
+  document.addEventListener("click", _helpClick, true); // capture phase
+}
+
+function exitHelpMode() {
+  _helpActive = false;
+  document.body.classList.remove("help-mode");
+  document.getElementById("helpBtn").classList.remove("help-active");
+  document.getElementById("helpBanner").classList.remove("show");
+  document.removeEventListener("click", _helpClick, true);
+  closeHelpTooltip();
+}
+
+function closeHelpTooltip() {
+  document.getElementById("helpTooltip").classList.remove("show");
+  if (_helpHighlighted) {
+    _helpHighlighted.classList.remove("help-highlight");
+    _helpHighlighted = null;
+  }
+}
+
+function _helpClick(e) {
+  // Allow closing via the banner X and tooltip X
+  if (e.target.id === "helpBannerClose" || e.target.classList.contains("ht-close")) return;
+  // Don't intercept clicks on the tooltip itself
+  if (e.target.closest("#helpTooltip")) return;
+  // Don't intercept clicks on the help button
+  if (e.target.closest("#helpBtn")) return;
+  // Don't intercept clicks on the detail panel or its overlay
+  if (e.target.closest("#helpDetailPanel") || e.target.id === "helpDetailOverlay") return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  // Find the best matching help entry for the clicked element
+  const entry = _findHelpEntry(e.target);
+  if (entry) {
+    _showHelpTooltip(e.target, entry, e.clientX, e.clientY);
+  } else {
+    closeHelpTooltip();
+  }
+}
+
+function _findHelpEntry(el) {
+  // Walk up DOM from clicked el, try each help entry selector
+  for (let depth = 0; depth < 8; depth++) {
+    if (!el || el === document.body) break;
+    for (const entry of _HELP_MAP) {
+      const sels = entry.sel.split(",").map(s => s.trim());
+      for (const sel of sels) {
+        try {
+          if (el.matches(sel)) return { entry, matchEl: el };
+        } catch(e) {}
+      }
+    }
+    el = el.parentElement;
+  }
+  return null;
+}
+
+function _showHelpTooltip(clickedEl, { entry, matchEl }, cx, cy) {
+  // Highlight matched element
+  if (_helpHighlighted) _helpHighlighted.classList.remove("help-highlight");
+  _helpHighlighted = matchEl;
+  matchEl.classList.add("help-highlight");
+
+  const tt   = document.getElementById("helpTooltip");
+  document.getElementById("htZone").textContent  = entry.icon + " " + entry.zone;
+  document.getElementById("htTitle").textContent = entry.title;
+  document.getElementById("htBody").innerHTML    = entry.body.replace(/\n/g, "<br>");
+  const tipEl = document.getElementById("htTip");
+  tipEl.textContent = entry.tip || "";
+  tipEl.style.display = entry.tip ? "block" : "none";
+
+  // More detail button
+  const moreEl = document.getElementById("htMore");
+  if (entry.detail) {
+    moreEl.style.display = "inline-flex";
+    moreEl.onclick = () => openHelpDetail(entry.detail);
+  } else {
+    moreEl.style.display = "none";
+  }
+
+  tt.classList.add("show");
+
+  const TW = 320, TH = 300;
+  let left = cx + 14;
+  let top  = cy - 20;
+  if (left + TW > window.innerWidth - 8)  left = cx - TW - 14;
+  if (left < 8) left = 8;
+  if (top + TH > window.innerHeight - 8)  top = window.innerHeight - TH - 8;
+  if (top < 60) top = 60;
+  tt.style.left = left + "px";
+  tt.style.top  = top + "px";
+}
+
+// ── Detail panels content ──
+const _HELP_DETAIL = {
+  harmony: {
+    title: "🎼 Cómo funcionan las sugerencias armónicas",
+    sections: [
+      { type: "key", label: "🎵 Tonalidad — la 'casa' de la canción",
+        text: "Estos acordes son los <strong>7 acordes diatónicos</strong> de la clave que hayas puesto en el campo 'Tonalidad' del header (ej: <em>La menor</em>).\n\nSon los acordes que 'viven' en esa tonalidad — como las teclas blancas en Do Mayor. Cualquiera de ellos sonará bien en la canción porque comparten las mismas notas.\n\n<strong>I</strong> = tónica (el acorde de 'reposo') · <strong>IV</strong> = subdominante · <strong>V</strong> = dominante (el que 'tira' hacia el I)." },
+      { type: "fifth", label: "🔄 Círculo de quintas — el movimiento más natural",
+        text: "Las quintas son el intervalo más consonante después de la octava. Moverse en quintas es lo más natural en música — es lo que hace que una progresión 'fluya'.\n\nEl círculo de quintas ordena las 12 notas en un círculo donde cada nota está a una quinta de la siguiente: <strong>C → G → D → A → E → B → F# → Db → Ab → Eb → Bb → F → C</strong>.\n\nSugerimos la quinta justa arriba (siguiente paso) y la cuarta (paso anterior en el círculo)." },
+      { type: "rel", label: "↔️ Relativo — el cambio de color sin cambiar de notas",
+        text: "Cada tonalidad mayor tiene una <strong>relativa menor</strong> que usa exactamente las mismas notas — solo cambia cuál es el centro.\n\n<strong>Do Mayor ↔ La menor</strong> · <strong>Sol Mayor ↔ Mi menor</strong>\n\nEs como ver el mismo paisaje con luz de día (mayor = alegre, brillante) o de noche (menor = oscuro, emotivo). El cambio de mayor a menor o viceversa da mucho color sin romper la tonalidad." },
+      { type: "cadence", label: "🎼 Cadencias — las frases musicales que 'cierran'",
+        text: "Una cadencia es una secuencia de acordes que da sensación de conclusión, como el punto al final de una frase.\n\n<strong>V7 → I</strong> (cadencia perfecta): el más potente. El acorde dominante con séptima resuelve en la tónica. Es la cadencia más usada en toda la música occidental.\n\n<strong>ii → V → I</strong>: la progresión base del jazz pero también muy común en pop. El 'ii' prepara el dominante, que resuelve en la tónica." },
+      { type: "jazz", label: "🎷 Jazz — extensiones y sustituciones",
+        text: "El jazz enriquece los acordes con <strong>extensiones</strong> (7ª, 9ª, 11ª, 13ª) y usa movimientos más complejos.\n\n<strong>Sustitución de tritono</strong>: cambiar el acorde V7 por otro dominante a distancia de tritono (6 semitonos). Da el característico movimiento cromático del jazz.\n\n<strong>maj7, 9ª, m7b5</strong>: extensiones que añaden color y tensión sin romper la función armónica básica." },
+      { type: "flam", label: "💃 Flamenco — el modo frigio y la cadencia andaluza",
+        text: "El flamenco tiene su propia lógica armónica basada en el <strong>modo frigio</strong> — una escala que empieza en el 3er grado de la mayor.\n\n<strong>Cadencia andaluza</strong>: Am → G → F → E. Es el movimiento descendente más característico del flamenco. El acorde final (E o E7) no es la tónica 'clásica' — es el dominante frigio, que da ese sonido tan reconocible.\n\n<strong>Movimiento cromático</strong>: subir o bajar un semitono es muy natural en el flamenco." },
+      { type: "rock", label: "🎸 Rock — power chords y movimientos paralelos",
+        text: "El rock usa mucho los <strong>power chords</strong> (quinta sin tercera — ni mayor ni menor, solo la fuerza del intervalo) y los movimientos paralelos donde todos los acordes mantienen la misma estructura.\n\n<strong>♭VII</strong> y <strong>♭III</strong>: acordes 'prestados' de la tonalidad paralela menor. Dan el característico sonido áspero del rock clásico (Led Zeppelin, AC/DC).\n\n<strong>Paralelo mayor/menor</strong>: cambiar el mismo acorde de mayor a menor o viceversa da un contraste dramático sin salir de la tonalidad." },
+    ]
+  }
+};
+
+function openHelpDetail(key) {
+  const detail = _HELP_DETAIL[key];
+  if (!detail) return;
+  const overlay = document.getElementById("helpDetailOverlay");
+  const panel   = document.getElementById("helpDetailPanel");
+
+  let html = `<button class="hd-close" id="hdCloseBtn">✕</button>`;
+  html += `<h2>${detail.title}</h2>`;
+  detail.sections.forEach(sec => {
+    html += `<div class="hd-section">
+      <div class="hd-label type-${sec.type}">${sec.label}</div>
+      <div class="hd-text">${sec.text.replace(/\n/g, "<br>")}</div>
+    </div>`;
+  });
+  panel.innerHTML = html;
+  panel.querySelector("#hdCloseBtn").addEventListener("click", closeHelpDetail);
+  overlay.classList.add("show");
+}
+
+function closeHelpDetail() {
+  document.getElementById("helpDetailOverlay").classList.remove("show");
+}
+
+// Close tooltip when pressing Escape
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && _helpActive) {
+    if (document.getElementById("helpTooltip").classList.contains("show")) {
+      closeHelpTooltip();
+    } else {
+      exitHelpMode();
+    }
+  }
+});
 </script>
 
 </body>
