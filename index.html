@@ -3785,7 +3785,22 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 <div id="zoomWrapper">
 
 <!-- TONALIDAD + EAGLE MODE — cuerpo del editor -->
+<div id="versionBreadcrumb">
+  <div class="version-breadcrumb-inner" onclick="versionsGoToParent()">
+    <span>←</span>
+    <span id="versionBreadcrumbParentName">Canción principal</span>
+    <span class="version-type-badge idea" id="versionTypeBadge">💡 Idea</span>
+  </div>
+</div>
 <div id="songKeyBar" style="max-width:900px;margin:18px auto 0;padding:0 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+
+  <!-- Botón Versiones/Ideas -->
+  <button id="btnVersions" onclick="versionsOpenPanel()" title="Ideas y Versiones de esta canción"
+    style="font-family:'Space Mono',monospace;font-size:0.8rem;padding:7px 11px;border-radius:8px;
+           border:1px solid var(--border);background:var(--surface);color:var(--muted);
+           cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;white-space:nowrap;display:none;">
+    💡💿 <span id="btnVersionsBadge" style="display:none;font-size:0.7rem;background:var(--accent);color:var(--bg);border-radius:10px;padding:1px 5px;margin-left:2px;"></span>
+  </button>
 
   <div style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
     <label style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0;">🎵 Tonalidad</label>
@@ -4159,7 +4174,7 @@ async function loadLibrary() {
   grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⏳</div><p>Cargando...</p></div>';
 
   const { data, error } = await _sb.from("Canciones")
-    .select("id, titulo, artista, created_by, updated_at")
+    .select("id, titulo, artista, created_by, updated_at, parent_id, version_type")
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -4172,12 +4187,14 @@ async function loadLibrary() {
 
 function renderLibrary(songs) {
   const grid = document.getElementById("libGrid");
-  if (!songs.length) {
+  // Only show root songs (no parent)
+  const rootSongs = songs.filter(s => !s.parent_id);
+  if (!rootSongs.length) {
     grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">🎵</div><p>No hay canciones todavía.<br>¡Crea la primera!</p></div>';
     return;
   }
   grid.innerHTML = "";
-  songs.forEach(s => {
+  rootSongs.forEach(s => {
     const card = document.createElement("div");
     card.className = "song-card";
     card.style.cursor = "pointer";
@@ -4186,8 +4203,13 @@ function renderLibrary(songs) {
     });
     const date = s.updated_at ? new Date(s.updated_at).toLocaleDateString("es-ES") : "";
     const isOwner = s.created_by === (_currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''));
+    // Count versions/ideas
+    const children = songs.filter(c => c.parent_id === s.id);
+    const ideas    = children.filter(c => c.version_type !== 'version').length;
+    const versions = children.filter(c => c.version_type === 'version').length;
+    const badgeHtml = children.length ? `<span class="song-versions-badge">${ideas ? `<span>💡${ideas}</span>` : ''}${versions ? `<span>💿${versions}</span>` : ''}</span>` : '';
     card.innerHTML = `
-      <div class="card-title">${s.titulo || "(Sin título)"}</div>
+      <div class="card-title">${s.titulo || "(Sin título)"}${badgeHtml}</div>
       <div class="card-artist">${s.artista || "—"}</div>
       <div class="card-meta">${date}</div>
       <div class="card-by">✏️ ${s.created_by || "desconocido"}</div>
@@ -4220,6 +4242,17 @@ async function openSong(id, origin = 'library') {
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom && window._immersiveResetZoom();
   setTimeout(() => window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility(), 50);
+
+  // Versiones: si es sub-canción mostrar breadcrumb, si es principal cargar versiones
+  versionsHideBreadcrumb();
+  if (data.parent_id) {
+    // Es idea/versión — buscar nombre del padre
+    const { data: parent } = await _sb.from('Canciones').select('titulo').eq('id', data.parent_id).single();
+    versionsShowBreadcrumb(data.parent_id, parent?.titulo || 'Canción principal', data.version_type || 'idea');
+  } else {
+    // Es canción principal — cargar sus versiones
+    await versionsLoadForSong(id, data.titulo);
+  }
 }
 
 function newSong() {
@@ -4262,6 +4295,142 @@ async function deleteSong(id, e) {
 }
 
 // ═══════════════════════════════════════════════
+// VERSIONES & IDEAS
+// ═══════════════════════════════════════════════
+let _versionsParentId   = null; // parent_id de la canción actual (si es sub)
+let _versionsParentName = null;
+let _versionsType       = null; // 'idea' | 'version'
+let _versionsList       = [];   // lista cargada en el panel
+
+async function versionsLoadForSong(songId, songTitle) {
+  // Mostrar botón
+  const btn = document.getElementById('btnVersions');
+  if (!songId) { btn.style.display = 'none'; return; }
+  btn.style.display = '';
+
+  // Cargar sub-canciones
+  const { data } = await _sb.from('Canciones')
+    .select('id, titulo, version_type, updated_at')
+    .eq('parent_id', songId)
+    .order('updated_at', { ascending: false });
+
+  _versionsList = data || [];
+  const badge = document.getElementById('btnVersionsBadge');
+  if (_versionsList.length) {
+    badge.style.display = '';
+    badge.textContent = _versionsList.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function versionsOpenPanel() {
+  document.getElementById('versionsPanel').classList.add('open');
+  document.getElementById('versionsOverlay').classList.add('open');
+  const sub = document.getElementById('versionsPanelSub');
+  sub.textContent = document.querySelector('.title-input')?.value || '—';
+  versionsRenderPanel();
+}
+
+function versionsClosePanel() {
+  document.getElementById('versionsPanel').classList.remove('open');
+  document.getElementById('versionsOverlay').classList.remove('open');
+}
+
+function versionsRenderPanel() {
+  const body = document.getElementById('versionsPanelBody');
+  body.innerHTML = '';
+  if (!_versionsList.length) {
+    body.innerHTML = '<div class="versions-empty">Todavía no hay ideas ni versiones.<br>¡Crea la primera!</div>';
+    return;
+  }
+  _versionsList.forEach(v => {
+    const card = document.createElement('div');
+    const vtype = v.version_type || 'idea';
+    card.className = `version-card ${vtype}`;
+    const icon = vtype === 'version' ? '💿' : '💡';
+    const date = v.updated_at ? new Date(v.updated_at).toLocaleDateString('es-ES') : '';
+    card.innerHTML = `
+      <div class="version-card-icon">${icon}</div>
+      <div class="version-card-info">
+        <div class="version-card-title">${v.titulo || '(Sin título)'}</div>
+        <div class="version-card-date">${date}</div>
+      </div>
+      <button class="version-card-del" onclick="versionsDeleteChild('${v.id}', event)" title="Borrar">🗑</button>`;
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.version-card-del')) return;
+      versionsClosePanel();
+      openSong(v.id, 'version');
+    });
+    body.appendChild(card);
+  });
+}
+
+async function versionsCreateNew(type) {
+  if (!_currentSongId) { alert('Guarda la canción principal primero.'); return; }
+  const parentTitle = document.querySelector('.title-input')?.value || 'Canción';
+  const defaultTitle = type === 'idea' ? `💡 Idea de ${parentTitle}` : `💿 Versión de ${parentTitle}`;
+  const title = prompt('Nombre:', defaultTitle);
+  if (!title) return;
+
+  const payload = {
+    titulo: title,
+    artista: document.querySelector('.artist-input')?.value || '',
+    data: { title, artist: '', sections: [], tempo: null, keyLabel: '' },
+    created_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
+    updated_at: new Date().toISOString(),
+    parent_id: _currentSongId,
+    version_type: type
+  };
+
+  const { data, error } = await _sb.from('Canciones').insert(payload).select().single();
+  if (error) { alert('Error al crear.'); return; }
+
+  versionsClosePanel();
+  openSong(data.id, 'version');
+}
+
+async function versionsDeleteChild(id, e) {
+  e.stopPropagation();
+  if (!confirm('¿Borrar esta idea/versión?')) return;
+  await _sb.from('Canciones').delete().eq('id', id);
+  _versionsList = _versionsList.filter(v => v.id !== id);
+  // Update badge
+  const badge = document.getElementById('btnVersionsBadge');
+  if (_versionsList.length) { badge.textContent = _versionsList.length; }
+  else { badge.style.display = 'none'; }
+  versionsRenderPanel();
+}
+
+function versionsShowBreadcrumb(parentId, parentName, type) {
+  _versionsParentId   = parentId;
+  _versionsParentName = parentName;
+  _versionsType       = type;
+  const bc = document.getElementById('versionBreadcrumb');
+  bc.classList.add('visible');
+  document.getElementById('versionBreadcrumbParentName').textContent = parentName || 'Canción principal';
+  const badge = document.getElementById('versionTypeBadge');
+  if (type === 'version') {
+    badge.textContent = '💿 Versión';
+    badge.className = 'version-type-badge version';
+  } else {
+    badge.textContent = '💡 Idea';
+    badge.className = 'version-type-badge idea';
+  }
+  // Hide versions button (sub-songs don't have their own versions)
+  document.getElementById('btnVersions').style.display = 'none';
+}
+
+function versionsHideBreadcrumb() {
+  _versionsParentId = null; _versionsParentName = null; _versionsType = null;
+  document.getElementById('versionBreadcrumb').classList.remove('visible');
+}
+
+function versionsGoToParent() {
+  if (_versionsParentId) openSong(_versionsParentId, 'library');
+}
+
+// ═══════════════════════════════════════════════
 // CLOUD SAVE
 // ═══════════════════════════════════════════════
 function setCloudStatus(state, text) {
@@ -4282,6 +4451,11 @@ async function saveSongCloud() {
     created_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
     updated_at: new Date().toISOString()
   };
+  // Preserve parent link if this is a version/idea
+  if (_versionsParentId) {
+    payload.parent_id    = _versionsParentId;
+    payload.version_type = _versionsType || 'idea';
+  }
 
   let result;
   if (_currentSongId) {
@@ -11044,6 +11218,140 @@ document.addEventListener('DOMContentLoaded', function() {
 .cal-avail-zone[data-count="4"] .cal-avail-dot { width:15px; height:15px; font-size:0.52rem; }
 
 /* ── DAY PANEL (slide-in from right) ── */
+/* ══════════════════════════════════════════════ */
+/* VERSIONS PANEL STYLES                          */
+/* ══════════════════════════════════════════════ */
+.versions-panel {
+  position: fixed; top: 0; right: -420px; width: 420px; max-width: 100vw;
+  height: 100vh; z-index: 8100;
+  background: var(--surface);
+  border-left: 2px solid #c4763a;
+  display: flex; flex-direction: column;
+  transition: right 0.3s cubic-bezier(.4,0,.2,1);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+}
+.versions-panel.open { right: 0; }
+
+/* Móvil: panel desde abajo, altura ajustada al contenido */
+@media (max-width: 600px) {
+  .versions-panel {
+    top: auto; bottom: -100%; right: 0;
+    width: 100vw; max-width: 100vw;
+    height: auto; max-height: 85vh;
+    border-left: none; border-top: 2px solid #c4763a;
+    border-radius: 16px 16px 0 0;
+    transition: bottom 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  .versions-panel.open { bottom: 0; right: 0; }
+  .versions-panel-body {
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+}
+.versions-overlay {
+  position: fixed; inset: 0; z-index: 8099;
+  background: rgba(0,0,0,0.4); display: none;
+}
+.versions-overlay.open { display: block; }
+
+.versions-panel-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--surface2);
+}
+.versions-panel-title {
+  font-family: 'Space Mono', monospace; font-size: 0.9rem;
+  font-weight: 700; color: var(--text); letter-spacing: 0.04em;
+}
+.versions-panel-sub {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.75rem;
+  color: var(--muted); margin-top: 3px;
+}
+.versions-panel-body {
+  flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+}
+.versions-panel-footer {
+  padding: 12px 14px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.versions-new-btn {
+  flex: 1; font-family: 'Space Mono', monospace; font-size: 0.75rem; font-weight: 700;
+  padding: 9px 10px; border-radius: 8px; cursor: pointer;
+  transition: all 0.15s; letter-spacing: 0.04em; border: 1px solid;
+}
+.versions-new-btn.idea {
+  background: rgba(232,200,64,0.12); border-color: rgba(232,200,64,0.4); color: #e8c840;
+}
+.versions-new-btn.idea:hover { background: rgba(232,200,64,0.22); }
+.versions-new-btn.version {
+  background: rgba(150,100,232,0.12); border-color: rgba(150,100,232,0.4); color: #9664e8;
+}
+.versions-new-btn.version:hover { background: rgba(150,100,232,0.22); }
+
+.version-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 11px 13px;
+  border-left: 4px solid var(--dim);
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 10px;
+}
+.version-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.3); transform: translateY(-1px); }
+.version-card.idea  { border-left-color: #e8c840; }
+.version-card.version { border-left-color: #9664e8; }
+.version-card-icon { font-size: 1.3rem; flex-shrink: 0; }
+.version-card-info { flex: 1; min-width: 0; }
+.version-card-title {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem;
+  font-weight: 600; color: var(--text); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.version-card-date {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.72rem;
+  color: var(--muted); margin-top: 2px;
+}
+.version-card-del {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 0.8rem; padding: 4px 6px; border-radius: 4px; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.version-card-del:hover { color: #e84040; }
+
+.versions-empty {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.82rem;
+  color: var(--muted); text-align: center; padding: 30px 0;
+}
+
+/* Badge en librería */
+.song-versions-badge {
+  display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: middle;
+}
+.song-versions-badge span {
+  font-size: 0.65rem; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 1px 5px; color: var(--muted);
+}
+
+/* Breadcrumb en editor cuando es sub-canción */
+#versionBreadcrumb {
+  display: none; max-width: 900px; margin: 8px auto 0; padding: 0 20px;
+}
+#versionBreadcrumb.visible { display: block; }
+.version-breadcrumb-inner {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.78rem; color: var(--muted);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 10px; cursor: pointer;
+  transition: color 0.15s;
+}
+.version-breadcrumb-inner:hover { color: var(--accent); }
+.version-type-badge {
+  font-size: 0.65rem; font-weight: 700; font-family: 'Space Mono', monospace;
+  padding: 2px 6px; border-radius: 8px; letter-spacing: 0.04em;
+}
+.version-type-badge.idea    { background: rgba(232,200,64,0.15); color: #e8c840; }
+.version-type-badge.version { background: rgba(150,100,232,0.15); color: #9664e8; }
+
 .cal-day-panel {
   position: fixed; top: 0; right: -420px; width: 420px; max-width: 100vw;
   height: 100vh; z-index: 8000;
@@ -11349,6 +11657,27 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="cal-overlay-dim" id="calOverlayDim" onclick="calCloseDayPanel()"></div>
 
 <!-- Day panel -->
+<!-- ══════════════════════════════════════════════ -->
+<!-- VERSIONS PANEL                               -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="versions-panel" id="versionsPanel">
+  <div class="versions-panel-header" style="justify-content:space-between;align-items:center;">
+    <div>
+      <div class="versions-panel-title">💡💿 Ideas &amp; Versiones</div>
+      <div class="versions-panel-sub" id="versionsPanelSub">—</div>
+    </div>
+    <button class="cal-panel-close" onclick="versionsClosePanel()" style="margin-left:auto;flex-shrink:0;">✕</button>
+  </div>
+  <div class="versions-panel-body" id="versionsPanelBody">
+    <!-- Filled dynamically -->
+  </div>
+  <div class="versions-panel-footer">
+    <button class="versions-new-btn idea" onclick="versionsCreateNew('idea')">💡 Nueva Idea</button>
+    <button class="versions-new-btn version" onclick="versionsCreateNew('version')">💿 Nueva Versión</button>
+  </div>
+</div>
+<div class="versions-overlay" id="versionsOverlay" onclick="versionsClosePanel()"></div>
+
 <div class="cal-day-panel" id="calDayPanel">
   <div class="cal-panel-header">
     <div class="cal-panel-date">
@@ -11596,7 +11925,7 @@ function _calRender() {
     top.appendChild(numEl);
 
     // Event icons (emoji only, compact)
-    const dayEvents = _calEvents.filter(e => e.date === ds);
+    const dayEvents = _calEvents.filter(e => e.date === ds).sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
     if (dayEvents.length) {
       const isMobile = window.innerWidth <= 640;
       if (isMobile) {
@@ -11686,7 +12015,7 @@ function _calRenderPanelBody(dateStr) {
   const myStatus = dayAvail[myKey] || 'none';
 
   // ── Events (PRIMERO) ──
-  const dayEvents = _calEvents.filter(e => e.date === dateStr);
+  const dayEvents = _calEvents.filter(e => e.date === dateStr).sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
   const evSection = document.createElement('div');
 
   const evTitle = document.createElement('div');
