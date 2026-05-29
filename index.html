@@ -3559,6 +3559,10 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 <body>
 
 <!-- LOGIN SCREEN -->
+<div id="appLoadingOverlay" style="position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;align-items:center;justify-content:center;">
+  <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;opacity:0.6;">Cargando...</div>
+</div>
+
 <div id="loginScreen">
   <div class="login-box">
     <h2> BT SoundsApp</h2>
@@ -3661,16 +3665,15 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     <div class="cfg-panel" id="cfgPanel-instrumentos">
       <div class="cfg-placeholder">
         <div class="cfg-placeholder-icon">🎸</div>
-        <div>Configuración de instrumentos — próximamente</div>
+        <div>Los colores de instrumento se adaptan automáticamente al tema activo.</div>
+        <div style="margin-top:8px;font-size:0.7rem;color:var(--muted);">La personalización por banda llegará en una próxima versión.</div>
       </div>
     </div>
 
     <!-- Panel: Tema -->
     <div class="cfg-panel" id="cfgPanel-tema">
-      <div class="cfg-placeholder">
-        <div class="cfg-placeholder-icon">🎨</div>
-        <div>Selector de tema visual — próximamente</div>
-      </div>
+      <p class="cfg-desc">Elige el tema visual. Se guardará en tu perfil y se aplicará en cualquier dispositivo.</p>
+      <div id="cfgThemeList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;"></div>
     </div>
 
     <!-- Panel: Preferencias -->
@@ -4482,12 +4485,14 @@ async function saveSongCloud() {
   const { data } = await _sb.auth.getSession();
   if (data?.session?.user) {
     _currentUser = data.session.user;
-    // Recuperar nombre de usuario quitando @btb.com
     _currentUser._displayName = (_currentUser.email || "").replace("@btb.com", "");
     document.getElementById("loginScreen").style.display = "none";
     await loadUserSettings();
     showHome();
   }
+  // Quitar overlay de carga — ya sabemos si hay sesión o no
+  const overlay = document.getElementById("appLoadingOverlay");
+  if (overlay) overlay.remove();
 })();
 
 
@@ -7851,7 +7856,25 @@ function closeThemePicker() {
   document.removeEventListener("click", closeThemePickerOutside);
 }
 
-function applyTheme(idx) {
+// Colores de instrumento por tema — saturados/oscuros para claro, brillantes para oscuros
+const _INST_DEFAULTS = {
+  'neon':    { guit1:'#4a9eff', guit2:'#f5c842', bajo:'#ff6b6b', bat:'#4ade80', voz:'#a78bfa' },
+  'light':   { guit1:'#1a6bbf', guit2:'#9a6e00', bajo:'#b02020', bat:'#1a7a3a', voz:'#5a2fa0' },
+  'bluered': { guit1:'#5ab8e8', guit2:'#f0a030', bajo:'#e05070', bat:'#2ecfa8', voz:'#c080f0' },
+  'default': { guit1:'#4a9eff', guit2:'#f5c842', bajo:'#ff6b6b', bat:'#4ade80', voz:'#a78bfa' },
+};
+
+// Aplica los colores de instrumento según el tema activo
+function applyInstrumentColors() {
+  const themeKey = _themes[_themeIdx]?.key || 'default';
+  const defaults = _INST_DEFAULTS[themeKey] || _INST_DEFAULTS['default'];
+  const root = document.documentElement;
+  for (const [inst, def] of Object.entries(defaults)) {
+    root.style.setProperty('--inst-' + inst, def);
+  }
+}
+
+function applyTheme(idx, skipSave) {
   const t = _themes[idx];
   const html = document.documentElement;
   if (t.key === "default") {
@@ -7864,6 +7887,15 @@ function applyTheme(idx) {
   const btnTP = document.getElementById("btnThemePill");
   if (btnTP) btnTP.textContent = t.icon;
   try { localStorage.setItem("bt_theme", t.key); } catch(e) {}
+
+  // Guardar en Supabase si el usuario está logado (y no es la carga inicial)
+  if (!skipSave && _currentUser) {
+    _userSettings.theme = t.key;
+    saveUserSettings();
+  }
+
+  // Actualizar colores de instrumento según el nuevo tema
+  applyInstrumentColors();
 }
 
 // Load saved theme
@@ -9888,7 +9920,18 @@ async function loadUserSettings() {
     .eq('user_id', _currentUser.id)
     .single();
   _userSettings = data?.settings || {};
+
+  // Aplicar tema guardado en Supabase (prevalece sobre localStorage)
+  if (_userSettings.theme) {
+    const idx = _themes.findIndex(t => t.key === _userSettings.theme);
+    if (idx >= 0) { _themeIdx = idx; applyTheme(idx, true); }
+  }
+
+  // Aplicar colores de instrumento guardados
+  applyInstrumentColors();
 }
+
+
 
 // Guarda settings en Supabase
 async function saveUserSettings() {
@@ -9919,7 +9962,28 @@ function getSectionColor(secName) {
 function openLibConfig() {
   cfgRenderPalette();
   cfgRenderRules();
+  cfgRenderThemePanel();
   document.getElementById('cfgModal').classList.add('open');
+}
+
+function cfgRenderThemePanel() {
+  const list = document.getElementById('cfgThemeList');
+  if (!list) return;
+  list.innerHTML = '';
+  _themes.forEach((t, i) => {
+    const isActive = i === _themeIdx;
+    const btn = document.createElement('button');
+    btn.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;' +
+      'border:1px solid ' + (isActive ? 'var(--accent)' : 'var(--border)') + ';cursor:pointer;' +
+      'background:' + (isActive ? 'var(--surface2)' : 'transparent') + ';' +
+      'color:var(--text);font-family:IBM Plex Sans,sans-serif;font-size:0.82rem;text-align:left;width:100%;transition:all 0.15s;';
+    btn.innerHTML = '<span style="font-size:1.1rem">' + t.icon + '</span>' +
+      '<span><strong style="display:block;font-size:0.8rem">' + t.label + '</strong>' +
+      '<span style="font-size:0.7rem;color:var(--muted)">' + t.desc + '</span></span>' +
+      (isActive ? '<span style="margin-left:auto;font-size:0.65rem;color:var(--accent);font-family:Space Mono,monospace;">&#10003; activo</span>' : '');
+    btn.onclick = () => { _themeIdx = i; applyTheme(i); cfgRenderThemePanel(); };
+    list.appendChild(btn);
+  });
 }
 
 function closeLibConfig() {
@@ -10001,7 +10065,7 @@ function cfgCycleColor(i) {
 async function cfgSave() {
   await saveUserSettings();
   closeLibConfig();
-  render();  // re-renderiza para aplicar los nuevos colores
+  render();
 }
 
 
