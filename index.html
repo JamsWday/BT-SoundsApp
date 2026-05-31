@@ -4581,11 +4581,63 @@ document.addEventListener("keydown", e => {
 // ═══════════════════════════════════════════════
 let _drag = null; // { type, fromIdx } | { type, secId, fromRowIdx }
 
+// ── Autoscroll durante drag de secciones ──────────────────────
+let _dragScrollRAF = null;
+let _dragClientY = 0;
+let _dragClientX = 0;
+
+function _dragScrollStep() {
+  if (!_drag) { _dragScrollRAF = null; return; }
+  const MAX_SPD = 18;    // velocidad máxima px/frame (al llegar al top)
+  const h = window.innerHeight;
+  const w = window.innerWidth;
+  const headerEl = document.querySelector('.header');
+  const headerH  = (headerEl && headerEl.offsetParent !== null) ? headerEl.offsetHeight : 0;
+  const EDGE_BOT = 80;   // zona de activación inferior en px
+  let dy = 0, dx = 0;
+
+  // Superior: rampa desde headerH+EDGE_BOT (vel 0) hasta headerH (vel MAX)
+  if (_dragClientY < headerH + EDGE_BOT) {
+    const distFromHeader = Math.max(0, _dragClientY - headerH); // 0..EDGE_BOT
+    dy = -MAX_SPD * (1 - distFromHeader / EDGE_BOT);
+  }
+  // Inferior: rampa desde h-EDGE_BOT (vel 0) hasta h (vel MAX)
+  if (_dragClientY > h - EDGE_BOT)
+    dy = MAX_SPD * (1 - (h - _dragClientY) / EDGE_BOT);
+
+  if (_dragClientX < EDGE_BOT)            dx = -MAX_SPD * (1 - _dragClientX / EDGE_BOT);
+  else if (_dragClientX > w - EDGE_BOT)   dx =  MAX_SPD * (1 - (w - _dragClientX) / EDGE_BOT);
+
+  if (dy !== 0 || dx !== 0) {
+    window.scrollBy({ left: dx, top: dy, behavior: 'instant' });
+  }
+  _dragScrollRAF = requestAnimationFrame(_dragScrollStep);
+}
+
+document.addEventListener("dragover", e => {
+  if (!_drag) return;
+  _dragClientY = e.clientY;
+  _dragClientX = e.clientX;
+  if (!_dragScrollRAF) {
+    _dragScrollRAF = requestAnimationFrame(_dragScrollStep);
+  }
+});
+
+document.addEventListener("dragend", () => {
+  if (_dragScrollRAF) { cancelAnimationFrame(_dragScrollRAF); _dragScrollRAF = null; }
+});
+
+document.addEventListener("drop", () => {
+  if (_dragScrollRAF) { cancelAnimationFrame(_dragScrollRAF); _dragScrollRAF = null; }
+});
+
 // ═══════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════
-function render() {
+function render(scrollTargetId) {
   const chart = document.getElementById("chart");
+  // ── Preservar posición de scroll antes de reconstruir el DOM ──
+  const _savedScrollY = window.scrollY;
   chart.innerHTML = "";
 
   // ── Insert zone between sections
@@ -4653,9 +4705,42 @@ function render() {
     secHandle.addEventListener("dragstart", e => {
       _drag = { type: "section", fromIdx: si };
       e.dataTransfer.effectAllowed = "move";
-      // Use the block as drag image
-      e.dataTransfer.setDragImage(block, 20, 20);
-      setTimeout(() => block.classList.add("dragging"), 0);
+
+      // ── Drag image: solo el header + primeras filas, con fade inferior ──
+      const ghost = document.createElement("div");
+      ghost.style.cssText = `
+        position:fixed; top:-9999px; left:0;
+        width:${block.offsetWidth}px;
+        max-height:160px; overflow:hidden;
+        border-radius:10px; border:1px solid var(--border);
+        background:var(--surface);
+        -webkit-mask-image:linear-gradient(to bottom,black 55%,transparent 100%);
+        mask-image:linear-gradient(to bottom,black 55%,transparent 100%);
+        pointer-events:none; opacity:0.92;
+      `;
+      // Clonar solo el header de sección (sin barsArea ni audio player)
+      const hdrClone = hdr.cloneNode(true);
+      ghost.appendChild(hdrClone);
+      // Añadir las primeras filas del bars-area si caben
+      const barsClone = block.querySelector('.bars-area');
+      if (barsClone) {
+        const bc = barsClone.cloneNode(true);
+        // Quitar el audio player si existe dentro
+        bc.querySelectorAll('.audio-player, .song-player-bar, #songPlayerBar').forEach(el => el.remove());
+        ghost.appendChild(bc);
+      }
+      document.body.appendChild(ghost);
+      // Offset: donde el usuario tocó dentro del bloque, limitado al tamaño del ghost
+      const blockRect = block.getBoundingClientRect();
+      const oxRaw = e.clientX - blockRect.left;
+      const oyRaw = e.clientY - blockRect.top;
+      const ox = Math.min(Math.max(oxRaw, 0), block.offsetWidth  - 1);
+      const oy = Math.min(Math.max(oyRaw, 0), 159);
+      e.dataTransfer.setDragImage(ghost, ox, oy);
+      setTimeout(() => {
+        block.classList.add("dragging");
+        ghost.remove();
+      }, 0);
     });
     secHandle.addEventListener("dragend", () => {
       block.classList.remove("dragging");
@@ -4703,7 +4788,7 @@ function render() {
       // Compartir el mismo storagePath causaría que borrar uno borre el otro
       copy.audio = null;
       songData.sections.splice(si + 1, 0, copy);
-      render();
+      render(copy.id);
     });
 
     const arrow = document.createElement("span");
@@ -4747,6 +4832,9 @@ function render() {
     const barsArea = document.createElement("div");
     barsArea.className = "bars-area";
 
+    // Sanear filas nulas/corruptas antes de renderizar
+    sec.rows = sec.rows.filter(r => r != null && typeof r === 'object');
+
     sec.rows.forEach((row, ri) => {
       const inst = row.instrument || "guit1"; // default legacy rows → guit1
       const instMeta = {
@@ -4760,6 +4848,7 @@ function render() {
       const rowWrap = document.createElement("div");
       rowWrap.className = `row-wrap row-inst-${inst}`;
       rowWrap.dataset.instrument = inst;
+      rowWrap.dataset.rowid = row.id;
 
       // Instrument color stripe
       const stripe = document.createElement("div");
@@ -4767,31 +4856,45 @@ function render() {
       rowWrap.appendChild(stripe);
 
       rowWrap.addEventListener("dragover", e => {
-        if (_drag && _drag.type === "row") {
-          e.preventDefault();
-          e.stopPropagation();
-          rowWrap.classList.remove("drag-over-top", "drag-over-bottom");
-          const mid = rowWrap.getBoundingClientRect().top + rowWrap.getBoundingClientRect().height / 2;
-          rowWrap.classList.add(e.clientY < mid ? "drag-over-top" : "drag-over-bottom");
-        }
-      });
-      rowWrap.addEventListener("dragleave", () => {
+        if (!_drag || _drag.type !== "row") return;
+        e.preventDefault();
+        e.stopPropagation();
+        // Limpiar highlights de TODOS los rowWraps para evitar doble-highlight
+        document.querySelectorAll(".row-wrap").forEach(rw => {
+          if (rw !== rowWrap) rw.classList.remove("drag-over-top", "drag-over-bottom");
+        });
+        const rect = rowWrap.getBoundingClientRect();
+        const mid  = rect.top + rect.height / 2;
         rowWrap.classList.remove("drag-over-top", "drag-over-bottom");
+        rowWrap.classList.add(e.clientY < mid ? "drag-over-top" : "drag-over-bottom");
+      });
+      rowWrap.addEventListener("dragleave", e => {
+        // Solo limpiar si el cursor sale FUERA del rowWrap (no a un hijo)
+        if (!rowWrap.contains(e.relatedTarget)) {
+          rowWrap.classList.remove("drag-over-top", "drag-over-bottom");
+        }
       });
       rowWrap.addEventListener("drop", e => {
         e.preventDefault();
         e.stopPropagation();
-        rowWrap.classList.remove("drag-over-top", "drag-over-bottom");
+        // Limpiar todos los highlights
+        document.querySelectorAll(".row-wrap").forEach(rw =>
+          rw.classList.remove("drag-over-top", "drag-over-bottom")
+        );
         if (!_drag || _drag.type !== "row") return;
         const fromSec = songData.sections.find(s => s.id === _drag.secId);
         if (!fromSec) return;
         const fromRi = _drag.fromRowIdx;
-        const mid = rowWrap.getBoundingClientRect().top + rowWrap.getBoundingClientRect().height / 2;
-        const below = e.clientY >= mid;
-        const movedRow = fromSec.rows.splice(fromRi, 1)[0];
+        const rect   = rowWrap.getBoundingClientRect();
+        const below  = e.clientY >= rect.top + rect.height / 2;
+        // Calcular toRi ANTES de mutar el array
         let toRi = sec.rows.indexOf(row);
-        if (fromSec === sec && fromRi <= toRi) toRi--;
         if (below) toRi++;
+        // Ahora extraer la fila
+        const movedRow = fromSec.rows.splice(fromRi, 1)[0];
+        // Si movemos dentro de la misma sección y fromRi estaba antes del destino,
+        // el splice desplazó los índices: ajustar
+        if (fromSec === sec && fromRi < toRi) toRi--;
         toRi = Math.max(0, Math.min(toRi, sec.rows.length));
         sec.rows.splice(toRi, 0, movedRow);
         _drag = null;
@@ -4859,7 +4962,11 @@ function render() {
         setTimeout(() => rowWrap.classList.add("dragging"), 0);
       });
       rowHandle.addEventListener("dragend", () => {
-        rowWrap.classList.remove("dragging", "drag-over-top", "drag-over-bottom");
+        rowWrap.classList.remove("dragging");
+        // Limpiar highlights en TODOS los rowWraps por si el drop fue fuera de zona
+        document.querySelectorAll(".row-wrap").forEach(rw =>
+          rw.classList.remove("drag-over-top", "drag-over-bottom")
+        );
         _drag = null;
       });
       barLine.appendChild(rowHandle);
@@ -5010,7 +5117,7 @@ function render() {
         const copy = clone(row);
         copy.id = uid();
         sec.rows.splice(ri + 1, 0, copy);
-        render();
+        render(copy.id);
       });
 
       const delRow = document.createElement("button");
@@ -5082,6 +5189,24 @@ function render() {
   addSec.textContent = "+ Añadir sección al final";
   addSec.addEventListener("click", () => insertSectionAt(songData.sections.length));
   chart.appendChild(addSec);
+
+  // ── Restaurar scroll y revelar elemento nuevo si procede ──
+  window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+  if (scrollTargetId) {
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-secid="${scrollTargetId}"], [data-rowid="${scrollTargetId}"]`);
+      if (!el) return;
+      const headerEl = document.querySelector('.header');
+      const headerH  = (headerEl && headerEl.offsetParent !== null) ? headerEl.offsetHeight : 0;
+      const MARGIN   = 12;
+      const rect     = el.getBoundingClientRect();
+      const inView   = rect.top >= headerH + MARGIN && rect.bottom <= window.innerHeight - MARGIN;
+      if (!inView) {
+        const targetY = window.scrollY + rect.top - headerH - MARGIN;
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }
+    });
+  }
 
   // Apply active instrument filter after render
   applyInstFilter();
@@ -6838,6 +6963,17 @@ function importJSON() {
 
 function loadSong(d) {
   songData = d;
+  // Sanear datos corruptos: eliminar secciones y filas nulas
+  if (Array.isArray(songData.sections)) {
+    songData.sections = songData.sections
+      .filter(s => s != null && typeof s === 'object')
+      .map(s => ({
+        ...s,
+        rows: Array.isArray(s.rows) ? s.rows.filter(r => r != null && typeof r === 'object') : []
+      }));
+  } else {
+    songData.sections = [];
+  }
   syncHeaderInputs();
   saveUndo();
   render();
