@@ -1344,7 +1344,7 @@ body.readonly #songPlayerBar.has-audio { display: flex !important; }
   -webkit-appearance: none;
   appearance: none;
   flex: 1;
-  max-width: 140px;
+  max-width: 100px;
   height: 3px;
   border-radius: 2px;
   background: var(--dim);
@@ -1380,6 +1380,22 @@ body.readonly #songPlayerBar.has-audio { display: flex !important; }
   opacity: 0.7;
   flex-shrink: 0;
 }
+
+/* ── Botón loop ── */
+.spb-loop-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 7px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.spb-loop-btn:hover { background: var(--accent); color: var(--bg); }
+.spb-loop-btn.loop-on { background: var(--accent); color: var(--bg); }
 
 @media print { #songPlayerBar { display: none !important; } }
 
@@ -1737,6 +1753,81 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
 .lib-search:focus { border-color: var(--accent); }
 .lib-toolbar {
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+/* ── LIST MODE toggle button ── */
+.lib-view-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.lib-view-btn:hover { border-color: var(--accent); color: var(--accent); }
+.lib-view-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,231,0.08); }
+[data-theme="light"] .lib-view-btn.active { background: rgba(176,122,16,0.08); }
+[data-theme="bluered"] .lib-view-btn.active { border-color: #3a9fd4; color: #3a9fd4; background: rgba(58,159,212,0.08); }
+
+/* ── LIST MODE: grid override ── */
+#libGrid.list-mode {
+  grid-template-columns: 1fr;
+  gap: 4px;
+  margin-top: 10px;
+}
+#libGrid.list-mode .song-card {
+  flex-direction: row;
+  align-items: center;
+  padding: 9px 14px;
+  gap: 0;
+  border-radius: 6px;
+}
+#libGrid.list-mode .song-card:hover { transform: none; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+#libGrid.list-mode .song-card .card-title {
+  font-size: 0.88rem;
+  flex: 1;
+  min-width: 0;
+}
+#libGrid.list-mode .song-card .card-artist {
+  font-size: 0.6rem;
+  flex: 0 0 auto;
+  width: 130px;
+  text-align: right;
+  margin-top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+#libGrid.list-mode .song-card .card-meta {
+  font-size: 0.6rem;
+  margin-top: 0;
+  flex: 0 0 72px;
+  text-align: right;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+#libGrid.list-mode .song-card .card-by { display: none; }
+#libGrid.list-mode .song-card .card-actions {
+  margin-top: 0;
+  flex-shrink: 0;
+  gap: 4px;
+}
+#libGrid.list-mode .song-card .card-btn {
+  font-size: 1rem;
+  padding: 4px 7px;
+  letter-spacing: 0;
+}
+#libGrid.list-mode .song-card .card-btn .btn-label { display: none; }
+#libGrid.list-mode .song-card .card-btn:not(.danger) { display: none; }
+@media (max-width: 500px) {
+  #libGrid.list-mode .song-card .card-artist,
+  #libGrid.list-mode .song-card .card-meta { display: none; }
 }
 
 /* ── CLOUD SAVE indicator ── */
@@ -3629,6 +3720,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   </div>
   <div class="lib-body">
     <div class="lib-toolbar">
+      <button class="lib-view-btn" id="libViewBtn" onclick="toggleLibView()" title="Alternar modo lista / tarjetas">☰ Lista</button>
       <input class="lib-search" id="libSearch" placeholder="🔍 Buscar canción o artista..." oninput="filterLibrary()" />
     </div>
     <div class="lib-grid" id="libGrid"></div>
@@ -3866,6 +3958,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   </div>
   <!-- Fila 2: velocidad con preservación de tono (solo con audio) -->
   <div class="spb-row2" id="spbSpeedRow">
+    <button class="spb-loop-btn" id="spbLoopBtn" onclick="spbToggleLoop()" title="Bucle de canción (repetir)">⟳</button>
     <span class="spb-speed-label">Velocidad</span>
     <input class="spb-speed-slider" id="spbSpeedSlider" type="range"
       min="50" max="130" value="100" step="5"
@@ -4190,6 +4283,8 @@ async function loadLibrary() {
 
 function renderLibrary(songs) {
   const grid = document.getElementById("libGrid");
+  // Preserve list-mode class across re-renders
+  if (_libListMode) grid.classList.add("list-mode"); else grid.classList.remove("list-mode");
   // Only show root songs (no parent)
   const rootSongs = songs.filter(s => !s.parent_id);
   if (!rootSongs.length) {
@@ -4217,8 +4312,8 @@ function renderLibrary(songs) {
       <div class="card-meta">${date}</div>
       <div class="card-by">✏️ ${s.created_by || "desconocido"}</div>
       <div class="card-actions">
-        <button class="card-btn" onclick="openSong('${s.id}')">✏️ Editar</button>
-        ${isOwner ? `<button class="card-btn danger" onclick="deleteSong('${s.id}', event)">🗑 Borrar</button>` : ""}
+        <button class="card-btn" onclick="openSong('${s.id}')">✏️<span class="btn-label"> Editar</span></button>
+        ${isOwner ? `<button class="card-btn danger" onclick="deleteSong('${s.id}', event)">🗑<span class="btn-label"> Borrar</span></button>` : ""}
       </div>`;
     grid.appendChild(card);
   });
@@ -4230,6 +4325,24 @@ function filterLibrary() {
     (s.titulo||"").toLowerCase().includes(q) || (s.artista||"").toLowerCase().includes(q)
   );
   renderLibrary(filtered);
+}
+
+let _libListMode = false;
+function toggleLibView() {
+  _libListMode = !_libListMode;
+  const grid = document.getElementById("libGrid");
+  const btn  = document.getElementById("libViewBtn");
+  if (_libListMode) {
+    grid.classList.add("list-mode");
+    btn.classList.add("active");
+    btn.textContent = "⊞ Tarjetas";
+    btn.title = "Volver al modo tarjetas";
+  } else {
+    grid.classList.remove("list-mode");
+    btn.classList.remove("active");
+    btn.textContent = "☰ Lista";
+    btn.title = "Cambiar a modo lista compacto";
+  }
 }
 
 async function openSong(id, origin = 'library') {
@@ -7713,6 +7826,7 @@ const _spb = {
   audio: null,          // HTMLAudioElement activo
   speed: 1.0,           // playbackRate actual
   rafId: null,          // requestAnimationFrame para barra de progreso
+  loop: false,          // bucle de canción
 };
 
 // Formatea segundos como m:ss
@@ -7768,7 +7882,14 @@ function _spbInit() {
   a.mozPreservesPitch = true;        // Firefox
   a.webkitPreservesPitch = true;     // Safari legacy
   a.playbackRate = _spb.speed;
-  a.addEventListener('ended', () => { _spbSyncBtns(false); cancelAnimationFrame(_spb.rafId); _spbTick(); });
+  a.addEventListener('ended', () => {
+    if (_spb.loop) {
+      a.currentTime = 0;
+      a.play().catch(() => {});
+    } else {
+      _spbSyncBtns(false); cancelAnimationFrame(_spb.rafId); _spbTick();
+    }
+  });
   a.addEventListener('play',  () => { _spbSyncBtns(true);  _spb.rafId = requestAnimationFrame(_spbTick); });
   a.addEventListener('pause', () => { _spbSyncBtns(false); cancelAnimationFrame(_spb.rafId); _spbTick(); });
   _spb.audio = a;
@@ -7841,6 +7962,13 @@ function spbSetSpeed(val) {
   const txt = Math.abs(_spb.speed - 1.0) > 0.25 ? '⚠ tono aprox.' : '♪ tono conservado';
   if (note) note.textContent = txt;
   if (deNote) deNote.textContent = txt;
+}
+
+// Activar / desactivar bucle de canción
+function spbToggleLoop() {
+  _spb.loop = !_spb.loop;
+  const btn = document.getElementById('spbLoopBtn');
+  if (btn) btn.classList.toggle('loop-on', _spb.loop);
 }
 
 // La barra siempre visible — alterna entre estado vacío y con audio
