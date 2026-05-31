@@ -13541,21 +13541,35 @@ async function calShareEvent(eventId, eventTitle, eventDate) {
           <div class="cal-share-member-role" style="color:#e84040;">Error al generar enlace</div>
         </div>`;
     } else {
+      const canShare = !!navigator.share;
       row.innerHTML = `
         <div class="cal-share-member-info">
           <div class="cal-share-member-label">${m.name}</div>
           <div class="cal-share-member-role">${m.role} · 3 usos · 7 días</div>
         </div>
-        <button class="cal-share-copy-btn" data-url="${url}" onclick="calCopyShareLink(this)">
-          📋 Copiar
+        <button class="cal-share-copy-btn" data-url="${url}" data-name="${m.name}" onclick="calShareLink(this)">
+          ${canShare ? '📤 Enviar' : '📋 Copiar'}
         </button>`;
     }
     list.appendChild(row);
   });
 }
 
-function calCopyShareLink(btn) {
-  const url = btn.dataset.url;
+function calShareLink(btn) {
+  const url      = btn.dataset.url;
+  const name     = btn.dataset.name;
+  const eventName = document.getElementById('calShareEventName').textContent;
+
+  if (navigator.share) {
+    navigator.share({
+      title: `BT SoundsApp — ${eventName}`,
+      text:  `${name}, ¿puedes venir? Confirma aquí 👇`,
+      url
+    }).catch(() => {}); // ignorar si el usuario cancela
+    return;
+  }
+
+  // Fallback desktop — copiar al portapapeles
   const doCopy = () => {
     btn.textContent = '✓ Copiado';
     btn.classList.add('copied');
