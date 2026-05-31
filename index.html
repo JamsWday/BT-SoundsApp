@@ -4595,6 +4595,9 @@ async function saveSongCloud() {
 // CHECK SESSION ON LOAD
 // ═══════════════════════════════════════════════
 (async function checkSession() {
+  // Si es un link RSVP, no inicializar la app normal — _rsvpInit lo gestiona
+  if (new URLSearchParams(window.location.search).get('token')) return;
+
   const { data } = await _sb.auth.getSession();
   if (data?.session?.user) {
     _currentUser = data.session.user;
@@ -11842,6 +11845,119 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .cal-event-btn:hover { border-color: var(--accent); color: var(--accent); }
 .cal-event-btn.danger:hover { border-color: #e84040; color: #e84040; }
+.cal-event-btn.share { border-color: var(--accent); color: var(--accent); }
+.cal-event-btn.share:hover { background: var(--accent); color: var(--bg); }
+
+/* ── RSVP Screen ── */
+#rsvpScreen {
+  display: none;
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  text-align: center;
+  gap: 0;
+}
+#rsvpScreen.open { display: flex; }
+.rsvp-logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 32px;
+}
+.rsvp-event-icon { font-size: 2.8rem; margin-bottom: 10px; line-height: 1; }
+.rsvp-event-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem; color: var(--accent);
+  margin-bottom: 6px; line-height: 1.2;
+}
+.rsvp-event-meta {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem; color: var(--muted);
+  margin-bottom: 8px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+}
+.rsvp-member-name {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 1rem; color: var(--text); margin-bottom: 36px;
+  opacity: 0.8;
+}
+.rsvp-question {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 1.1rem; color: var(--text);
+  margin-bottom: 28px; font-weight: 600;
+}
+.rsvp-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+.rsvp-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 1rem; font-weight: 700; letter-spacing: 0.05em;
+  padding: 18px 40px; border-radius: 10px; border: 2px solid;
+  cursor: pointer; transition: all 0.15s; min-width: 140px;
+}
+.rsvp-btn.yes {
+  background: var(--green); border-color: var(--green);
+  color: var(--bg);
+}
+.rsvp-btn.yes:hover { filter: brightness(1.15); }
+.rsvp-btn.no {
+  background: transparent; border-color: var(--accent2);
+  color: var(--accent2);
+}
+.rsvp-btn.no:hover { background: var(--accent2); color: #fff; }
+.rsvp-done {
+  display: none; flex-direction: column; align-items: center; gap: 12px;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+.rsvp-done.show { display: flex; }
+.rsvp-done-icon { font-size: 3rem; }
+.rsvp-done-msg { font-size: 1.1rem; color: var(--text); font-weight: 600; }
+.rsvp-done-sub { font-size: 0.8rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+/* ── Share modal ── */
+#calShareModal {
+  display: none; position: fixed; inset: 0; z-index: 5000;
+  background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+}
+#calShareModal.open { display: flex; }
+.cal-share-box {
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 12px; padding: 24px; width: 340px; max-width: calc(100vw - 32px);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.cal-share-title {
+  font-family: 'Space Mono', monospace; font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent);
+}
+.cal-share-event-name {
+  font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--text);
+}
+.cal-share-member-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.cal-share-member-row:last-of-type { border-bottom: none; }
+.cal-share-member-info { display: flex; flex-direction: column; gap: 2px; }
+.cal-share-member-label {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem; color: var(--text);
+}
+.cal-share-member-role {
+  font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--muted);
+}
+.cal-share-copy-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  padding: 5px 10px; border-radius: 5px; border: 1px solid var(--accent);
+  background: transparent; color: var(--accent); cursor: pointer;
+  transition: all 0.12s; white-space: nowrap;
+}
+.cal-share-copy-btn:hover { background: var(--accent); color: var(--bg); }
+.cal-share-copy-btn.copied { background: var(--green); border-color: var(--green); color: var(--bg); }
+.cal-share-close {
+  font-family: 'Space Mono', monospace; font-size: 0.62rem; text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 8px; border: 1px solid var(--border);
+  border-radius: 6px; background: transparent; color: var(--muted);
+  cursor: pointer; align-self: flex-end; transition: all 0.12s;
+}
+.cal-share-close:hover { border-color: var(--accent); color: var(--accent); }
 .cal-setlist-link {
   display: inline-flex; align-items: center; gap: 4px;
   font-family: 'Space Mono', monospace; font-size: 0.6rem;
@@ -12390,6 +12506,7 @@ function _calRenderPanelBody(dateStr) {
         <div class="cal-event-actions">
           <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
           <button class="cal-event-btn danger" onclick="calDeleteEvent('${ev.id}')">🗑</button>
+          <button class="cal-event-btn share" onclick="calShareEvent('${ev.id}','${ev.title||''}','${ev.date||''}')">📨 Compartir</button>
           ${setlistHtml}
         </div>`;
       evSection.appendChild(card);
@@ -13377,7 +13494,245 @@ document.addEventListener("keydown", e => {
     }
   }
 });
+
+// ══════════════════════════════════════════════
+// SHARE EVENT — genera tokens seguros por miembro
+// ══════════════════════════════════════════════
+
+// Genera un token aleatorio seguro de 32 chars
+function _rsvpGenToken() {
+  const arr = new Uint8Array(24);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function calShareEvent(eventId, eventTitle, eventDate) {
+  const modal = document.getElementById('calShareModal');
+  const list  = document.getElementById('calShareMemberList');
+  document.getElementById('calShareEventName').textContent = eventTitle || '—';
+  list.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.65rem;color:var(--muted);padding:12px 0;">Generando enlaces seguros…</div>';
+  modal.classList.add('open');
+
+  const base      = window.location.href.split('?')[0];
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 días
+
+  // Generar un token por miembro y guardarlo en Supabase
+  const rows = await Promise.all(CAL_MEMBERS.map(async m => {
+    const token = _rsvpGenToken();
+    const { error } = await _sb.from('rsvp_tokens').insert({
+      token,
+      event_id:   eventId,
+      member_key: m.key,
+      expires_at: expiresAt,
+      uses_left:  3
+    });
+    return { member: m, token, error };
+  }));
+
+  list.innerHTML = '';
+  rows.forEach(({ member: m, token, error }) => {
+    const url = `${base}?token=${token}`;
+    const row = document.createElement('div');
+    row.className = 'cal-share-member-row';
+    if (error) {
+      row.innerHTML = `
+        <div class="cal-share-member-info">
+          <div class="cal-share-member-label">${m.name}</div>
+          <div class="cal-share-member-role" style="color:#e84040;">Error al generar enlace</div>
+        </div>`;
+    } else {
+      row.innerHTML = `
+        <div class="cal-share-member-info">
+          <div class="cal-share-member-label">${m.name}</div>
+          <div class="cal-share-member-role">${m.role} · 3 usos · 7 días</div>
+        </div>
+        <button class="cal-share-copy-btn" data-url="${url}" onclick="calCopyShareLink(this)">
+          📋 Copiar
+        </button>`;
+    }
+    list.appendChild(row);
+  });
+}
+
+function calCopyShareLink(btn) {
+  const url = btn.dataset.url;
+  const doCopy = () => {
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Copiar'; btn.classList.remove('copied'); }, 2000);
+  };
+  navigator.clipboard.writeText(url).then(doCopy).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    doCopy();
+  });
+}
+
+function calCloseShareModal() {
+  document.getElementById('calShareModal').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
+// RSVP — pantalla de confirmación sin login
+// Activada por ?token=TOKEN (seguro, 3 usos)
+// ══════════════════════════════════════════════
+
+function _rsvpShowError(msg) {
+  document.getElementById('rsvpIcon').textContent = '⚠️';
+  document.getElementById('rsvpEventName').textContent = msg;
+  document.getElementById('rsvpEventMeta').textContent = '';
+  document.getElementById('rsvpMemberName').textContent = '';
+  document.getElementById('rsvpForm').style.display = 'none';
+}
+
+(async function _rsvpInit() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('token');
+  if (!token) return;
+
+  // Mostrar pantalla inmediatamente
+  document.getElementById('rsvpScreen').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  const overlay = document.getElementById('appLoadingOverlay');
+  if (overlay) overlay.remove();
+
+  // 1. Validar token
+  const { data: tk, error: tkErr } = await _sb
+    .from('rsvp_tokens').select('*').eq('token', token).single();
+
+  if (tkErr || !tk) { _rsvpShowError('Enlace no válido'); return; }
+  if (tk.uses_left <= 0) { _rsvpShowError('Este enlace ya no tiene usos disponibles'); return; }
+  if (new Date(tk.expires_at) < new Date()) { _rsvpShowError('Este enlace ha caducado'); return; }
+
+  // 2. Cargar evento
+  const { data: ev, error: evErr } = await _sb
+    .from('cal_events').select('*').eq('id', tk.event_id).single();
+
+  if (evErr || !ev) { _rsvpShowError('Evento no encontrado'); return; }
+
+  const member = CAL_MEMBERS.find(m => m.key === tk.member_key);
+  if (!member) { _rsvpShowError('Miembro no reconocido'); return; }
+
+  // 3. Renderizar
+  const icon = ev.type === 'ensayo' ? '🎸' : ev.type === 'concierto' ? '🎤' : '📌';
+  document.getElementById('rsvpIcon').textContent = icon;
+  document.getElementById('rsvpEventName').textContent = ev.title || '—';
+
+  const parts = [];
+  if (ev.date) {
+    const dayNames = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const dt = new Date(ev.date + 'T12:00:00');
+    const [y,mo,d] = ev.date.split('-');
+    parts.push(`📅 ${dayNames[dt.getDay()]} ${d}/${mo}/${y}`);
+  }
+  if (ev.time)  parts.push(`🕐 ${ev.time.slice(0,5)}`);
+  if (ev.venue) parts.push(`📍 ${ev.venue}`);
+  document.getElementById('rsvpEventMeta').textContent = parts.join('  ·  ');
+  document.getElementById('rsvpMemberName').textContent = `Hola, ${member.name} ${member.role}`;
+
+  // 4. Mostrar usos restantes
+  const usesLeft = tk.uses_left;
+  const usesNote = document.createElement('div');
+  usesNote.style.cssText = 'font-family:"Space Mono",monospace;font-size:0.58rem;color:var(--muted);margin-bottom:20px;';
+  usesNote.textContent = usesLeft < 3
+    ? `Puedes cambiar tu respuesta ${usesLeft - 1} vez${usesLeft - 1 !== 1 ? 'es' : ''} más`
+    : `Puedes cambiar tu respuesta hasta 2 veces más`;
+  document.getElementById('rsvpForm').insertBefore(usesNote, document.getElementById('rsvpForm').firstChild);
+
+  // Guardar contexto
+  window._rsvpContext = { token, event: ev, member, date: ev.date };
+})();
+
+async function rsvpRespond(status) {
+  const ctx = window._rsvpContext;
+  if (!ctx) return;
+
+  const form = document.getElementById('rsvpForm');
+  form.style.opacity = '0.4';
+  form.style.pointerEvents = 'none';
+
+  // 1. Decrementar uses_left en el token
+  const { data: tk, error: tkErr } = await _sb
+    .from('rsvp_tokens').select('uses_left').eq('token', ctx.token).single();
+
+  if (tkErr || !tk || tk.uses_left <= 0) {
+    document.getElementById('rsvpDoneIcon').textContent = '⚠️';
+    document.getElementById('rsvpDoneMsg').textContent = 'Este enlace ya no tiene usos disponibles';
+    form.style.display = 'none';
+    document.getElementById('rsvpDone').classList.add('show');
+    return;
+  }
+
+  const { error: updErr } = await _sb
+    .from('rsvp_tokens')
+    .update({ uses_left: tk.uses_left - 1 })
+    .eq('token', ctx.token);
+
+  if (updErr) {
+    form.style.opacity = '1'; form.style.pointerEvents = '';
+    alert('Error al procesar. Inténtalo de nuevo.');
+    return;
+  }
+
+  // 2. Guardar disponibilidad
+  const { error: avErr } = await _sb.from('cal_availability').upsert({
+    date:        ctx.date,
+    member_key:  ctx.member.key,
+    member_name: ctx.member.name,
+    status,
+    updated_by:  ctx.member.name + ' (RSVP)',
+    updated_at:  new Date().toISOString()
+  }, { onConflict: 'date,member_key' });
+
+  const done = document.getElementById('rsvpDone');
+  if (avErr) {
+    form.style.opacity = '1'; form.style.pointerEvents = '';
+    alert('Error al guardar. Inténtalo de nuevo.');
+    return;
+  }
+
+  form.style.display = 'none';
+  document.getElementById('rsvpDoneIcon').textContent = status === 'yes' ? '✅' : '❌';
+  document.getElementById('rsvpDoneMsg').textContent  = status === 'yes'
+    ? '¡Apuntado! Nos vemos ahí 🤘' : 'Anotado, sin ti esta vez 🙏';
+  done.classList.add('show');
+}
 </script>
+
+<!-- ── SHARE MODAL ── -->
+<div id="calShareModal">
+  <div class="cal-share-box">
+    <div class="cal-share-title">📨 Compartir evento</div>
+    <div class="cal-share-event-name" id="calShareEventName"></div>
+    <div id="calShareMemberList"></div>
+    <button class="cal-share-close" onclick="calCloseShareModal()">Cerrar</button>
+  </div>
+</div>
+
+<!-- ── RSVP SCREEN ── -->
+<div id="rsvpScreen">
+  <div class="rsvp-logo">BT SoundsApp</div>
+  <div class="rsvp-event-icon" id="rsvpIcon">🎸</div>
+  <div class="rsvp-event-name" id="rsvpEventName">—</div>
+  <div class="rsvp-event-meta" id="rsvpEventMeta"></div>
+  <div class="rsvp-member-name" id="rsvpMemberName"></div>
+
+  <div id="rsvpForm">
+    <div class="rsvp-question">¿Puedes venir?</div>
+    <div class="rsvp-btns">
+      <button class="rsvp-btn yes" onclick="rsvpRespond('yes')">✓ Sí, puedo</button>
+      <button class="rsvp-btn no"  onclick="rsvpRespond('no')">✗ No puedo</button>
+    </div>
+  </div>
+
+  <div class="rsvp-done" id="rsvpDone">
+    <div class="rsvp-done-icon" id="rsvpDoneIcon">✅</div>
+    <div class="rsvp-done-msg"  id="rsvpDoneMsg">¡Apuntado!</div>
+    <div class="rsvp-done-sub">Puedes cerrar esta ventana</div>
+  </div>
+</div>
 
 </body>
 </html>
