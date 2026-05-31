@@ -13587,16 +13587,17 @@ function _rsvpShowError(msg) {
   document.getElementById('rsvpForm').style.display = 'none';
 }
 
-(async function _rsvpInit() {
-  const params = new URLSearchParams(window.location.search);
-  const token  = params.get('token');
-  if (!token) return;
+(function() {
+  async function _rsvpInit() {
+    const params = new URLSearchParams(window.location.search);
+    const token  = params.get('token');
+    if (!token) return;
 
-  // Mostrar pantalla inmediatamente
-  document.getElementById('rsvpScreen').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  const overlay = document.getElementById('appLoadingOverlay');
-  if (overlay) overlay.remove();
+    // Mostrar pantalla inmediatamente
+    document.getElementById('rsvpScreen').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    const overlay = document.getElementById('appLoadingOverlay');
+    if (overlay) overlay.remove();
 
   // 1. Validar token
   const { data: tk, error: tkErr } = await _sb
@@ -13643,6 +13644,8 @@ function _rsvpShowError(msg) {
 
   // Guardar contexto
   window._rsvpContext = { token, event: ev, member, date: ev.date };
+  }
+  document.addEventListener('DOMContentLoaded', _rsvpInit);
 })();
 
 async function rsvpRespond(status) {
