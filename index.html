@@ -13618,6 +13618,17 @@ async function calShareEvent(eventId, eventTitle, eventDate) {
   const base      = window.location.href.split('?')[0];
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 días
 
+  // Cargar confirmados (status=yes) para esta fecha
+  let confirmedKeys = [];
+  if (eventDate) {
+    const { data: avail } = await _sb
+      .from('cal_availability')
+      .select('member_key')
+      .eq('date', eventDate)
+      .eq('status', 'yes');
+    if (avail) confirmedKeys = avail.map(a => a.member_key);
+  }
+
   // Generar un token por miembro y guardarlo en Supabase
   const rows = await Promise.all(CAL_MEMBERS.map(async m => {
     const token = _rsvpGenToken();
@@ -13644,12 +13655,22 @@ async function calShareEvent(eventId, eventTitle, eventDate) {
         </div>`;
     } else {
       const canShare = !!navigator.share;
+      // Confirmados excluyendo al destinatario
+      const otrosConfirmados = confirmedKeys
+        .filter(k => k !== m.key)
+        .map(k => CAL_MEMBERS.find(x => x.key === k)?.name)
+        .filter(Boolean);
       row.innerHTML = `
         <div class="cal-share-member-info">
           <div class="cal-share-member-label">${m.name}</div>
           <div class="cal-share-member-role">${m.role} · 3 usos · 7 días</div>
         </div>
-        <button class="cal-share-copy-btn" data-url="${url}" data-name="${m.name}" onclick="calShareLink(this)">
+        <button class="cal-share-copy-btn"
+          data-url="${url}"
+          data-name="${m.name}"
+          data-event="${eventTitle || ''}"
+          data-confirmed="${otrosConfirmados.join(',')}"
+          onclick="calShareLink(this)">
           ${canShare ? '📤 Enviar' : '📋 Copiar'}
         </button>`;
     }
@@ -13658,16 +13679,27 @@ async function calShareEvent(eventId, eventTitle, eventDate) {
 }
 
 function calShareLink(btn) {
-  const url      = btn.dataset.url;
-  const name     = btn.dataset.name;
-  const eventName = document.getElementById('calShareEventName').textContent;
+  const url        = btn.dataset.url;
+  const name       = btn.dataset.name;
+  const eventName  = btn.dataset.event || document.getElementById('calShareEventName').textContent;
+  const confirmed  = btn.dataset.confirmed ? btn.dataset.confirmed.split(',').filter(Boolean) : [];
+
+  // Construir línea de confirmados (ha/han según cantidad)
+  let confirmedLine = '';
+  if (confirmed.length === 1) {
+    confirmedLine = `${confirmed[0]} ya ha confirmado 🤘\n`;
+  } else if (confirmed.length > 1) {
+    confirmedLine = `${confirmed.join(', ')} ya han confirmado 🤘\n`;
+  }
+
+  const msg = `Ey ${name}! 🎸 Eventazo!! ${eventName}\n${confirmedLine}¿Y tú? 👇\n${url}`;
 
   if (navigator.share) {
     navigator.share({
       title: `BT SoundsApp — ${eventName}`,
-      text:  `${name}, ¿puedes venir? Confirma aquí 👇`,
-      url
-    }).catch(() => {}); // ignorar si el usuario cancela
+      text:  msg,
+      url:   ''   // ya va incluida en el texto
+    }).catch(() => {});
     return;
   }
 
@@ -13677,9 +13709,9 @@ function calShareLink(btn) {
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '📋 Copiar'; btn.classList.remove('copied'); }, 2000);
   };
-  navigator.clipboard.writeText(url).then(doCopy).catch(() => {
+  navigator.clipboard.writeText(msg).then(doCopy).catch(() => {
     const ta = document.createElement('textarea');
-    ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    ta.value = msg; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
     doCopy();
