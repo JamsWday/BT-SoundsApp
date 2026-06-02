@@ -1394,8 +1394,9 @@ body.readonly #songPlayerBar.has-audio { display: flex !important; }
   transition: all 0.15s;
   line-height: 1;
 }
-.spb-loop-btn:hover { background: var(--accent); color: var(--bg); }
+.spb-loop-btn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .spb-loop-btn.loop-on { background: var(--accent); color: var(--bg); }
+.spb-loop-btn.loop-on:hover { filter: brightness(0.82); }
 
 @media print { #songPlayerBar { display: none !important; } }
 
@@ -1488,7 +1489,9 @@ body.readonly #songKeyPill { pointer-events: none; font-size: 0.85rem; letter-sp
 body.readonly #btnEagle,
 body.readonly #eagleToggles,
 body.readonly #btnEagleSections,
-body.readonly #btnEagleComments { pointer-events: all; }
+body.readonly #btnEagleComments,
+body.readonly #btnVersions,
+body.readonly #btnNotes { pointer-events: all; }
 body.readonly .section-name-input { pointer-events: none; }
 body.readonly .section-lyric-input { pointer-events: none; border-color: transparent !important; }
 body.readonly .section-lyric-input:placeholder-shown { display: none; }
@@ -3914,6 +3917,15 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     🦅
   </button>
 
+  <!-- Botón Notas -->
+  <button id="btnNotes" onclick="notesOpenPanel()" title="Notas de la canción"
+    style="font-family:'Space Mono',monospace;font-size:0.8rem;padding:7px 11px;border-radius:8px;
+           border:1px solid var(--border);background:var(--surface);color:var(--muted);
+           cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;white-space:nowrap;display:none;">
+    📝 <span id="btnNotesDot" style="display:none;width:7px;height:7px;border-radius:50%;
+      background:var(--accent);display:inline-block;margin-left:2px;vertical-align:middle;"></span>
+  </button>
+
   <!-- Toggles Eagle — solo visibles en eagle-mode -->
   <div id="eagleToggles" style="display:none;align-items:center;gap:6px;">
     <button id="btnEagleSections" onclick="eagleToggleSections()" title="Mostrar / ocultar secciones al tocar"
@@ -4419,10 +4431,15 @@ let _versionsType       = null; // 'idea' | 'version'
 let _versionsList       = [];   // lista cargada en el panel
 
 async function versionsLoadForSong(songId, songTitle) {
-  // Mostrar botón
+  // Mostrar botón versiones
   const btn = document.getElementById('btnVersions');
   if (!songId) { btn.style.display = 'none'; return; }
   btn.style.display = '';
+
+  // Mostrar botón notas y actualizar badge
+  const btnN = document.getElementById('btnNotes');
+  if (btnN) btnN.style.display = '';
+  _notesUpdateBadge(songData?.notes || '');
 
   // Cargar sub-canciones
   const { data } = await _sb.from('Canciones')
@@ -4475,8 +4492,13 @@ function versionsRenderPanel() {
       <button class="version-card-del" onclick="versionsDeleteChild('${v.id}', event)" title="Borrar">🗑</button>`;
     card.addEventListener('click', (e) => {
       if (e.target.closest('.version-card-del')) return;
+      const wasReadonly = _readonly;
       versionsClosePanel();
-      openSong(v.id, 'version');
+      openSong(v.id, 'version').then(() => {
+        if (wasReadonly && !_readonly) {
+          document.getElementById('btnReadonly')?.click();
+        }
+      });
     });
     body.appendChild(card);
   });
@@ -7971,7 +7993,12 @@ function spbSetSpeed(val) {
 function spbToggleLoop() {
   _spb.loop = !_spb.loop;
   const btn = document.getElementById('spbLoopBtn');
-  if (btn) btn.classList.toggle('loop-on', _spb.loop);
+  if (!btn) return;
+  if (_spb.loop) {
+    btn.classList.add('loop-on');
+  } else {
+    btn.classList.remove('loop-on');
+  }
 }
 
 // La barra siempre visible — alterna entre estado vacío y con audio
@@ -11585,6 +11612,81 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .versions-overlay.open { display: block; }
 
+/* ── Panel de Notas ── */
+.notes-panel {
+  position: fixed; top: 0; right: -420px; width: 420px; max-width: 100vw;
+  height: 100vh; z-index: 8200;
+  background: var(--surface);
+  border-left: 2px solid var(--accent);
+  display: flex; flex-direction: column;
+  transition: right 0.3s cubic-bezier(.4,0,.2,1);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+}
+.notes-panel.open { right: 0; }
+
+@media (max-width: 600px) {
+  .notes-panel {
+    top: auto; bottom: -100%; right: 0;
+    width: 100vw; max-width: 100vw;
+    height: auto; max-height: 85vh;
+    border-left: none; border-top: 2px solid var(--accent);
+    border-radius: 16px 16px 0 0;
+    transition: bottom 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  .notes-panel.open { bottom: 0; right: 0; }
+  .notes-panel-body { max-height: 50vh; overflow-y: auto; }
+  .notes-textarea { min-height: 120px; resize: none; }
+}
+.notes-panel-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface2); flex-shrink: 0;
+}
+.notes-panel-title {
+  font-family: 'Space Mono', monospace; font-size: 0.9rem;
+  font-weight: 700; color: var(--text); letter-spacing: 0.04em;
+}
+.notes-panel-sub {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.75rem;
+  color: var(--muted); margin-top: 3px;
+}
+.notes-panel-body {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.notes-textarea {
+  width: 100%; flex: 1; min-height: 180px;
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem;
+  line-height: 1.6; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px; resize: vertical; box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.notes-textarea:focus { outline: none; border-color: var(--accent); }
+.notes-textarea::placeholder { color: var(--muted); opacity: 0.6; }
+.notes-readonly-view {
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem;
+  line-height: 1.6; color: var(--text);
+  white-space: pre-wrap; padding: 4px 0;
+}
+.notes-panel-footer {
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; flex-shrink: 0;
+}
+.notes-save-btn {
+  flex: 1; font-family: 'Space Mono', monospace; font-size: 0.75rem; font-weight: 700;
+  padding: 9px 10px; border-radius: 8px; cursor: pointer;
+  transition: all 0.15s; letter-spacing: 0.04em;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--bg);
+}
+.notes-save-btn:hover { filter: brightness(1.1); }
+.notes-overlay {
+  position: fixed; inset: 0; z-index: 8199;
+  background: rgba(0,0,0,0.4); display: none;
+}
+.notes-overlay.open { display: block; }
+
 .versions-panel-header {
   padding: 16px 18px 12px;
   border-bottom: 1px solid var(--border);
@@ -13614,8 +13716,10 @@ function _rsvpShowError(msg) {
     if (overlay) overlay.remove();
 
   // 1. Validar token
+  console.log('RSVP token:', token);
   const { data: tk, error: tkErr } = await _sb
     .from('rsvp_tokens').select('*').eq('token', token).single();
+  console.log('RSVP token data:', tk, 'error:', tkErr);
 
   if (tkErr || !tk) { _rsvpShowError('Enlace no válido'); return; }
   if (tk.uses_left <= 0) { _rsvpShowError('Este enlace ya no tiene usos disponibles'); return; }
@@ -13716,6 +13820,101 @@ async function rsvpRespond(status) {
     ? '¡Apuntado! Nos vemos ahí 🤘' : 'Anotado, sin ti esta vez 🙏';
   done.classList.add('show');
 }
+
+// ══════════════════════════════════════════════
+// NOTAS DE CANCIÓN
+// ══════════════════════════════════════════════
+
+let _notesLongPressTimer = null;
+
+function notesOpenPanel(readonlyPreview = false) {
+  const textarea = document.getElementById('notesTextarea');
+  const readView = document.getElementById('notesReadonlyView');
+  const footer   = document.getElementById('notesPanelFooter');
+  const sub      = document.getElementById('notesPanelSub');
+  const noteText = songData.notes || '';
+
+  sub.textContent = songData.title || '—';
+
+  if (readonlyPreview || _readonly) {
+    textarea.style.display = 'none';
+    readView.style.display = 'block';
+    readView.textContent   = noteText || '— Sin notas aún —';
+    footer.style.display   = 'none';
+  } else {
+    textarea.style.display = 'block';
+    readView.style.display = 'none';
+    textarea.value         = noteText;
+    footer.style.display   = 'flex';
+    // Solo foco automático en desktop — en móvil el teclado interfiere con la animación
+    if (window.innerWidth > 600) {
+      setTimeout(() => textarea.focus(), 320);
+    }
+  }
+
+  document.getElementById('notesOverlay').classList.add('open');
+  // Doble rAF para que el browser pinte bottom:-100% antes de animar a bottom:0
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.getElementById('notesPanel').classList.add('open');
+    });
+  });
+}
+
+function notesClosePanel() {
+  document.getElementById('notesOverlay').classList.remove('open');
+  document.getElementById('notesPanel').classList.remove('open');
+}
+
+async function notesSave() {
+  const text = document.getElementById('notesTextarea').value.trim();
+  const btn  = document.querySelector('.notes-save-btn');
+
+  // Guardar en songData — se persiste con el guardado normal de la canción
+  songData.notes = text;
+  _notesUpdateBadge(text);
+
+  btn.textContent = '✓ Guardado';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = '💾 Guardar';
+    btn.disabled = false;
+    notesClosePanel();
+  }, 900);
+
+  // También disparar el autoguardado en nube si hay sesión
+  if (_currentUser && _currentSongId) {
+    saveSongCloud();
+  }
+}
+
+function _notesUpdateBadge(text) {
+  const dot = document.getElementById('btnNotesDot');
+  if (dot) dot.style.display = text ? 'inline-block' : 'none';
+}
+
+// Pulsación larga en móvil — muestra sin editar
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btnNotes');
+  if (!btn) return;
+  btn.addEventListener('touchstart', () => {
+    _notesLongPressTimer = setTimeout(() => {
+      _notesLongPressTimer = null;
+      notesOpenPanel(true);
+    }, 500);
+  }, { passive: true });
+  btn.addEventListener('touchend', () => {
+    if (_notesLongPressTimer) {
+      clearTimeout(_notesLongPressTimer);
+      _notesLongPressTimer = null;
+      notesOpenPanel(false);
+    }
+  });
+  btn.addEventListener('touchmove', () => {
+    clearTimeout(_notesLongPressTimer);
+    _notesLongPressTimer = null;
+  }, { passive: true });
+});
 </script>
 
 <!-- ── SHARE MODAL ── -->
@@ -13748,6 +13947,25 @@ async function rsvpRespond(status) {
     <div class="rsvp-done-icon" id="rsvpDoneIcon">✅</div>
     <div class="rsvp-done-msg"  id="rsvpDoneMsg">¡Apuntado!</div>
     <div class="rsvp-done-sub">Puedes cerrar esta ventana</div>
+  </div>
+</div>
+
+<!-- ── NOTES PANEL ── -->
+<div class="notes-overlay" id="notesOverlay" onclick="notesClosePanel()"></div>
+<div class="notes-panel" id="notesPanel">
+  <div class="notes-panel-header">
+    <div>
+      <div class="notes-panel-title">📝 Notas</div>
+      <div class="notes-panel-sub" id="notesPanelSub">—</div>
+    </div>
+    <button onclick="notesClosePanel()" style="background:transparent;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px;">✕</button>
+  </div>
+  <div class="notes-panel-body">
+    <div id="notesReadonlyView" class="notes-readonly-view" style="display:none;"></div>
+    <textarea id="notesTextarea" class="notes-textarea" placeholder="Apuntes, recordatorios, ideas para el ensayo…&#10;&#10;Ej: dejar la distorsión sonando al final, entrar todos a la vez en el puente…"></textarea>
+  </div>
+  <div class="notes-panel-footer" id="notesPanelFooter">
+    <button class="notes-save-btn" onclick="notesSave()">💾 Guardar</button>
   </div>
 </div>
 
