@@ -11976,7 +11976,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .rsvp-event-meta {
   font-family: 'Space Mono', monospace;
-  font-size: 1.05rem; color: var(--muted);
+  font-size: 0.9rem; color: var(--muted);
   margin-bottom: 8px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
 }
 .rsvp-member-name {
@@ -13692,7 +13692,7 @@ function calShareLink(btn) {
   let dateTimeLine = '';
   if (eventDate) {
     const [y, m, d] = eventDate.split('-');
-    dateTimeLine = `📅 ${d}/${m}/${y}`;
+    dateTimeLine = `🎯 ${d}/${m}/${y}`;
     if (eventTime) dateTimeLine += ` · 🕐 ${eventTime}`;
     dateTimeLine += '\n';
   }
@@ -13710,8 +13710,7 @@ function calShareLink(btn) {
   if (navigator.share) {
     navigator.share({
       title: `BT SoundsApp — ${eventName}`,
-      text:  msg,
-      url:   ''   // ya va incluida en el texto
+      text:  msg
     }).catch(() => {});
     return;
   }
