@@ -11971,12 +11971,12 @@ document.addEventListener('DOMContentLoaded', function() {
 .rsvp-event-icon { font-size: 2.8rem; margin-bottom: 10px; line-height: 1; }
 .rsvp-event-name {
   font-family: 'Playfair Display', serif;
-  font-size: 1.6rem; color: var(--accent);
-  margin-bottom: 6px; line-height: 1.2;
+  font-size: 3.2rem; color: var(--accent);
+  margin-bottom: 10px; line-height: 1.2;
 }
 .rsvp-event-meta {
   font-family: 'Space Mono', monospace;
-  font-size: 0.72rem; color: var(--muted);
+  font-size: 1.44rem; color: var(--muted);
   margin-bottom: 8px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
 }
 .rsvp-member-name {
@@ -12608,7 +12608,7 @@ function _calRenderPanelBody(dateStr) {
         <div class="cal-event-actions">
           <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
           <button class="cal-event-btn danger" onclick="calDeleteEvent('${ev.id}')">🗑</button>
-          <button class="cal-event-btn share" onclick="calShareEvent('${ev.id}','${ev.title||''}','${ev.date||''}')">📨 Compartir</button>
+          <button class="cal-event-btn share" onclick="calShareEvent('${ev.id}','${ev.title||''}','${ev.date||''}','${ev.time ? ev.time.slice(0,5) : ''}')">📨 Compartir</button>
           ${setlistHtml}
         </div>`;
       evSection.appendChild(card);
@@ -13608,7 +13608,7 @@ function _rsvpGenToken() {
   return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-async function calShareEvent(eventId, eventTitle, eventDate) {
+async function calShareEvent(eventId, eventTitle, eventDate, eventTime) {
   const modal = document.getElementById('calShareModal');
   const list  = document.getElementById('calShareMemberList');
   document.getElementById('calShareEventName').textContent = eventTitle || '—';
@@ -13669,6 +13669,8 @@ async function calShareEvent(eventId, eventTitle, eventDate) {
           data-url="${url}"
           data-name="${m.name}"
           data-event="${eventTitle || ''}"
+          data-date="${eventDate || ''}"
+          data-time="${eventTime || ''}"
           data-confirmed="${otrosConfirmados.join(',')}"
           onclick="calShareLink(this)">
           ${canShare ? '📤 Enviar' : '📋 Copiar'}
@@ -13682,7 +13684,18 @@ function calShareLink(btn) {
   const url        = btn.dataset.url;
   const name       = btn.dataset.name;
   const eventName  = btn.dataset.event || document.getElementById('calShareEventName').textContent;
+  const eventDate  = btn.dataset.date  || '';
+  const eventTime  = btn.dataset.time  || '';
   const confirmed  = btn.dataset.confirmed ? btn.dataset.confirmed.split(',').filter(Boolean) : [];
+
+  // Línea de fecha y hora
+  let dateTimeLine = '';
+  if (eventDate) {
+    const [y, m, d] = eventDate.split('-');
+    dateTimeLine = `📅 ${d}/${m}/${y}`;
+    if (eventTime) dateTimeLine += ` · 🕐 ${eventTime}`;
+    dateTimeLine += '\n';
+  }
 
   // Construir línea de confirmados (ha/han según cantidad)
   let confirmedLine = '';
@@ -13692,7 +13705,7 @@ function calShareLink(btn) {
     confirmedLine = `${confirmed.join(', ')} ya han confirmado 🤘\n`;
   }
 
-  const msg = `Ey ${name}! 🎸 Eventazo!! ${eventName}\n${confirmedLine}¿Y tú? 👇\n${url}`;
+  const msg = `Ey ${name}! 🎸 Eventazo!! ${eventName}\n${dateTimeLine}${confirmedLine}¿Y tú? 👇\n${url}`;
 
   if (navigator.share) {
     navigator.share({
