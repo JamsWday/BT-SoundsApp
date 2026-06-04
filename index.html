@@ -12654,7 +12654,7 @@ function _calRenderPanelBody(dateStr) {
           <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
           <button class="cal-event-btn danger" onclick="calDeleteEvent('${ev.id}')">🗑</button>
           <button class="cal-event-btn share" onclick="calShareEvent('${ev.id}','${ev.title||''}','${ev.date||''}','${ev.time ? ev.time.slice(0,5) : ''}')">📨 Compartir</button>
-          <button class="cal-event-btn share" onclick="calShareEventGroup('${ev.id}','${ev.title||''}','${ev.date||''}','${ev.time ? ev.time.slice(0,5) : ''}','${ev.venue||''}')">📢 Todos</button>
+          <button class="cal-event-btn share" onclick="calShareEventGroup('${ev.id}')">📢 Todos</button>
           ${setlistHtml}
         </div>`;
       evSection.appendChild(card);
@@ -13784,34 +13784,38 @@ function calCloseShareModal() {
 // SHARE EVENT — mensaje grupal con deep link
 // Un solo link corto para pegar en el grupo
 // ══════════════════════════════════════════════
-function calShareEventGroup(eventId, eventTitle, eventDate, eventTime, eventVenue) {
+function calShareEventGroup(eventId) {
+  const ev = _calEvents.find(e => e.id === eventId);
+  if (!ev) return;
+
   const base = window.location.href.split('?')[0].split('#')[0];
   const url  = `${base}#cal/${eventId}`;
 
-  // Línea de fecha
+  const icon = ev.type === 'ensayo' ? '🎸' : ev.type === 'concierto' ? '🎤' : '📌';
+
+  // Fecha y hora
   let dateLine = '';
-  if (eventDate) {
+  if (ev.date) {
     const dayNames = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    const dt = new Date(eventDate + 'T12:00:00');
-    const [y, mo, d] = eventDate.split('-');
+    const dt = new Date(ev.date + 'T12:00:00');
+    const [y, mo, d] = ev.date.split('-');
     dateLine = `📅 ${dayNames[dt.getDay()]} ${d}/${mo}/${y}`;
-    if (eventTime) dateLine += ` · 🕐 ${eventTime}`;
+    if (ev.time) dateLine += ` · 🕐 ${ev.time.slice(0,5)}`;
     dateLine += '\n';
   }
 
-  // Línea de lugar
-  const venueLine = eventVenue ? `📍 ${eventVenue}\n` : '';
+  // Notas del evento
+  const notesLine = ev.notes ? `\n📝 ${ev.notes.trim()}\n` : '';
 
-  // Icono según tipo (lo inferimos del título si no tenemos tipo aquí)
   const msg =
-    `🎸 ${eventTitle || 'Evento'}\n` +
+    `${icon} ${ev.title || 'Evento'}\n` +
     dateLine +
-    venueLine +
+    notesLine +
     `\nConfirmad asistencia en la app 👇\n${url}`;
 
   if (navigator.share) {
     navigator.share({
-      title: `BT SoundsApp — ${eventTitle || 'Evento'}`,
+      title: `BT SoundsApp — ${ev.title || 'Evento'}`,
       text:  msg
     }).catch(() => {});
     return;
@@ -13819,7 +13823,6 @@ function calShareEventGroup(eventId, eventTitle, eventDate, eventTime, eventVenu
 
   // Fallback desktop — copiar al portapapeles
   navigator.clipboard.writeText(msg).then(() => {
-    // Toast rápido
     const toast = document.createElement('div');
     toast.textContent = '✓ Mensaje copiado';
     toast.style.cssText = `
@@ -13831,7 +13834,6 @@ function calShareEventGroup(eventId, eventTitle, eventDate, eventTime, eventVenu
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2200);
   }).catch(() => {
-    // Fallback sin clipboard API
     const ta = document.createElement('textarea');
     ta.value = msg; ta.style.cssText = 'position:fixed;opacity:0;';
     document.body.appendChild(ta); ta.select(); document.execCommand('copy');
