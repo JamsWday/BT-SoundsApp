@@ -4246,7 +4246,13 @@ async function doLogin() {
   _currentUser._displayName = username;
   await loadUserSettings();
   document.getElementById("loginScreen").style.display = "none";
-  showHome();
+  if (window._pendingDeepEventId) {
+    const id = window._pendingDeepEventId;
+    window._pendingDeepEventId = null;
+    await _navigateToDeepEvent(id);
+  } else {
+    showHome();
+  }
 }
 
 async function doLogout() {
@@ -4616,9 +4622,39 @@ async function saveSongCloud() {
 // ═══════════════════════════════════════════════
 // CHECK SESSION ON LOAD
 // ═══════════════════════════════════════════════
+// Deep link helper — lee #cal/EVENT_ID del hash
+function _getDeepLinkEventId() {
+  const hash = window.location.hash; // e.g. "#cal/abc-123"
+  const m = hash.match(/^#cal\/(.+)$/);
+  return m ? m[1] : null;
+}
+
+// Navega al evento indicado por deep link (abre calendario + day panel)
+async function _navigateToDeepEvent(eventId) {
+  // Buscar el evento en Supabase para saber su fecha
+  const { data: ev } = await _sb.from('cal_events').select('*').eq('id', eventId).single();
+  if (!ev || !ev.date) { showHome(); return; }
+
+  // Ajustar el mes del calendario al evento
+  const [y, mo] = ev.date.split('-').map(Number);
+  _calYear  = y;
+  _calMonth = mo - 1;
+
+  // Abrir calendario y luego el panel del día
+  showCalendar();
+  // Esperar a que _calLoadData termine antes de abrir el panel
+  await _calLoadData();
+  _calOpenDayPanel(ev.date);
+
+  // Limpiar el hash de la URL sin recargar
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+}
+
 (async function checkSession() {
   // Si es un link RSVP, no inicializar la app normal — _rsvpInit lo gestiona
   if (new URLSearchParams(window.location.search).get('token')) return;
+
+  const deepEventId = _getDeepLinkEventId();
 
   const { data } = await _sb.auth.getSession();
   if (data?.session?.user) {
@@ -4626,7 +4662,16 @@ async function saveSongCloud() {
     _currentUser._displayName = (_currentUser.email || "").replace("@btb.com", "");
     document.getElementById("loginScreen").style.display = "none";
     await loadUserSettings();
-    showHome();
+    if (deepEventId) {
+      await _navigateToDeepEvent(deepEventId);
+    } else {
+      showHome();
+    }
+  } else if (deepEventId) {
+    // Sin sesión: guardar el deep link y mostrarlo en el login
+    window._pendingDeepEventId = deepEventId;
+    const sub = document.querySelector('.login-sub');
+    if (sub) sub.textContent = '🎸 Tienes un evento compartido — entra para verlo';
   }
   // Quitar overlay de carga — ya sabemos si hay sesión o no
   const overlay = document.getElementById("appLoadingOverlay");
@@ -12609,6 +12654,7 @@ function _calRenderPanelBody(dateStr) {
           <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
           <button class="cal-event-btn danger" onclick="calDeleteEvent('${ev.id}')">🗑</button>
           <button class="cal-event-btn share" onclick="calShareEvent('${ev.id}','${ev.title||''}','${ev.date||''}','${ev.time ? ev.time.slice(0,5) : ''}')">📨 Compartir</button>
+          <button class="cal-event-btn share" onclick="calShareEventGroup('${ev.id}','${ev.title||''}','${ev.date||''}','${ev.time ? ev.time.slice(0,5) : ''}','${ev.venue||''}')">📢 Todos</button>
           ${setlistHtml}
         </div>`;
       evSection.appendChild(card);
@@ -13732,6 +13778,65 @@ function calShareLink(btn) {
 
 function calCloseShareModal() {
   document.getElementById('calShareModal').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
+// SHARE EVENT — mensaje grupal con deep link
+// Un solo link corto para pegar en el grupo
+// ══════════════════════════════════════════════
+function calShareEventGroup(eventId, eventTitle, eventDate, eventTime, eventVenue) {
+  const base = window.location.href.split('?')[0].split('#')[0];
+  const url  = `${base}#cal/${eventId}`;
+
+  // Línea de fecha
+  let dateLine = '';
+  if (eventDate) {
+    const dayNames = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const dt = new Date(eventDate + 'T12:00:00');
+    const [y, mo, d] = eventDate.split('-');
+    dateLine = `📅 ${dayNames[dt.getDay()]} ${d}/${mo}/${y}`;
+    if (eventTime) dateLine += ` · 🕐 ${eventTime}`;
+    dateLine += '\n';
+  }
+
+  // Línea de lugar
+  const venueLine = eventVenue ? `📍 ${eventVenue}\n` : '';
+
+  // Icono según tipo (lo inferimos del título si no tenemos tipo aquí)
+  const msg =
+    `🎸 ${eventTitle || 'Evento'}\n` +
+    dateLine +
+    venueLine +
+    `\nConfirmad asistencia en la app 👇\n${url}`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: `BT SoundsApp — ${eventTitle || 'Evento'}`,
+      text:  msg
+    }).catch(() => {});
+    return;
+  }
+
+  // Fallback desktop — copiar al portapapeles
+  navigator.clipboard.writeText(msg).then(() => {
+    // Toast rápido
+    const toast = document.createElement('div');
+    toast.textContent = '✓ Mensaje copiado';
+    toast.style.cssText = `
+      position:fixed;bottom:32px;left:50%;transform:translateX(-50%);
+      background:var(--green);color:var(--bg);
+      font-family:'Space Mono',monospace;font-size:0.75rem;
+      padding:10px 20px;border-radius:8px;z-index:99999;
+      box-shadow:0 4px 20px rgba(0,0,0,0.4);pointer-events:none;`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2200);
+  }).catch(() => {
+    // Fallback sin clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = msg; ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
 }
 
 // ══════════════════════════════════════════════
