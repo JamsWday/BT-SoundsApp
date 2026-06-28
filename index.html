@@ -133,6 +133,16 @@
 [data-theme="light"] #speedVal { color: #b07a10; }
 [data-theme="light"] #scrollSpeed { accent-color: #b07a10; }
 [data-theme="light"] #scrollSpeed::-webkit-slider-thumb { background: #b07a10; box-shadow: 0 0 0 3px rgba(176,122,16,0.2); }
+/* drum grid empty-cell contrast on light theme (white borders are invisible) */
+[data-theme="light"] .de-cell-inner { border-color: rgba(0,0,0,0.22); }
+[data-theme="light"] .de-cell:hover .de-cell-inner { border-color: rgba(0,0,0,0.45); background: rgba(0,0,0,0.04); }
+[data-theme="light"] .drum-preview-cell { border-color: rgba(0,0,0,0.25); }
+[data-theme="light"] .de-beat-group.is-tuplet { background: rgba(124,77,189,0.10); }
+[data-theme="light"] .drum-preview-beat-group.is-tuplet { background: rgba(124,77,189,0.10); }
+[data-theme="light"] .de-tuplet-badge,
+[data-theme="light"] .drum-preview-tuplet-badge { background: #f5f5f0; color: #7c4dbd; }
+[data-theme="light"] .drum-preview-beat-group { border-left-color: rgba(0,0,0,0.10); }
+[data-theme="light"] .drum-preview-beat-group:first-of-type { border-left: none; }
 [data-theme="light"] #scrollSpeed::-moz-range-thumb { background: #b07a10; }
 [data-theme="light"] .hdr-scroll-fill { background: #b07a10; }
 [data-theme="light"] .pbtn { background: #eeeeea; border-color: #d0d0c8; color: #606070; }
@@ -1240,6 +1250,22 @@ body.has-song-player { padding-bottom: 110px !important; }
 body.editor-open #songPlayerBar { display: flex; }
 body.readonly #songPlayerBar { display: none !important; }
 body.readonly #songPlayerBar.has-audio { display: flex !important; }
+
+/* ── PARCHE: editor base oculto fuera de la canción ──────────────────
+   El editor (#chart + .header + barras) es la capa base histórica de la
+   app y vive siempre en el DOM. Cuando NO estás en una canción, lo
+   ocultamos del todo (display:none) para que no asome por debajo de las
+   pantallas al recolocarse la barra del navegador móvil durante el scroll.
+   Ver nota de arquitectura "CAPA BASE / EDITOR" al inicio del <script>.
+   Nota: el selector lleva más especificidad que las reglas de
+   body.readonly #songPlayerBar.has-audio para ganarles fuera del editor. */
+body:not(.editor-open) .header,
+body:not(.editor-open) #zoomWrapper,
+body:not(.editor-open) #songPlayerBar,
+body:not(.editor-open).readonly #songPlayerBar,
+body:not(.editor-open).readonly #songPlayerBar.has-audio {
+  display: none !important;
+}
 /* Borde accent solo cuando hay audio cargado */
 #songPlayerBar.has-audio { border-top-color: var(--accent); }
 /* En modo drum editor la barra se muestra dentro del modal, no fija */
@@ -2146,7 +2172,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
     font-size: 0.48rem;
   }
   .drum-preview-beat-hdr  { padding-left: 22px; }
-  .drum-preview-bar-label { padding-left: 22px; font-size: 0.46rem; }
+  .drum-preview-bar-label { padding-left: 0; font-size: 0.46rem; }
 }
 .drum-preview-bar {
   display: flex;
@@ -2160,7 +2186,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   font-size: 0.52rem;
   color: var(--muted);
   letter-spacing: 0.08em;
-  padding-left: 28px;
+  padding-left: 0;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -2171,6 +2197,36 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   font-weight: 700;
   color: var(--accent);
   letter-spacing: 0;
+}
+.drum-preview-beat-group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  position: relative;
+  border-left: 1px solid rgba(255,255,255,0.10);
+}
+.drum-preview-beat-group:first-of-type {
+  border-left: none;
+}
+.drum-preview-beat-group.is-tuplet {
+  background: rgba(167,139,250,0.06);
+  border-radius: 3px;
+}
+.drum-preview-tuplet-badge {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.42rem;
+  font-weight: 700;
+  color: #a78bfa;
+  background: var(--bg, #0e0e12);
+  padding: 0 2px;
+  border-radius: 2px;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
 }
 .drum-preview-beat-hdr {
   display: flex;
@@ -2217,15 +2273,18 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   line-height: 1;
 }
 .drum-preview-cell {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: auto;
+  max-width: calc(100% - 3px);
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.07);
-  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.18);
+  flex-shrink: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.5rem;
+  box-sizing: border-box;
 }
 .drum-preview-cell.active { border-color: transparent; }
 .drum-preview-cell.active.v-HH { background: transparent; border: 2px solid var(--inst-HH,#00ffe7); }
@@ -2632,11 +2691,81 @@ body.readonly .drum-add-btn  { display: none !important; }
 .de-cell.beat-start { border-left: 1px solid rgba(255,255,255,0.12); }
 .de-cell.bar-start  { border-left: 2px solid rgba(255,255,255,0.22); }
 .de-cell.sub-1      { border-left: 1px solid rgba(255,255,255,0.05); }
+
+/* ── BEAT GROUPING (tuplet-aware) ── */
+/* Each beat is a fixed-width container; its cells share that width equally.
+   A normal beat (base subdiv) and a tuplet beat occupy the same span,
+   so a quintuplet's 5 cells are narrower than a 16th beat's 4 cells. */
+.de-beat-group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+.de-beat-group.is-tuplet {
+  position: relative;
+  background: rgba(167,139,250,0.05);
+  border-radius: 4px;
+}
+.de-beat-group.is-tuplet .de-cell { /* narrower cells inside tuplet */ }
+/* tuplet number badge above the beat */
+.de-tuplet-badge {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: #a78bfa;
+  background: var(--bg, #0e0e12);
+  padding: 0 3px;
+  border-radius: 2px;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
+}
+/* clickable beat header */
+.de-beat-head-clickable { cursor: pointer; border-radius: 4px; transition: background 0.1s; }
+.de-beat-head-clickable:hover { background: rgba(167,139,250,0.12); }
+/* tuplet popup menu */
+.de-tuplet-menu {
+  position: fixed;
+  z-index: 9999;
+  background: #16161c;
+  border: 1px solid rgba(167,139,250,0.4);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  min-width: 150px;
+}
+.de-tuplet-menu-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted, #888);
+  padding: 4px 8px 6px;
+}
+.de-tuplet-opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #e8e8f0;
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.de-tuplet-opt:hover { background: rgba(167,139,250,0.15); }
+.de-tuplet-opt.active { background: rgba(167,139,250,0.25); color: #c4b5fd; font-weight: 700; }
 .de-cell-inner {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.16);
   transition: all 0.1s;
 }
 .de-cell:hover .de-cell-inner {
@@ -3700,7 +3829,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <div class="home-card-label">Eventos</div>
       <div class="home-card-desc">Ensayos, conciertos y agenda</div>
     </div>
-    <div class="home-card hc-config" onclick="openLibConfig()">
+    <div class="home-card hc-config" id="hcConfig" onclick="openLibConfig()">
       <div class="home-card-icon">⚙️</div>
       <div class="home-card-label">Configuración</div>
       <div class="home-card-desc">Tema, secciones y ajustes</div>
@@ -3727,6 +3856,22 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <input class="lib-search" id="libSearch" placeholder="🔍 Buscar canción o artista..." oninput="filterLibrary()" />
     </div>
     <div class="lib-grid" id="libGrid"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL DOCUMENTACIÓN DE ARQUITECTURA (pulsación larga en Configuración) ══ -->
+<div id="archDocOverlay" style="display:none;position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:760px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);">
+      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;font-weight:700;color:var(--accent);letter-spacing:0.04em;flex:1;">📐 Arquitectura de la App</span>
+      <button onclick="archDocClose()" style="background:transparent;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <pre id="archDocText" style="margin:0;padding:16px 18px;overflow:auto;flex:1;white-space:pre-wrap;word-break:break-word;font-family:'Space Mono',monospace;font-size:0.72rem;line-height:1.55;color:var(--text);"></pre>
+    <div style="display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--border);flex-wrap:wrap;">
+      <button class="btn" onclick="archDocCopy()" style="flex:1;min-width:90px;">📋 Copiar</button>
+      <button class="btn" onclick="archDocDownload('md')" style="flex:1;min-width:90px;">⬇ .md</button>
+      <button class="btn" onclick="archDocDownload('txt')" style="flex:1;min-width:90px;">⬇ .txt</button>
+    </div>
   </div>
 </div>
 
@@ -3829,7 +3974,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
            Orden fijo: [🎭] [Manual|Sync] [zona-manual ó zona-sync] [🎯][🐯][✎]  -->
       <div id="playBar" style="display:none;flex:1;align-items:center;gap:6px;min-width:0;">
         <!-- Volver concierto -->
-        <button id="cmReturnBtn" class="btn hdr-icon-btn" onclick="navBack()" title="Volver al Modo Concierto" style="display:none;line-height:1;vertical-align:middle;">🎭</button>
+        <button id="cmReturnBtn" class="btn hdr-icon-btn" onclick="playBarBack()" title="Volver" style="display:none;line-height:1;vertical-align:middle;">🎭</button>
         <!-- Toggle Manual / Sync -->
         <div id="scrollModeToggle">
           <button id="toggleManualBtn" class="mode-pill active" onclick="setScrollMode('manual')">Manual</button>
@@ -4103,123 +4248,383 @@ const SUPABASE_URL  = "https://dmqtqowmfcasxfzlyhfz.supabase.co";
 const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtcXRxb3dtZmNhc3hmemx5aGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTQ4MjgsImV4cCI6MjA5MTkzMDgyOH0.Pz9u-JwD2vfMZHAtdfuwiN_XX2u5pxRAv7tx35UYgj0";
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ═══════════════════════════════════════════════
-// NAVEGACIÓN — PILA DE PANTALLAS (_navStack)
-// ═══════════════════════════════════════════════
-// La app usa una pila de navegación explícita para soportar
-// flujos con retorno (ej: Concierto → Cifrado → volver al Concierto).
-//
-// Pantallas principales (se apilan):
-//   "library"   → Biblioteca de canciones   (libraryScreen .open)
-//   "setlist"   → Pantalla de repertorios   (setlistScreen visible)
-//   "concert"   → Modo Concierto            (concertMode visible)
-//   "score"     → Cifrado / editor          (libraryScreen .open, sin setlist)
-//
-// API:
-//   navPush(screenName, state?)  → guarda estado y navega
-//   navPop()                     → restaura pantalla anterior
-//   navReset()                   → limpia la pila (login/logout)
-//   navBack()                    → botón "← Volver" contextual
-//
-// Reglas para futuras mejoras:
-//   · Cada función que ABRE una pantalla nueva llama a navPush().
-//   · Cada función que CIERRA y vuelve atrás llama a navPop().
-//   · Las pantallas tipo modal (popups, modales de audio, etc.)
-//     NO se apilan — son capas sobre la pantalla activa.
-//   · navReset() se llama en logout y en el login inicial.
-// ═══════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════
+   NOTA DE ARQUITECTURA — léeme antes de tocar navegación o layout
+   ═══════════════════════════════════════════════════════════════════════
 
-let _navStack = [];   // [{screen, state}]
+   ORIGEN E HISTORIA
+   -----------------
+   Esta app nació como UN SOLO editor de cifrados/acordes para imprimir.
+   Era literalmente la página entera. Con el tiempo se le añadieron:
+   biblioteca, repertorios (setlists), modo concierto, calendario, editor
+   de batería, audio, etc. Ese crecimiento orgánico explica varias de las
+   decisiones de diseño que ves aquí.
 
-// ═══════════════════════════════════════════════
-// HOME SCREEN
-// ═══════════════════════════════════════════════
-// ── Origen del editor — para el botón de retorno contextual ──
-let _songOrigin = 'library'; // 'library' | 'setlist'
+   LA "CAPA BASE" / EL EDITOR  ← importante
+   ----------------------------------------
+   El editor de canción (.header + #zoomWrapper + #chart + #songPlayerBar)
+   NO es una pantalla normal: es la CAPA BASE histórica. Vive siempre en el
+   DOM, en el flujo normal del documento. Las demás pantallas (home,
+   biblioteca, repertorio, concierto, calendario) son overlays con
+   position:fixed; inset:0 que se ponen ENCIMA para taparlo.
 
-function _updateEditorBackBtn() {
-  const btn = document.getElementById('btnEditorBack');
-  if (!btn) return;
-  if (_songOrigin === 'setlist') {
-    btn.textContent = '🎭';
-    btn.title = 'Volver al repertorio';
-  } else {
-    btn.textContent = '🎵';
-    btn.title = 'Volver a la biblioteca';
+   · Mostrar una canción  = ocultar todas las pantallas (se ve el editor).
+   · Mostrar otra pantalla = ponerla encima (tapa el editor).
+   · La clase body.editor-open indica "estoy en una canción".
+
+   Consecuencia conocida: como el editor siempre estaba presente, en móvil
+   asomaba por debajo al recolocarse la barra del navegador durante el
+   scroll. PARCHE aplicado: con body:not(.editor-open) ocultamos el editor
+   (display:none) cuando no estás en una canción. Ver CSS "PARCHE: editor
+   base oculto".
+
+   DEUDA TÉCNICA / MEJORA FUTURA (no urgente):
+   Lo "correcto de libro" sería convertir el editor en UNA PANTALLA MÁS
+   (su propio contenedor fixed que el Router muestre/oculte como a las
+   otras), y que 'song' deje de ser una pseudo-pantalla montada con
+   editor-open. Es cirugía mayor porque MUCHAS cosas cuelgan de
+   editor-open (barra de tocar, modo inmersivo, reproductor…). Se decidió
+   NO hacerlo mientras la app está en uso: el parche resuelve el síntoma
+   con riesgo mínimo. Si algún día se reestructura a fondo, este es el
+   sitio por donde empezar.
+
+   NAVEGACIÓN — ROUTER
+   -------------------
+   Toda la navegación entre pantallas pasa por el módulo Router (justo
+   debajo). Una sola pila (_stack) es la fuente de verdad de "dónde estoy"
+   y "cómo vuelvo". El botón volver lee la pila y muestra el icono del
+   origen (🎵 biblioteca, 🎭 repertorio/concierto…). NO hay un segundo
+   sistema: el antiguo (_navStack/navPush/navPop) se eliminó.
+
+   · Router.go(screen)      → navega apilando (para poder volver)
+   · Router.replace(screen) → navega sin apilar
+   · Router.back()          → vuelve a la pantalla anterior de la pila
+   · Router.reset()         → vacía la pila (login/logout/home)
+   · Router.onShow(s, fn)   → hook al mostrar una pantalla (p.ej. concierto
+                              restaura su estado/timer al volver del cifrado)
+
+   MODALES / POPUPS / PANELES
+   --------------------------
+   NO son pantallas y NO se apilan en el Router. Son overlays temporales
+   (.modal-overlay.open, popups de acordes, modales de audio, editor de
+   batería .drum-editor-overlay, etc.) que flotan sobre la pantalla activa
+   y se cierran volviendo a ella. Tocarlos no afecta al Router.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+// ═══════════════════════════════════════════════════════════════
+// ROUTER UNIFICADO (Fase 1 — aditivo, convive con lo viejo)
+// ═══════════════════════════════════════════════════════════════
+// Una sola fuente de verdad para "qué pantalla se ve" y "cómo volver".
+//
+// Cada pantalla se describe una vez en SCREENS: cómo se muestra/oculta
+// (algunas usan la clase .open, otras style.display) y qué icono/título
+// usa el botón "volver" cuando esa pantalla queda DEBAJO en la pila.
+//
+// Estados de pantalla:
+//   home      → pantalla de inicio
+//   library   → biblioteca de canciones
+//   setlist   → repertorios
+//   song      → canción abierta (editor/tocar) — vive sobre libraryScreen
+//   concert   → modo concierto
+//   calendar  → calendario
+//
+// API pública:
+//   Router.go(screen, opts)   → navega apilando el estado actual
+//   Router.replace(screen)    → navega SIN apilar (reemplaza)
+//   Router.back()             → vuelve a la pantalla anterior de la pila
+//   Router.reset()            → vacía la pila (login/logout)
+//   Router.current()          → nombre de la pantalla activa
+//   Router.backInfo()         → {icon,title} de a dónde volvería, o null
+//
+// Fase 1 NO cambia comportamiento: el router existe y se puede probar,
+// pero las funciones viejas siguen gobernando hasta que migremos (Fase 2).
+const Router = (function () {
+  const SCREENS = {
+    home:     { el: 'homeScreen',     how: 'open',    icon: '🏠', title: 'Volver al inicio' },
+    library:  { el: 'libraryScreen',  how: 'open',    icon: '🎵', title: 'Volver a la biblioteca' },
+    setlist:  { el: 'setlistScreen',  how: 'display', icon: '🎭', title: 'Volver al repertorio' },
+    concert:  { el: 'concertMode',    how: 'display', icon: '🎭', title: 'Volver al concierto' },
+    calendar: { el: 'calendarScreen', how: 'open',    icon: '📅', title: 'Volver al calendario' },
+    // 'song' = canción abierta. No tiene pantalla propia: se monta sobre
+    // libraryScreen con la clase body.editor-open. Se trata aparte en _apply().
+    song:     { el: 'libraryScreen',  how: 'song',    icon: '🎵', title: 'Volver' },
+  };
+
+  let _stack = [];      // [{screen, state}]
+  let _active = 'home'; // pantalla visible actual
+
+  function _setVisible(name, visible) {
+    const def = SCREENS[name];
+    if (!def) return;
+    // 'song' is a pseudo-screen (mounts on library via editor-open); it has
+    // no own element to show/hide, so skip it here. _apply() handles it.
+    if (def.how === 'song') return;
+    const el = document.getElementById(def.el);
+    if (!el) return;
+    if (def.how === 'open') {
+      el.classList.toggle('open', visible);
+    } else {
+      el.style.display = visible ? 'flex' : 'none';
+    }
   }
-}
 
-function editorGoBack() {
-  if (_songOrigin === 'setlist') {
+  // Oculta TODAS las pantallas (no toca body.editor-open)
+  function _hideAll() {
+    Object.keys(SCREENS).forEach(n => _setVisible(n, false));
+  }
+
+  function current() { return _active; }
+
+  // Show one screen, hide the rest. The song EDITOR (#chart) is the base
+  // layer that always sits underneath; overlay screens cover it. To show the
+  // song we simply hide every overlay screen and set body.editor-open.
+  function _apply(name) {
+    _hideAll();
     document.body.classList.remove('editor-open');
-    document.getElementById('setlistScreen').style.display = 'flex';
-  } else {
-    showLibrary();
+    if (name === 'song') {
+      // canción: ocultar todas las pantallas deja ver el editor de debajo
+      document.body.classList.add('editor-open');
+    } else {
+      // al salir de una canción, asegurar que no quede el modo Tocar activo
+      if (typeof _readonly !== 'undefined' && _readonly) {
+        _readonly = false;
+        document.body.classList.remove('readonly');
+      }
+      if (SCREENS[name]) _setVisible(name, true);
+    }
+    _active = name;
+    _syncBackBtn();
+    // Hook opcional: permite a una pantalla re-inicializarse al mostrarse
+    // (p.ej. el concierto restaura su estado y timer al volver del cifrado).
+    if (typeof _onShow[name] === 'function') {
+      try { _onShow[name](); } catch (e) { console.error('onShow', name, e); }
+    }
   }
-}
+
+  const _onShow = {};
+  function onShow(name, fn) { _onShow[name] = fn; }
+
+  // Navigate to a screen, pushing the current one so back() can return.
+  function go(name, state = {}) {
+    if (!SCREENS[name]) { console.warn('Router.go: unknown screen', name); return; }
+    if (_active && _active !== name) {
+      _stack.push({ screen: _active, state: {} });
+    }
+    _apply(name);
+  }
+
+  // Navigate without pushing (replaces current top context).
+  function replace(name) {
+    if (!SCREENS[name]) { console.warn('Router.replace: unknown screen', name); return; }
+    _apply(name);
+  }
+
+  // Go back to the previous screen in the stack.
+  function back() {
+    const entry = _stack.pop();
+    if (!entry) { _syncBackBtn(); return null; }
+    _apply(entry.screen);
+    return entry;
+  }
+
+  function reset() {
+    _stack = [];
+    _syncBackBtn();
+  }
+
+  // Keep the contextual back buttons in sync with the stack.
+  // Two buttons exist on the song screen: btnEditorBack (editor header)
+  // and cmReturnBtn (playBar / Tocar mode). Both reflect the same origin.
+  function _syncBackBtn() {
+    const info = backInfo();
+
+    // playBar return button (Tocar)
+    const cmBtn = document.getElementById('cmReturnBtn');
+    if (cmBtn) {
+      if (info) {
+        cmBtn.style.display = 'flex';
+        cmBtn.textContent = info.icon;
+        cmBtn.title = info.title;
+      } else {
+        cmBtn.style.display = 'none';
+      }
+      const pb = document.getElementById('playBar');
+      if (pb) pb.classList.toggle('has-return', !!info);
+    }
+
+    // editor header back button (Editar)
+    const edBtn = document.getElementById('btnEditorBack');
+    if (edBtn && info) {
+      edBtn.textContent = info.icon;
+      edBtn.title = info.title;
+    }
+  }
+
+  function backInfo() {
+    if (!_stack.length) return null;
+    const prev = _stack[_stack.length - 1];
+    const def = SCREENS[prev.screen] || SCREENS[prev.baseScreen];
+    if (!def) return null;
+    return { icon: def.icon, title: def.title, screen: prev.screen };
+  }
+
+  function depth() { return _stack.length; }
+
+  return {
+    SCREENS, current, backInfo, depth,
+    go, replace, back, reset, onShow,
+    _setVisible, _hideAll, _apply, _syncBackBtn,
+    // getters para depuración / migración progresiva
+    _stack: () => _stack,
+    _setActive: (n) => { _active = n; },
+    _push: (entry) => _stack.push(entry),
+    _pop: () => _stack.pop(),
+    _clear: () => { _stack = []; },
+  };
+})();
+
+
+// ═══════════════════════════════════════════════
+// NAVEGACIÓN — gestionada por el módulo Router (ver arriba).
+// El sistema antiguo (_navStack / navPush / navPop / navBack / _songOrigin)
+// se eliminó al unificar todo en Router. Las funciones que quedan aquí son
+// wrappers finos que el HTML invoca por onclick.
+// ═══════════════════════════════════════════════
+
+function editorGoBack() { Router.back(); }   // botón volver del editor
+function playBarBack()   { Router.back(); }   // botón volver de la barra Tocar
 
 function showHome() {
-  // Cerrar todas las pantallas principales
-  document.getElementById('libraryScreen').classList.remove('open');
-  document.getElementById('setlistScreen').style.display = 'none';
-  document.getElementById('calendarScreen').classList.remove('open');
   document.body.classList.remove('editor-open');
-  // Actualizar nombre de usuario
   const name = _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || '';
   document.getElementById('homeUserName').textContent = name;
-  // Mostrar home
-  document.getElementById('homeScreen').classList.add('open');
-  navReset();
-}
-
-function navPush(screen, state = {}) {
-  _navStack.push({ screen, state });
-  _navUpdateBackBtn();
-}
-
-function navPop() {
-  if (!_navStack.length) return null;
-  const entry = _navStack.pop();
-  _navUpdateBackBtn();
-  return entry;
-}
-
-function navReset() {
-  _navStack = [];
-  _navUpdateBackBtn();
-}
-
-function _navUpdateBackBtn() {
-  // Muestra u oculta #cmReturnBtn dentro del scrollBar según haya historial
-  const btn = document.getElementById("cmReturnBtn");
-  if (!btn) return;
-  const show = _navStack.length > 0;
-  btn.style.display = show ? "flex" : "none";
-  // Clase en playBar para CSS compacto en móvil
-  const pb = document.getElementById("playBar");
-  if (pb) pb.classList.toggle("has-return", show);
-}
-
-function navBack() {
-  const entry = navPop();
-  if (!entry) return;
-  if (entry.screen === "concert") {
-    // Restaurar Modo Concierto con el estado guardado
-    Object.assign(_cm, entry.state);
-    document.getElementById("libraryScreen").classList.remove("open");
-    document.getElementById("setlistScreen").style.display = "none";
-    document.getElementById("concertMode").style.display = "flex";
-    document.getElementById("cmPauseBtn").style.display = _cm.auto ? "" : "none";
-    // Pausar el timer automático al volver (el usuario decide si reanuda)
-    clearInterval(_cm.timer);
-    _cm.paused = true;
-    document.getElementById("cmPauseBtn").textContent = "▶ Reanudar";
-    _cmRender();
-  }
+  Router.reset();        // home es la raíz — limpia la pila
+  Router.replace('home');
 }
 
 let _currentUser = null;
 let _currentSongId = null; // ID en Supabase de la canción en edición
+
+// ═══════════════════════════════════════════════════════════════
+// DOCUMENTACIÓN DE ARQUITECTURA — accesible con pulsación larga (5s)
+// sobre la tarjeta "Configuración" del menú principal.
+// ═══════════════════════════════════════════════════════════════
+const ARCH_DOC = `# BT SoundsApp — Documentación de Arquitectura
+
+## Origen e historia
+La app nació como UN SOLO editor de cifrados/acordes para imprimir; era
+literalmente la página entera. Con el tiempo se le añadieron: biblioteca,
+repertorios (setlists), modo concierto, calendario, editor de batería,
+audio, etc. Ese crecimiento orgánico explica varias decisiones de diseño.
+
+## La "capa base" / el editor  (IMPORTANTE)
+El editor de canción (.header + #zoomWrapper + #chart + #songPlayerBar) NO
+es una pantalla normal: es la CAPA BASE histórica. Vive siempre en el DOM,
+en el flujo normal del documento. Las demás pantallas (home, biblioteca,
+repertorio, concierto, calendario) son overlays con position:fixed; inset:0
+que se ponen ENCIMA para taparlo.
+
+- Mostrar una canción  = ocultar todas las pantallas (se ve el editor).
+- Mostrar otra pantalla = ponerla encima (tapa el editor).
+- La clase body.editor-open indica "estoy en una canción".
+
+Consecuencia conocida: como el editor siempre estaba presente, en móvil
+asomaba por debajo al recolocarse la barra del navegador durante el scroll.
+PARCHE aplicado: con body:not(.editor-open) ocultamos el editor
+(display:none) cuando no estás en una canción.
+
+## Deuda técnica / mejora futura (no urgente)
+Lo "correcto de libro" sería convertir el editor en UNA PANTALLA MÁS (su
+propio contenedor fixed que el Router muestre/oculte como a las otras), y
+que 'song' deje de ser una pseudo-pantalla montada con editor-open. Es
+cirugía mayor porque MUCHAS cosas cuelgan de editor-open (barra de tocar,
+modo inmersivo, reproductor…). Se decidió NO hacerlo mientras la app está
+en uso: el parche resuelve el síntoma con riesgo mínimo.
+
+## Navegación — Router
+Toda la navegación entre pantallas pasa por el módulo Router. Una sola pila
+(_stack) es la fuente de verdad de "dónde estoy" y "cómo vuelvo". El botón
+volver lee la pila y muestra el icono del origen (🎵 biblioteca, 🎭
+repertorio/concierto…). NO hay un segundo sistema: el antiguo
+(_navStack/navPush/navPop) se eliminó.
+
+- Router.go(screen)      → navega apilando (para poder volver)
+- Router.replace(screen) → navega sin apilar
+- Router.back()          → vuelve a la pantalla anterior de la pila
+- Router.reset()         → vacía la pila (login/logout/home)
+- Router.onShow(s, fn)   → hook al mostrar una pantalla (p.ej. concierto
+                           restaura su estado/timer al volver del cifrado)
+
+## Pantallas registradas
+home · library · setlist · concert · calendar · song (pseudo-pantalla:
+monta el editor sobre la capa base con editor-open).
+
+## Modales / popups / paneles
+NO son pantallas y NO se apilan en el Router. Son overlays temporales
+(.modal-overlay.open, popups de acordes, modales de audio, editor de
+batería .drum-editor-overlay, etc.) que flotan sobre la pantalla activa y
+se cierran volviendo a ella. Tocarlos no afecta al Router.
+
+## Editor de batería — subdivisiones / tuplets
+El grid soporta tresillos (3), quintillos (5) y sextillos (6) por beat.
+Modelo de datos: bar.tuplets = { "<beat>": {div:N} } — solo se guardan las
+excepciones; un beat sin entrada usa la subdivisión base. Toda la lógica de
+"cuántos pasos tiene un beat" está centralizada en deBarLayout() /
+deBaseStepsPerBeat() / deStepLabel(), usadas por el grid, el preview y el
+audio. El dato admite tuplets por-voz a futuro (tuplets[beat].voices).
+
+## Deshacer / rehacer
+El historial (_history) se resetea al cargar cada canción (resetHistory())
+para que no se mezcle entre canciones.
+
+---
+Documento generado desde la propia app · pulsación larga en Configuración.`;
+
+// Long-press (5s) en la tarjeta Configuración → abre la documentación
+(function () {
+  const HOLD_MS = 5000;
+  let _holdTimer = null;
+  function start(e) {
+    clearTimeout(_holdTimer);
+    _holdTimer = setTimeout(() => { _holdTimer = null; archDocOpen(); }, HOLD_MS);
+  }
+  function cancel() { clearTimeout(_holdTimer); _holdTimer = null; }
+  function wire() {
+    const card = document.getElementById('hcConfig');
+    if (!card) return;
+    ['mousedown', 'touchstart'].forEach(ev => card.addEventListener(ev, start, { passive: true }));
+    ['mouseup', 'mouseleave', 'touchend', 'touchcancel', 'touchmove'].forEach(ev =>
+      card.addEventListener(ev, cancel, { passive: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+  else wire();
+})();
+
+function archDocOpen() {
+  document.getElementById('archDocText').textContent = ARCH_DOC;
+  document.getElementById('archDocOverlay').style.display = 'flex';
+}
+function archDocClose() {
+  document.getElementById('archDocOverlay').style.display = 'none';
+}
+function archDocCopy() {
+  navigator.clipboard?.writeText(ARCH_DOC).then(
+    () => setCloudStatus && setCloudStatus('Copiado ✓'),
+    () => alert('No se pudo copiar')
+  );
+}
+function archDocDownload(fmt) {
+  const ext = fmt === 'txt' ? 'txt' : 'md';
+  const blob = new Blob([ARCH_DOC], { type: 'text/' + (ext === 'md' ? 'markdown' : 'plain') + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'BT-SoundsApp-Arquitectura.' + ext;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 // ═══════════════════════════════════════════════
 // LOGIN / REGISTER / LOGOUT
@@ -4259,10 +4664,11 @@ async function doLogout() {
   await _sb.auth.signOut();
   _currentUser = null;
   _currentSongId = null;
-  navReset();
+  Router.reset();
+  document.body.classList.remove('editor-open');
   document.getElementById('homeScreen').classList.remove('open');
   document.getElementById("libraryScreen").classList.remove("open");
-  document.getElementById("setlistScreen").classList.remove("open");
+  document.getElementById("setlistScreen").style.display = "none";
   document.getElementById("loginScreen").style.display = "flex";
 }
 
@@ -4275,11 +4681,15 @@ async function showLibrary() {
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom && window._immersiveResetZoom();
   window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility();
-  document.getElementById('homeScreen').classList.remove('open');
-  document.getElementById("libraryScreen").classList.add("open");
   document.body.classList.remove('editor-open');
   document.getElementById("libUserName").textContent =
     _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || "";
+  // Router: si ya estábamos en library (p.ej. volviendo del editor), no re-apilar
+  if (Router.current() === 'library') {
+    Router.replace('library');
+  } else {
+    Router.go('library');
+  }
   await loadLibrary();
 }
 
@@ -4325,12 +4735,12 @@ function renderLibrary(songs) {
     const versions = children.filter(c => c.version_type === 'version').length;
     const badgeHtml = children.length ? `<span class="song-versions-badge">${ideas ? `<span>💡${ideas}</span>` : ''}${versions ? `<span>💿${versions}</span>` : ''}</span>` : '';
     card.innerHTML = `
-      <div class="card-title">${s.titulo || "(Sin título)"}${badgeHtml}</div>
-      <div class="card-artist">${s.artista || "—"}</div>
+      <div class="card-title">${esc(s.titulo) || "(Sin título)"}${badgeHtml}</div>
+      <div class="card-artist">${esc(s.artista) || "—"}</div>
       <div class="card-meta">${date}</div>
-      <div class="card-by">✏️ ${s.created_by || "desconocido"}</div>
+      <div class="card-by">✏️ ${esc(s.created_by) || "desconocido"}</div>
       <div class="card-actions">
-        <button class="card-btn" onclick="openSong('${s.id}')">✏️<span class="btn-label"> Editar</span></button>
+        <button class="card-btn" onclick="openSong('${s.id}', false)">✏️<span class="btn-label"> Editar</span></button>
         ${isOwner ? `<button class="card-btn danger" onclick="deleteSong('${s.id}', event)">🗑<span class="btn-label"> Borrar</span></button>` : ""}
       </div>`;
     grid.appendChild(card);
@@ -4363,21 +4773,23 @@ function toggleLibView() {
   }
 }
 
-async function openSong(id, origin = 'library') {
+async function openSong(id, playMode = true) {
   const { data, error } = await _sb.from("Canciones").select("*").eq("id", id).single();
   if (error || !data) { alert("Error cargando la canción."); return; }
   _currentSongId = id;
-  _songOrigin = origin;
-  _updateEditorBackBtn();
+  // Router: abrir la canción apila la pantalla activa (library / setlist /
+  // concert) para poder volver a ella. El editor es la capa base que queda
+  // visible al ocultar todas las pantallas (lo hace Router._apply('song')).
+  Router.go('song');
   loadSong(data.data);
-  document.getElementById('homeScreen').classList.remove('open');
-  document.getElementById("libraryScreen").classList.remove("open");
-  document.body.classList.add('editor-open');
+  // Modo de entrada: por defecto se abre en Tocar (reproducir el cifrado).
+  // El botón ✏️ Editar de la biblioteca llama con playMode=false.
+  if (playMode && !_readonly)       toggleReadonly();   // entrar en Tocar
+  else if (!playMode && _readonly)  toggleReadonly();   // entrar en Editar
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom && window._immersiveResetZoom();
   setTimeout(() => window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility(), 50);
 
-  // Versiones: si es sub-canción mostrar breadcrumb, si es principal cargar versiones
   versionsHideBreadcrumb();
   if (data.parent_id) {
     // Es idea/versión — buscar nombre del padre
@@ -4391,18 +4803,16 @@ async function openSong(id, origin = 'library') {
 
 function newSong() {
   _currentSongId = null;
-  _songOrigin = 'library';
-  _updateEditorBackBtn();
   songData = {
     title: "", artist: "", key: "", bpm: "", timeSignature: "",
     sections: [{ id: "s1", name: "Intro", lyric: "", rows: [{ id: "r1", instrument: "guit1", bars: [["C","G"],["Am"],["F"]], repeats: null, comment: "" }] }]
   };
   syncHeaderInputs();
+  resetHistory();
   saveUndo();
   render();
-  document.getElementById('homeScreen').classList.remove('open');
-  document.getElementById("libraryScreen").classList.remove("open");
-  document.body.classList.add('editor-open');
+  // Router: canción nueva se abre como 'song' (apila la pantalla actual)
+  Router.go('song');
   setCloudStatus("");
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom && window._immersiveResetZoom();
@@ -4500,11 +4910,7 @@ function versionsRenderPanel() {
       if (e.target.closest('.version-card-del')) return;
       const wasReadonly = _readonly;
       versionsClosePanel();
-      openSong(v.id, 'version').then(() => {
-        if (wasReadonly && !_readonly) {
-          document.getElementById('btnReadonly')?.click();
-        }
-      });
+      openSong(v.id, wasReadonly);   // mantener el modo actual (Tocar/Editar)
     });
     body.appendChild(card);
   });
@@ -4531,7 +4937,7 @@ async function versionsCreateNew(type) {
   if (error) { alert('Error al crear.'); return; }
 
   versionsClosePanel();
-  openSong(data.id, 'version');
+  openSong(data.id, false);   // versión recién creada → Editar
 }
 
 async function versionsDeleteChild(id, e) {
@@ -4571,7 +4977,7 @@ function versionsHideBreadcrumb() {
 }
 
 function versionsGoToParent() {
-  if (_versionsParentId) openSong(_versionsParentId, 'library');
+  if (_versionsParentId) openSong(_versionsParentId, true);   // padre → Tocar
 }
 
 // ═══════════════════════════════════════════════
@@ -4721,6 +5127,14 @@ function saveUndo() {
   _history.push(clone(songData));
   if (_history.length > 50) _history.shift();
   _histIdx = _history.length - 1;
+  updateUndoButtons();
+}
+
+// Clear undo/redo history — call when loading a different song so the
+// history of a previous song can't bleed into the current one.
+function resetHistory() {
+  _history.length = 0;
+  _histIdx = -1;
   updateUndoButtons();
 }
 
@@ -7145,6 +7559,7 @@ function importJSON() {
 }
 
 function loadSong(d) {
+  resetHistory();
   songData = d;
   // Sanear datos corruptos: eliminar secciones y filas nulas
   if (Array.isArray(songData.sections)) {
@@ -7201,7 +7616,12 @@ function closeModal() {
 })();
 
 function esc(s) {
-  return (s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  return (s||"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
 }
 
 // ═══════════════════════════════════════════════
@@ -8299,9 +8719,8 @@ function showSetlists() {
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom && window._immersiveResetZoom();
   window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility();
-  document.getElementById('homeScreen').classList.remove('open');
-  document.getElementById("libraryScreen").classList.remove("open");
-  document.getElementById("setlistScreen").style.display = "flex";
+  document.body.classList.remove('editor-open');
+  Router.go('setlist');
   document.getElementById("slUserName").textContent =
     _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || "";
   _showSlList();
@@ -8313,7 +8732,6 @@ function showSetlists() {
 function closeSetlists() {
   if (_slDirty && !confirm("Hay cambios sin guardar. ¿Descartar?")) return;
   _slDirty = false;
-  document.getElementById("setlistScreen").style.display = "none";
   showHome();
 }
 
@@ -8395,7 +8813,7 @@ function _renderSetlistGrid(list) {
       : "";
 
     const createdByHtml = sl.created_by
-      ? `<div style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:3px;opacity:0.7;">👤 ${sl.created_by}</div>`
+      ? `<div style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:3px;opacity:0.7;">👤 ${esc(sl.created_by)}</div>`
       : "";
 
     const card = document.createElement("div");
@@ -8620,8 +9038,7 @@ function _renderSongList() {
     // Abrir cifrado
     const openBtn = notesRow.querySelector(".sl-open-btn");
     if (openBtn) openBtn.addEventListener("click", () => {
-      openSong(song.song_id, 'setlist');
-      document.getElementById("setlistScreen").style.display = "none";
+      openSong(song.song_id, true);   // Repertorio → Modo Tocar
     });
 
     // Vincular
@@ -8793,6 +9210,19 @@ function confirmAddSong() {
 // MODO CONCIERTO — Paso 4
 // ═══════════════════════════════════════════════
 let _cm = { idx: 0, songs: [], auto: false, secs: 120, elapsed: 0, paused: false, timer: null };
+let _cmSavedState = null;
+
+// Al volver al concierto (desde el cifrado), restaurar su estado y timer.
+Router.onShow('concert', () => {
+  if (_cmSavedState) {
+    Object.assign(_cm, _cmSavedState);
+    _cmSavedState = null;
+    clearInterval(_cm.timer);
+    _cm.paused = true; // el usuario decide si reanuda
+    document.getElementById("cmPauseBtn").textContent = "▶ Reanudar";
+    _cmRender();
+  }
+});
 
 function openConcertMode() {
   const songs = _currentSetlist?.songs || [];
@@ -8804,17 +9234,14 @@ function openConcertMode() {
   _cm.auto    = document.getElementById("cmAutoChk").checked;
   _cm.secs    = parseInt(document.getElementById("cmAutoSecs").value) || 120;
   clearInterval(_cm.timer);
-  document.getElementById("concertMode").style.display = "flex";
+  Router.go('concert');
   document.getElementById("cmPauseBtn").style.display = _cm.auto ? "" : "none";
-  navReset(); // El concierto es punto de entrada limpio — no se vuelve más atrás de aquí
   _cmRender();
   if (_cm.auto) _cmStartTimer();
 }
 
 function closeConcertMode() {
   clearInterval(_cm.timer);
-  document.getElementById("concertMode").style.display = "none";
-  navReset();
   const returnSetlistId = _currentSetlist?.id;
   if (returnSetlistId) {
     showSetlists();                  // abre la pantalla de repertorios (resetea _currentSetlist)
@@ -8913,22 +9340,15 @@ function _cmUpdateTimerDisplay() {
 function cmOpenScore() {
   const s = _cm.songs[_cm.idx];
   if (!s.song_id) return;
-  // Guardar estado del concierto en la pila antes de navegar al cifrado
+  // Guardar estado del concierto para restaurarlo al volver
   clearInterval(_cm.timer);
-  navPush("concert", {
-    idx:     _cm.idx,
-    songs:   _cm.songs,
-    auto:    _cm.auto,
-    secs:    _cm.secs,
-    elapsed: _cm.elapsed,
-    paused:  _cm.paused
-  });
-  // Ocultar concierto y abrir cifrado en Modo Tocar (readonly)
-  document.getElementById("concertMode").style.display = "none";
-  document.getElementById("setlistScreen").style.display = "none";
-  openSong(s.song_id).then(() => {
-    if (!_readonly) toggleReadonly(); // Forzar Modo Tocar
-  });
+  _cmSavedState = {
+    idx: _cm.idx, songs: _cm.songs, auto: _cm.auto,
+    secs: _cm.secs, elapsed: _cm.elapsed, paused: _cm.paused
+  };
+  // Abrir cifrado vía router (apila 'concert'). openSong entra en Tocar
+  // por defecto (playMode=true), así que no hace falta forzarlo aquí.
+  openSong(s.song_id, true);
 }
 // ═══════════════════════════════════════════════
 // EXPORTAR PDF — Paso 5
@@ -9024,8 +9444,8 @@ function copyShareUrl() {
 
   document.body.innerHTML = `
     <div style="max-width:680px;margin:40px auto;padding:20px 24px;font-family:'IBM Plex Sans',sans-serif;background:#fff;color:#111;">
-      <h1 style="font-family:'Playfair Display',serif;font-size:2rem;margin:0 0 4px;">${data.name}</h1>
-      <p style="color:#888;font-size:0.9rem;margin:0 0 28px;">${[dateStr, data.venue].filter(Boolean).join(" · ")}</p>
+      <h1 style="font-family:'Playfair Display',serif;font-size:2rem;margin:0 0 4px;">${esc(data.name)}</h1>
+      <p style="color:#888;font-size:0.9rem;margin:0 0 28px;">${[dateStr, esc(data.venue)].filter(Boolean).join(" · ")}</p>
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="border-bottom:2px solid #eee;">
           <th style="padding:6px 10px;text-align:left;font-size:0.75rem;color:#aaa;width:32px;">#</th>
@@ -9036,9 +9456,9 @@ function copyShareUrl() {
             <tr style="border-bottom:1px solid #f0f0f0;">
               <td style="padding:10px 10px;color:#999;font-weight:700;">${i+1}</td>
               <td style="padding:10px 10px;">
-                <div style="font-weight:700;font-size:1rem;">${statusIcons[s.status||0]} ${s.title||""}</div>
-                <div style="font-size:0.8rem;color:#888;margin-top:2px;">${[s.artist,s.key,s.bpm?s.bpm+" bpm":"",s.duration?"⏱ "+s.duration+"m":""].filter(Boolean).join(" · ")}</div>
-                ${s.notes?`<div style="font-size:0.78rem;color:#aaa;font-style:italic;margin-top:2px;">${s.notes}</div>`:""}
+                <div style="font-weight:700;font-size:1rem;">${statusIcons[s.status||0]} ${esc(s.title)||""}</div>
+                <div style="font-size:0.8rem;color:#888;margin-top:2px;">${[esc(s.artist),esc(s.key),s.bpm?esc(s.bpm)+" bpm":"",s.duration?"⏱ "+esc(s.duration)+"m":""].filter(Boolean).join(" · ")}</div>
+                ${s.notes?`<div style="font-size:0.78rem;color:#aaa;font-style:italic;margin-top:2px;">${esc(s.notes)}</div>`:""}
               </td>
             </tr>`).join("")}
         </tbody>
@@ -9387,9 +9807,75 @@ const DE_VOICES = [
 // Returns number of steps per bar for a given subdivision + time sig
 function deStepsPerBar(timeSig, subdiv) {
   const beats = parseInt(timeSig.split('/')[0]) || 4;
-  if (subdiv === '4th')  return beats;
-  if (subdiv === '16th') return beats * 4;
-  return beats * 2; // 8th default
+  return beats * deBaseStepsPerBeat(subdiv);
+}
+
+// ── CENTRALIZED SUBDIVISION LAYOUT ──────────────────────────────────
+// Single source of truth for "how many steps does a beat have" and the
+// "1 e + a" labels. Everything (grid render, preview, audio) goes through
+// here, so adding tuplets later means touching ONLY this section.
+
+// Base steps-per-beat for the standard (binary) subdivisions.
+function deBaseStepsPerBeat(subdiv) {
+  if (subdiv === '4th')  return 1;
+  if (subdiv === '16th') return 4;
+  return 2; // 8th default
+}
+
+// Label for a step position within a beat, given that beat's step count.
+// For binary subdivisions keeps the classic 1 / e / + / a scheme.
+function deStepLabel(beatNumber, posInBeat, stepsInBeat) {
+  if (posInBeat === 0) return { text: String(beatNumber), cls: 'down' };
+  if (stepsInBeat === 4) {
+    if (posInBeat === 1) return { text: 'e', cls: 'subdiv-e' };
+    if (posInBeat === 2) return { text: '+', cls: 'subdiv-plus' };
+    if (posInBeat === 3) return { text: 'a', cls: 'subdiv-a' };
+  }
+  if (stepsInBeat === 2 && posInBeat === 1) return { text: '+', cls: 'subdiv-plus' };
+  // tuplets / other counts: small dot subdivisions
+  return { text: '·', cls: 'subdiv-plus' };
+}
+
+// ── BAR LAYOUT (tuplet-aware) ───────────────────────────────────────
+// Returns the structure of a whole bar as a flat list of "slots", one per
+// playable step, each carrying which beat it belongs to and its position.
+// When a beat has no tuplet it uses the base subdivision; when it has one
+// (bar.tuplets[beatIndex].div) it uses that many steps instead.
+//
+// slot = { beat, posInBeat, stepsInBeat, isTuplet, tupletDiv, globalStep }
+//
+// This is THE single source of truth for iterating a bar. Render, preview
+// and audio all use it, so tuplets only need to be understood here.
+function deBarLayout(bar, timeSig, subdiv) {
+  const beats = parseInt(timeSig.split('/')[0]) || 4;
+  const base = deBaseStepsPerBeat(subdiv);
+  const tuplets = (bar && bar.tuplets) || {};
+  const slots = [];
+  let globalStep = 0;
+  for (let b = 0; b < beats; b++) {
+    const t = tuplets[String(b)] || tuplets[b];
+    const isTuplet = !!(t && t.div);
+    const stepsInBeat = isTuplet ? t.div : base;
+    for (let p = 0; p < stepsInBeat; p++) {
+      slots.push({
+        beat: b,
+        posInBeat: p,
+        stepsInBeat,
+        isTuplet,
+        tupletDiv: isTuplet ? t.div : null,
+        globalStep
+      });
+      globalStep++;
+    }
+  }
+  return slots;
+}
+
+// Total playable steps in a bar (tuplet-aware). Replaces deStepsPerBar
+// when a specific bar's tuplets matter. deStepsPerBar stays for the
+// base/uniform case (empty patterns, capacity checks).
+function deBarStepCount(bar, timeSig, subdiv) {
+  return deBarLayout(bar, timeSig, subdiv).length;
 }
 
 // Create empty bars array
@@ -9532,6 +10018,188 @@ function deToggleErase(btn) {
   btn.classList.toggle('active', _de.eraseMode);
 }
 
+// ── TUPLET CONTROLS ─────────────────────────────────────────────────
+// Set a beat's subdivision. div=4 (or base) clears the tuplet.
+// Applies to a specific bar. When notes fall outside the new step count
+// of that beat, they're dropped (same policy as changing subdivision).
+function deSetBeatTuplet(barIdx, beatIdx, div) {
+  const bar = _de.pattern.bars[barIdx];
+  if (!bar) return;
+  if (!bar.tuplets) bar.tuplets = {};
+
+  const ts = _de.pattern.timeSignature || '4/4';
+  const sdiv = _de.pattern.subdivision || '8th';
+  const base = deBaseStepsPerBeat(sdiv);
+
+  // Capture which notes belong to this beat BEFORE changing layout,
+  // so we can remap/drop them. We rebuild each voice's steps.
+  const oldLayout = deBarLayout(bar, ts, sdiv);
+  const oldBeatSlots = oldLayout.filter(s => s.beat === beatIdx);
+  const oldStart = oldBeatSlots.length ? oldBeatSlots[0].globalStep : 0;
+  const oldCount = oldBeatSlots.length;
+
+  // Apply change
+  if (!div || div === base) {
+    delete bar.tuplets[String(beatIdx)];
+    delete bar.tuplets[beatIdx];
+  } else {
+    bar.tuplets[String(beatIdx)] = { div };
+  }
+
+  const newLayout = deBarLayout(bar, ts, sdiv);
+  const newBeatSlots = newLayout.filter(s => s.beat === beatIdx);
+  const newStart = newBeatSlots.length ? newBeatSlots[0].globalStep : 0;
+  const newCount = newBeatSlots.length;
+
+  // Remap notes: everything is keyed by global step. The beats AFTER the
+  // changed one shift by (newCount - oldCount). Notes inside the changed
+  // beat are dropped if they no longer fit.
+  const shift = newCount - oldCount;
+  DE_VOICES.forEach(v => {
+    const notes = bar.voices[v.id] || [];
+    const remapped = [];
+    notes.forEach(n => {
+      if (n.step < oldStart) {
+        remapped.push(n); // before the beat — unchanged
+      } else if (n.step >= oldStart + oldCount) {
+        remapped.push({ ...n, step: n.step + shift }); // after — shift
+      } else {
+        // inside the changed beat — keep only if it still fits
+        const rel = n.step - oldStart;
+        if (rel < newCount) remapped.push({ ...n, step: newStart + rel });
+      }
+    });
+    bar.voices[v.id] = remapped;
+  });
+
+  deCloseTupletMenu();
+  deRenderGrid();
+}
+
+let _deTupletMenuEl = null;
+function deCloseTupletMenu() {
+  if (_deTupletMenuEl) { _deTupletMenuEl.remove(); _deTupletMenuEl = null; }
+  document.removeEventListener('click', deTupletMenuOutside, true);
+}
+function deTupletMenuOutside(e) {
+  if (_deTupletMenuEl && !_deTupletMenuEl.contains(e.target)) deCloseTupletMenu();
+}
+
+// Same as deSetBeatTuplet but without re-render (for batch across bars)
+function deSetBeatTupletNoRender(barIdx, beatIdx, div) {
+  const bar = _de.pattern.bars[barIdx];
+  if (!bar) return;
+  if (!bar.tuplets) bar.tuplets = {};
+  const ts = _de.pattern.timeSignature || '4/4';
+  const sdiv = _de.pattern.subdivision || '8th';
+  const base = deBaseStepsPerBeat(sdiv);
+  const oldLayout = deBarLayout(bar, ts, sdiv);
+  const oldBeatSlots = oldLayout.filter(s => s.beat === beatIdx);
+  const oldStart = oldBeatSlots.length ? oldBeatSlots[0].globalStep : 0;
+  const oldCount = oldBeatSlots.length;
+  if (!div || div === base) {
+    delete bar.tuplets[String(beatIdx)];
+    delete bar.tuplets[beatIdx];
+  } else {
+    bar.tuplets[String(beatIdx)] = { div };
+  }
+  const newLayout = deBarLayout(bar, ts, sdiv);
+  const newBeatSlots = newLayout.filter(s => s.beat === beatIdx);
+  const newStart = newBeatSlots.length ? newBeatSlots[0].globalStep : 0;
+  const newCount = newBeatSlots.length;
+  const shift = newCount - oldCount;
+  DE_VOICES.forEach(v => {
+    const notes = bar.voices[v.id] || [];
+    const remapped = [];
+    notes.forEach(n => {
+      if (n.step < oldStart) remapped.push(n);
+      else if (n.step >= oldStart + oldCount) remapped.push({ ...n, step: n.step + shift });
+      else { const rel = n.step - oldStart; if (rel < newCount) remapped.push({ ...n, step: newStart + rel }); }
+    });
+    bar.voices[v.id] = remapped;
+  });
+}
+
+// Menu that applies the chosen subdivision to the SAME beat in every bar
+function deOpenTupletMenuAllBars(anchorEl, beatIdx) {
+  deCloseTupletMenu();
+  const sdiv = _de.pattern.subdivision || '8th';
+  const base = deBaseStepsPerBeat(sdiv);
+  const bar0 = _de.pattern.bars[0];
+  const cur = (bar0.tuplets && (bar0.tuplets[String(beatIdx)] || bar0.tuplets[beatIdx]));
+  const curDiv = cur ? cur.div : base;
+
+  const menu = document.createElement('div');
+  menu.className = 'de-tuplet-menu';
+  menu.innerHTML = '<div class="de-tuplet-menu-title">Beat ' + (beatIdx+1) + ' · subdividir en</div>';
+  const opts = [
+    { div: base, label: 'Normal (' + base + ')' },
+    { div: 3, label: 'Tresillo · 3' },
+    { div: 5, label: 'Quintillo · 5' },
+    { div: 6, label: 'Sextillo · 6' },
+  ];
+  const seen = new Set();
+  opts.forEach(o => {
+    if (seen.has(o.div)) return; seen.add(o.div);
+    const b = document.createElement('button');
+    b.className = 'de-tuplet-opt' + (o.div === curDiv ? ' active' : '');
+    b.textContent = o.label;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _de.pattern.bars.forEach((_, bi) => deSetBeatTupletNoRender(bi, beatIdx, o.div));
+      deCloseTupletMenu();
+      deRenderGrid();
+    });
+    menu.appendChild(b);
+  });
+
+  document.body.appendChild(menu);
+  const r = anchorEl.getBoundingClientRect();
+  menu.style.left = Math.min(r.left, window.innerWidth - menu.offsetWidth - 8) + 'px';
+  menu.style.top  = (r.bottom + 4) + 'px';
+  _deTupletMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', deTupletMenuOutside, true), 0);
+}
+
+function deOpenTupletMenu(anchorEl, barIdx, beatIdx) {
+  deCloseTupletMenu();
+  const bar = _de.pattern.bars[barIdx];
+  const sdiv = _de.pattern.subdivision || '8th';
+  const base = deBaseStepsPerBeat(sdiv);
+  const cur = (bar.tuplets && (bar.tuplets[String(beatIdx)] || bar.tuplets[beatIdx]));
+  const curDiv = cur ? cur.div : base;
+
+  const menu = document.createElement('div');
+  menu.className = 'de-tuplet-menu';
+  menu.innerHTML = '<div class="de-tuplet-menu-title">Beat ' + (beatIdx+1) + ' · subdividir en</div>';
+  const opts = [
+    { div: base, label: 'Normal (' + base + ')' },
+    { div: 3, label: 'Tresillo · 3' },
+    { div: 5, label: 'Quintillo · 5' },
+    { div: 6, label: 'Sextillo · 6' },
+  ];
+  // de-dup if base equals one of the tuplet numbers
+  const seen = new Set();
+  opts.forEach(o => {
+    if (seen.has(o.div)) return; seen.add(o.div);
+    const b = document.createElement('button');
+    b.className = 'de-tuplet-opt' + (o.div === curDiv ? ' active' : '');
+    b.textContent = o.label;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deSetBeatTuplet(barIdx, beatIdx, o.div);
+    });
+    menu.appendChild(b);
+  });
+
+  document.body.appendChild(menu);
+  const r = anchorEl.getBoundingClientRect();
+  menu.style.left = Math.min(r.left, window.innerWidth - menu.offsetWidth - 8) + 'px';
+  menu.style.top  = (r.bottom + 4) + 'px';
+  _deTupletMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', deTupletMenuOutside, true), 0);
+}
+
 function deChangeTimeSig() {
   const ts = document.getElementById('deTimeSig').value;
   _de.pattern.timeSignature = ts;
@@ -9594,24 +10262,51 @@ function deRenderGrid() {
   const sdiv = _de.pattern.subdivision  || '8th';
   const steps = deStepsPerBar(ts, sdiv);
   const beatsPerBar = parseInt(ts.split('/')[0]) || 4;
-  const stepsPerBeat = sdiv === '16th' ? 4 : sdiv === '4th' ? 1 : 2;
+  const stepsPerBeat = deBaseStepsPerBeat(sdiv);
+  const CELL_W = 26;                       // base cell width
+  const MIN_TUPLET_CELL_W = 22;            // min comfortable width per cell in a tuplet
 
-  // Beat header (shared, shown once)
+  // Beat width must fit the DENSEST subdivision used in any beat of any bar,
+  // so a sextuplet (6) never overflows even when the base is quarters/eighths.
+  // We scan all bars' tuplets to find the max cells-per-beat needed.
+  let maxCellsPerBeat = stepsPerBeat;
+  _de.pattern.bars.forEach(bar => {
+    const tps = (bar && bar.tuplets) || {};
+    Object.keys(tps).forEach(k => {
+      const d = tps[k] && tps[k].div;
+      if (d && d > maxCellsPerBeat) maxCellsPerBeat = d;
+    });
+  });
+  // width: enough for base cells at CELL_W, but also enough so the densest
+  // tuplet's cells are at least MIN_TUPLET_CELL_W wide.
+  const BEAT_W = Math.max(stepsPerBeat * CELL_W, maxCellsPerBeat * MIN_TUPLET_CELL_W);
+
+  // Use the first bar's layout for the shared header (header reflects bar 1).
+  // Per-bar tuplets still render correctly in each bar's own rows below.
+  const hdrLayout = deBarLayout(_de.pattern.bars[0], ts, sdiv);
+
+  // Beat header (shared, shown once) — grouped per beat, clickable for tuplets
   const hdr = document.createElement('div');
   hdr.className = 'de-beat-header';
-  for (let i = 0; i < steps; i++) {
-    const lbl = document.createElement('div');
-    const beatPos = i % stepsPerBeat;
-    let lblClass = 'de-beat-lbl';
-    let lblText;
-    if (beatPos === 0) { lblClass += ' down'; lblText = Math.floor(i / stepsPerBeat) + 1; }
-    else if (sdiv === '16th' && beatPos === 1) { lblClass += ' subdiv-e'; lblText = 'e'; }
-    else if (beatPos === (sdiv === '16th' ? 2 : 1)) { lblClass += ' subdiv-plus'; lblText = '+'; }
-    else if (sdiv === '16th' && beatPos === 3) { lblClass += ' subdiv-a'; lblText = 'a'; }
-    else { lblText = '+'; }
-    lbl.className = lblClass;
-    lbl.textContent = lblText;
-    hdr.appendChild(lbl);
+  for (let b = 0; b < beatsPerBar; b++) {
+    const beatSlots = hdrLayout.filter(s => s.beat === b);
+    const group = document.createElement('div');
+    group.className = 'de-beat-group de-beat-head-clickable';
+    group.style.width = BEAT_W + 'px';
+    group.title = 'Toca para subdividir (tresillo, quintillo…)';
+    if (beatSlots[0] && beatSlots[0].isTuplet) group.classList.add('is-tuplet');
+    beatSlots.forEach(slot => {
+      const lbl = document.createElement('div');
+      const info = deStepLabel(b + 1, slot.posInBeat, slot.stepsInBeat);
+      lbl.className = 'de-beat-lbl ' + info.cls;
+      lbl.style.flex = '1 1 0';
+      lbl.style.width = 'auto';
+      lbl.textContent = info.text;
+      group.appendChild(lbl);
+    });
+    // open tuplet menu — applies to ALL bars (grooves usually repeat)
+    group.addEventListener('click', () => deOpenTupletMenuAllBars(group, b));
+    hdr.appendChild(group);
   }
   wrap.appendChild(hdr);
 
@@ -9677,80 +10372,90 @@ function deRenderGrid() {
       lbl.textContent = voice.label;
       row.appendChild(lbl);
 
-      for (let s = 0; s < steps; s++) {
-        const note = notes.find(n => n.step === s);
-        const cell = document.createElement('div');
-        cell.className = 'de-cell';
-        if (s === 0)                           cell.classList.add('bar-start');
-        else if (s % stepsPerBeat === 0)       cell.classList.add('beat-start');
-        else                                   cell.classList.add('sub-1');
-
-        const inner = document.createElement('div');
-        inner.className = 'de-cell-inner';
-        // CSS classes for HH open state
-        if (note) {
-          cell.classList.add('active');
-          if (note.type === 'flam')        cell.classList.add('note-flam');
-          if (note.type === 'roll')        cell.classList.add('note-roll');
-          if (note.accent)                 cell.classList.add('accent');
-          if (voice.id === 'HH' && note.hhOpen) cell.classList.add('hh-open');
+      const layout = deBarLayout(bar, ts, sdiv);
+      for (let b = 0; b < beatsPerBar; b++) {
+        const beatSlots = layout.filter(sl => sl.beat === b);
+        const group = document.createElement('div');
+        group.className = 'de-beat-group';
+        group.style.width = BEAT_W + 'px';
+        const beatIsTuplet = beatSlots[0] && beatSlots[0].isTuplet;
+        if (beatIsTuplet) {
+          group.classList.add('is-tuplet');
+          // badge only on the first voice row of the beat would be ideal,
+          // but per-row keeps it simple and always visible
+          const badge = document.createElement('div');
+          badge.className = 'de-tuplet-badge';
+          badge.textContent = beatSlots[0].tupletDiv;
+          group.appendChild(badge);
         }
-        cell.appendChild(inner);
 
-        // Click — unified modifier logic
-        cell.addEventListener('click', () => {
-          const mod = _de.modifier; // 'flam' | 'roll' | 'accent' | null
-          const idx = notes.findIndex(n => n.step === s);
+        beatSlots.forEach(slot => {
+          const s = slot.globalStep;
+          const note = notes.find(n => n.step === s);
+          const cell = document.createElement('div');
+          cell.className = 'de-cell';
+          cell.style.flex = '1 1 0';
+          cell.style.width = 'auto';
+          if (slot.beat === 0 && slot.posInBeat === 0)      cell.classList.add('bar-start');
+          else if (slot.posInBeat === 0)                    cell.classList.add('beat-start');
+          else                                              cell.classList.add('sub-1');
 
-          if (_de.eraseMode) {
-            // Erase mode: always remove
-            if (idx >= 0) notes.splice(idx, 1);
-
-          } else if (mod === 'flam' || mod === 'roll') {
-            if (idx < 0) {
-              // Create note with this type
-              const n = { step: s, type: mod };
-              if (voice.id === 'HH') n.hhOpen = false;
-              notes.push(n);
-            } else if (notes[idx].type === mod) {
-              // Same modifier already — remove it (revert to normal)
-              notes[idx].type = 'normal';
-            } else {
-              // Different type — overwrite
-              notes[idx].type = mod;
-            }
-
-          } else if (mod === 'accent') {
-            if (idx < 0) {
-              // Create normal note with accent
-              const n = { step: s, type: 'normal', accent: true };
-              if (voice.id === 'HH') n.hhOpen = false;
-              notes.push(n);
-            } else {
-              // Toggle accent on existing note
-              notes[idx].accent = !notes[idx].accent;
-            }
-
-          } else {
-            // No modifier — plain toggle
-            if (idx < 0) {
-              const n = { step: s, type: 'normal' };
-              if (voice.id === 'HH') n.hhOpen = false;
-              notes.push(n);
-            } else if (voice.id === 'HH') {
-              // HH: cycle closed → open → remove
-              if (!notes[idx].hhOpen) notes[idx].hhOpen = true;
-              else notes.splice(idx, 1);
-            } else {
-              notes.splice(idx, 1);
-            }
+          const inner = document.createElement('div');
+          inner.className = 'de-cell-inner';
+          if (note) {
+            cell.classList.add('active');
+            if (note.type === 'flam')        cell.classList.add('note-flam');
+            if (note.type === 'roll')        cell.classList.add('note-roll');
+            if (note.accent)                 cell.classList.add('accent');
+            if (voice.id === 'HH' && note.hhOpen) cell.classList.add('hh-open');
           }
+          cell.appendChild(inner);
 
-          bar.voices[voice.id] = notes;
-          deRenderGrid();
+          // Click — unified modifier logic
+          cell.addEventListener('click', () => {
+            const mod = _de.modifier;
+            const idx = notes.findIndex(n => n.step === s);
+
+            if (_de.eraseMode) {
+              if (idx >= 0) notes.splice(idx, 1);
+            } else if (mod === 'flam' || mod === 'roll') {
+              if (idx < 0) {
+                const n = { step: s, type: mod };
+                if (voice.id === 'HH') n.hhOpen = false;
+                notes.push(n);
+              } else if (notes[idx].type === mod) {
+                notes[idx].type = 'normal';
+              } else {
+                notes[idx].type = mod;
+              }
+            } else if (mod === 'accent') {
+              if (idx < 0) {
+                const n = { step: s, type: 'normal', accent: true };
+                if (voice.id === 'HH') n.hhOpen = false;
+                notes.push(n);
+              } else {
+                notes[idx].accent = !notes[idx].accent;
+              }
+            } else {
+              if (idx < 0) {
+                const n = { step: s, type: 'normal' };
+                if (voice.id === 'HH') n.hhOpen = false;
+                notes.push(n);
+              } else if (voice.id === 'HH') {
+                if (!notes[idx].hhOpen) notes[idx].hhOpen = true;
+                else notes.splice(idx, 1);
+              } else {
+                notes.splice(idx, 1);
+              }
+            }
+
+            bar.voices[voice.id] = notes;
+            deRenderGrid();
+          });
+
+          group.appendChild(cell);
         });
-
-        row.appendChild(cell);
+        row.appendChild(group);
       }
       wrap.appendChild(row);
     });
@@ -9773,7 +10478,8 @@ function renderDrumPreview(container, row) {
 
   const ts    = dp.timeSignature || '4/4';
   const sdiv  = dp.subdivision  || '8th';
-  const steps = deStepsPerBar(ts, sdiv);
+  const beatsPerBar = parseInt(ts.split('/')[0]) || 4;
+  const stepsPerBeat = deBaseStepsPerBeat(sdiv);
 
   // Which voices have at least one note across all bars?
   const usedVoices = DE_VOICES.filter(v =>
@@ -9786,6 +10492,19 @@ function renderDrumPreview(container, row) {
     container.appendChild(empty);
     return;
   }
+
+  // Preview cell width (compact). Beat width fits densest tuplet across bars.
+  const PV_CELL_W = 17;
+  const PV_MIN_TUPLET_CELL_W = 16;
+  let maxCellsPerBeat = stepsPerBeat;
+  dp.bars.forEach(bar => {
+    const tps = (bar && bar.tuplets) || {};
+    Object.keys(tps).forEach(k => {
+      const d = tps[k] && tps[k].div;
+      if (d && d > maxCellsPerBeat) maxCellsPerBeat = d;
+    });
+  });
+  const PV_BEAT_W = Math.max(stepsPerBeat * PV_CELL_W, maxCellsPerBeat * PV_MIN_TUPLET_CELL_W);
 
   const wrap = document.createElement('div');
   wrap.className = 'drum-preview-wrap';
@@ -9808,23 +10527,33 @@ function renderDrumPreview(container, row) {
     barLbl.appendChild(barRepSpan);
     barDiv.appendChild(barLbl);
 
-    // Beat header
+    const layout = deBarLayout(bar, ts, sdiv);
+
+    // Beat header — grouped per beat (tuplet-aware)
     const beatHdr = document.createElement('div');
     beatHdr.className = 'drum-preview-beat-hdr';
-    const stepsPerBeat = sdiv === '16th' ? 4 : sdiv === '4th' ? 1 : 2;
-    for (let i = 0; i < steps; i++) {
-      const bl = document.createElement('div');
-      const beatPos = i % stepsPerBeat;
-      let blClass = 'drum-preview-beat-lbl';
-      let blText;
-      if (beatPos === 0)                          { blClass += ' down';         blText = Math.floor(i / stepsPerBeat) + 1; }
-      else if (sdiv === '16th' && beatPos === 1)  { blClass += ' subdiv-e';     blText = 'e'; }
-      else if (beatPos === (sdiv === '16th' ? 2 : 1)) { blClass += ' subdiv-plus'; blText = '+'; }
-      else if (sdiv === '16th' && beatPos === 3)  { blClass += ' subdiv-a';     blText = 'a'; }
-      else                                        { blText = '+'; }
-      bl.className = blClass;
-      bl.textContent = blText;
-      beatHdr.appendChild(bl);
+    for (let b = 0; b < beatsPerBar; b++) {
+      const beatSlots = layout.filter(s => s.beat === b);
+      const group = document.createElement('div');
+      group.className = 'drum-preview-beat-group';
+      group.style.width = PV_BEAT_W + 'px';
+      if (beatSlots[0] && beatSlots[0].isTuplet) {
+        group.classList.add('is-tuplet');
+        const badge = document.createElement('div');
+        badge.className = 'drum-preview-tuplet-badge';
+        badge.textContent = beatSlots[0].tupletDiv;
+        group.appendChild(badge);
+      }
+      beatSlots.forEach(slot => {
+        const bl = document.createElement('div');
+        const info = deStepLabel(b + 1, slot.posInBeat, slot.stepsInBeat);
+        bl.className = 'drum-preview-beat-lbl ' + info.cls;
+        bl.style.flex = '1 1 0';
+        bl.style.width = 'auto';
+        bl.textContent = info.text;
+        group.appendChild(bl);
+      });
+      beatHdr.appendChild(group);
     }
     barDiv.appendChild(beatHdr);
 
@@ -9839,15 +10568,29 @@ function renderDrumPreview(container, row) {
       vLbl.textContent = voice.label;
       vRow.appendChild(vLbl);
 
-      for (let s = 0; s < steps; s++) {
-        const note = notes.find(n => n.step === s);
-        const cell = document.createElement('div');
-        cell.className = 'drum-preview-cell' + (note ? ' active v-' + voice.id : '');
-        if (note && voice.id === 'HH' && note.hhOpen) cell.classList.add('hh-open');
-        if (note && note.type === 'flam')  cell.classList.add('note-flam');
-        if (note && note.type === 'roll')  cell.classList.add('note-roll');
-        if (note && note.accent)           cell.classList.add('accent');
-        vRow.appendChild(cell);
+      for (let b = 0; b < beatsPerBar; b++) {
+        const beatSlots = layout.filter(s => s.beat === b);
+        const group = document.createElement('div');
+        group.className = 'drum-preview-beat-group';
+        group.style.width = PV_BEAT_W + 'px';
+        if (beatSlots[0] && beatSlots[0].isTuplet) group.classList.add('is-tuplet');
+        beatSlots.forEach(slot => {
+          const note = notes.find(n => n.step === slot.globalStep);
+          const cellSlot = document.createElement('div');
+          cellSlot.style.flex = '1 1 0';
+          cellSlot.style.display = 'flex';
+          cellSlot.style.justifyContent = 'center';
+          cellSlot.style.alignItems = 'center';
+          const cell = document.createElement('div');
+          cell.className = 'drum-preview-cell' + (note ? ' active v-' + voice.id : '');
+          if (note && voice.id === 'HH' && note.hhOpen) cell.classList.add('hh-open');
+          if (note && note.type === 'flam')  cell.classList.add('note-flam');
+          if (note && note.type === 'roll')  cell.classList.add('note-roll');
+          if (note && note.accent)           cell.classList.add('accent');
+          cellSlot.appendChild(cell);
+          group.appendChild(cellSlot);
+        });
+        vRow.appendChild(group);
       }
       barDiv.appendChild(vRow);
     });
@@ -10038,19 +10781,26 @@ function dauSynth(voice, audioCtx, when, accent, velOverride) {
 }
 
 // ── Build flat step list from pattern bars+repeats ────────────
+// Each entry carries its duration as a fraction of a beat, so tuplet
+// beats (3/5/6 steps) play correctly: a quintuplet step = 1/5 of a beat.
 function dauBuildStepList() {
   const dp = _de.pattern;
   if (!dp || !dp.bars) return [];
   const ts   = dp.timeSignature || '4/4';
   const sdiv = dp.subdivision  || '8th';
-  const steps = deStepsPerBar(ts, sdiv);
   const list = [];
   dp.bars.forEach((bar, bi) => {
     const reps = bar.repeat || 1;
+    const layout = deBarLayout(bar, ts, sdiv);
     for (let r = 0; r < reps; r++) {
-      for (let s = 0; s < steps; s++) {
-        list.push({ barIdx: bi, stepIdx: s });
-      }
+      layout.forEach(slot => {
+        list.push({
+          barIdx: bi,
+          stepIdx: slot.globalStep,
+          // duration of this step as a fraction of one beat
+          beatFraction: 1 / slot.stepsInBeat
+        });
+      });
     }
   });
   return list;
@@ -10070,17 +10820,14 @@ function dauHighlightStep(globalStep) {
 
   const { barIdx, stepIdx } = stepList[globalStep % stepList.length];
 
-  // Find all cells at this barIdx + stepIdx
-  const barsWrap = document.querySelectorAll('#deGridWrap .de-bar-lbl');
-  const allRows  = document.querySelectorAll('#deGridWrap .de-voice-row');
+  const allRows = document.querySelectorAll('#deGridWrap .de-voice-row');
   allRows.forEach(row => {
-    const cells = row.querySelectorAll('.de-cell');
-    // Determine which bar this row belongs to — count bar labels before this row
-    // simpler: tag cells with data attributes in deRenderGrid
     const barCell = row.dataset.barIdx !== undefined ? parseInt(row.dataset.barIdx) : -1;
-    if (barCell === barIdx && cells[stepIdx]) {
-      cells[stepIdx].classList.add('metro-pulse');
-    }
+    if (barCell !== barIdx) return;
+    // cells are nested inside .de-beat-group; flatten in DOM order so the
+    // Nth cell corresponds to global step N (matches deBarLayout order)
+    const cells = row.querySelectorAll('.de-cell');
+    if (cells[stepIdx]) cells[stepIdx].classList.add('metro-pulse');
   });
   _dau_lastVisualStep = globalStep;
 }
@@ -10089,11 +10836,16 @@ function dauHighlightStep(globalStep) {
 function dauSchedule() {
   const stepList = _dau.barSteps;
   if (!stepList.length) return;
-  const secondsPerStep = (60 / _dau.bpm) / dauStepsPerBeat();
+  const secondsPerBeat = 60 / _dau.bpm;
 
   while (_dau.nextNoteTime < _dau.ctx.currentTime + _dau.scheduleAheadTime) {
     const globalStep = _dau.currentStep % stepList.length;
-    const { barIdx, stepIdx } = stepList[globalStep];
+    const entry = stepList[globalStep];
+    const { barIdx, stepIdx } = entry;
+    // per-step duration (tuplet-aware); fall back to base if missing
+    const secondsPerStep = secondsPerBeat * (entry.beatFraction != null
+      ? entry.beatFraction
+      : 1 / dauStepsPerBeat());
     const bar = _de.pattern.bars[barIdx];
     const when = _dau.nextNoteTime;
 
@@ -10106,18 +10858,15 @@ function dauSchedule() {
       const voiceId = (voice.id === 'HH' && note.hhOpen) ? 'HH_OPEN' : voice.id;
 
       if (note.type === 'flam') {
-        // Ghost note 30ms before, very soft; then main note at normal vel
-        dauSynth(voiceId, _dau.ctx, when,           false, 0.22); // ghost suave
-        dauSynth(voiceId, _dau.ctx, when + 0.030,   false, note.accent ? 1.35 : 0.62); // nota principal
+        dauSynth(voiceId, _dau.ctx, when,           false, 0.22);
+        dauSynth(voiceId, _dau.ctx, when + 0.030,   false, note.accent ? 1.35 : 0.62);
 
       } else if (note.type === 'roll') {
-        // Dos golpes separados por la mitad del paso
         const halfStep = secondsPerStep / 2;
         dauSynth(voiceId, _dau.ctx, when,           false, note.accent ? 1.35 : 0.62);
         dauSynth(voiceId, _dau.ctx, when + halfStep, false, note.accent ? 1.10 : 0.50);
 
       } else {
-        // Normal o acento
         dauSynth(voiceId, _dau.ctx, when, note.accent);
       }
     });
@@ -10135,7 +10884,6 @@ function dauSchedule() {
       if (_dau.loop) {
         _dau.currentStep = 0;
       } else {
-        // schedule stop after last note plays
         const stopDelay = (when - _dau.ctx.currentTime + secondsPerStep) * 1000;
         setTimeout(() => deStop(), Math.max(0, stopDelay));
         return;
@@ -10146,9 +10894,7 @@ function dauSchedule() {
 
 function dauStepsPerBeat() {
   const sdiv = (_de.pattern && _de.pattern.subdivision) || '8th';
-  if (sdiv === '4th')  return 1;
-  if (sdiv === '16th') return 4;
-  return 2;
+  return deBaseStepsPerBeat(sdiv);
 }
 
 // ── Public controls ──────────────────────────────────────────
@@ -12387,10 +13133,8 @@ const _DAY_NAMES   = ['domingo','lunes','martes','miércoles','jueves','viernes'
 function showCalendar() {
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom  && window._immersiveResetZoom();
-  document.getElementById('homeScreen').classList.remove('open');
-  document.getElementById('libraryScreen').classList.remove('open');
-  document.getElementById('setlistScreen').style.display = 'none';
-  document.getElementById('calendarScreen').classList.add('open');
+  document.body.classList.remove('editor-open');
+  Router.go('calendar');
   document.getElementById('calUserName').textContent =
     _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || '';
   _calRender();
@@ -12398,13 +13142,11 @@ function showCalendar() {
 }
 
 function closeCalendar() {
-  document.getElementById('calendarScreen').classList.remove('open');
   calCloseDayPanel();
   showHome();
 }
 
 function closeCalendarToSetlists() {
-  document.getElementById('calendarScreen').classList.remove('open');
   calCloseDayPanel();
   showSetlists();
 }
