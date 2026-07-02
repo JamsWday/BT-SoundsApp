@@ -1513,6 +1513,7 @@ body.readonly #songKeyBar > div { background: transparent; border-color: transpa
 body.readonly #songKeyPill { pointer-events: none; font-size: 0.85rem; letter-spacing: 0.08em; border-color: transparent; background: transparent; }
 /* Eagle button and toggles must stay clickable in readonly */
 body.readonly #btnEagle,
+body.readonly #btnLyrics,
 body.readonly #eagleToggles,
 body.readonly #btnEagleSections,
 body.readonly #btnEagleComments,
@@ -1520,6 +1521,13 @@ body.readonly #btnVersions,
 body.readonly #btnNotes { pointer-events: all; }
 body.readonly .section-name-input { pointer-events: none; }
 body.readonly .section-lyric-input { pointer-events: none; border-color: transparent !important; }
+/* En Modo Tocar la letra se lee, así que destaca igual o más que en edición:
+   color de texto pleno (no apagado) y un punto más de tamaño. */
+body.readonly .section-lyric-input {
+  color: var(--text) !important;
+  opacity: 1 !important;
+  font-size: 0.84rem;
+}
 body.readonly .section-lyric-input:placeholder-shown { display: none; }
 body.readonly .repeat-input { pointer-events: none; border-color: transparent !important; background: transparent !important; }
 body.readonly .comment-input { pointer-events: none; border-color: transparent !important; }
@@ -3096,12 +3104,15 @@ body.readonly .drum-add-btn  { display: none !important; }
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.82); z-index: 9200;
   align-items: center; justify-content: center; padding: 20px;
+  height: 100vh; height: 100dvh;
 }
 .cfg-overlay.open { display: flex; }
 .cfg-modal {
   background: var(--surface); border: 1px solid var(--accent);
   border-radius: 12px; width: 100%; max-width: 560px;
-  display: flex; flex-direction: column; overflow: hidden; max-height: 90vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  max-height: 90vh;        /* fallback navegadores sin dvh */
+  max-height: 90dvh;       /* descuenta la barra del navegador en móvil */
 }
 .cfg-modal-hdr {
   display: flex; align-items: center; justify-content: space-between;
@@ -3109,18 +3120,99 @@ body.readonly .drum-add-btn  { display: none !important; }
 }
 .cfg-modal-title { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--accent); }
 .cfg-close { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1.1rem; padding: 0 4px; }
-.cfg-tabs { display: flex; padding: 0 20px; border-bottom: 1px solid var(--border); gap: 0; }
+.cfg-tabs {
+  display: flex; padding: 0 20px; border-bottom: 1px solid var(--border); gap: 0;
+  overflow-x: auto;            /* desliza si no caben (móvil) */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;       /* oculta scrollbar Firefox */
+}
+.cfg-tabs::-webkit-scrollbar { display: none; }   /* oculta scrollbar WebKit */
 .cfg-tab {
   font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 0.08em;
   text-transform: uppercase; padding: 10px 14px 9px; color: var(--muted);
   cursor: pointer; border: none; border-bottom: 2px solid transparent;
   margin-bottom: -1px; background: none; transition: color 0.15s; white-space: nowrap;
+  flex-shrink: 0;              /* no se encogen, mantienen tamaño legible */
 }
 .cfg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .cfg-tab:hover:not(.active) { color: var(--text); }
 .cfg-panel { display: none; padding: 18px 20px; overflow-y: auto; flex: 1; }
 .cfg-panel.active { display: block; }
 .cfg-desc { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.78rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+.dv-pill {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.dv-pill:hover { border-color: var(--accent); }
+.dv-pill.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+/* ── VISOR DE LETRA ── */
+/* Es un overlay a pantalla completa (como el editor de batería). Al abrirse
+   oculta la barra del reproductor para que no asome por debajo en móvil
+   cuando se recoloca la barra del navegador. */
+#lyricsOverlay.open { display: flex !important; }
+#lyricsOverlay.open ~ #songPlayerBar { display: none !important; }
+body:has(#lyricsOverlay.open) #songPlayerBar { display: none !important; }
+#lyricsBody { overflow-x: hidden !important; overflow-y: auto !important; overflow-wrap: anywhere; }
+/* Modo 2 columnas en páginas */
+.lyrics-page { display: flex; gap: 5vw; align-items: flex-start; }
+.lyrics-col { flex: 1 1 0; min-width: 0; }
+.lyrics-page-divider {
+  border: none;
+  border-top: 2px dashed var(--border);
+  margin: 18px 0;
+  opacity: 0.7;
+}
+.lyrics-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  left: -9999px;
+  top: 0;
+  width: calc((100% - 5vw) / 2);
+}
+.lyrics-sec {
+  break-inside: avoid;
+  margin-bottom: 0.7em;
+}
+.lyrics-sec:last-child { margin-bottom: 0; }
+.lyrics-sec-name {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.65;
+  margin-bottom: 0.25em;
+}
+.lyrics-sec-text {
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--text);
+  line-height: 1.25;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.lyrics-empty {
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--muted);
+  font-style: italic;
+  text-align: center;
+  margin-top: 40px;
+}
 .cfg-rules { display: flex; flex-direction: column; gap: 7px; }
 .cfg-rule-row {
   display: flex; align-items: center; gap: 8px;
@@ -3703,14 +3795,17 @@ body.readonly #btnReadonlyPlay { display: inline-flex !important; }
 
 /* En modo Tocar, las secciones NO activas se atenúan ligeramente para que
    la activa destaque aún más — solo en temas oscuros */
-body.readonly .section-block:not(.sync-active) {
+/* Atenuar secciones inactivas SOLO mientras el autoscroll está REPRODUCIENDO
+   (body.sync-playing). Antes dependía de sync-on (modo seleccionado), pero el
+   modo puede estar activo y parado → atenuaba todo sin sección activa. */
+body.readonly.sync-playing .section-block:not(.sync-active) {
   opacity: 0.72;
   transition: opacity 0.3s;
 }
-body.readonly .section-block.sync-active {
+body.readonly.sync-playing .section-block.sync-active {
   opacity: 1 !important;
 }
-[data-theme="light"] body.readonly .section-block:not(.sync-active) { opacity: 0.80; }
+[data-theme="light"] body.readonly.sync-playing .section-block:not(.sync-active) { opacity: 0.80; }
 .calib-overlay {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(0,0,0,0.88);
@@ -3859,6 +3954,40 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   </div>
 </div>
 
+<!-- ══ VISOR DE LETRA (pantalla completa, solo letra) ══ -->
+<div id="lyricsOverlay" style="display:none;position:fixed;inset:0;z-index:9600;background:var(--bg);flex-direction:column;height:100vh;height:100dvh;overflow:hidden;">
+  <!-- Barra superior: controles -->
+  <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <span id="lyricsTitle" style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--accent);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Letra</span>
+    <!-- Columnas -->
+    <button id="lyricsColBtn" onclick="lyricsToggleColumns()" title="1 o 2 columnas"
+      style="font-family:'Space Mono',monospace;font-size:0.78rem;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap;">☰ 1 col</button>
+    <!-- Cerrar -->
+    <button onclick="lyricsClose()" title="Cerrar"
+      style="font-family:'Space Mono',monospace;font-size:1rem;padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;">✕</button>
+  </div>
+  <!-- Cuerpo: la letra -->
+  <div id="lyricsBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 20px 24px;"></div>
+</div>
+
+<!-- ══ MODAL DUPLICAR SECCIÓN (selección de instrumentos) ══ -->
+<div id="dupSecOverlay" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:18px;height:100vh;height:100dvh;">
+  <div style="background:var(--surface);border:1px solid var(--accent);border-radius:12px;max-width:380px;width:100%;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);">
+      <span style="font-family:'Playfair Display',serif;font-size:0.95rem;color:var(--accent);flex:1;">⧉ Duplicar sección</span>
+      <button onclick="dupSecClose()" style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:16px 18px;">
+      <p class="cfg-desc" style="margin-bottom:12px;">Elige qué instrumentos llevar a la copia. Sin ninguno marcado, se crea la sección vacía (solo el nombre).</p>
+      <div id="dupSecPills" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="cfg-footer">
+      <button class="btn" onclick="dupSecClose()">Cancelar</button>
+      <button class="btn btn-primary" onclick="dupSecConfirm()">✓ Duplicar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL DOCUMENTACIÓN DE ARQUITECTURA (pulsación larga en Configuración) ══ -->
 <div id="archDocOverlay" style="display:none;position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:16px;">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:760px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,0.5);">
@@ -3918,10 +4047,18 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 
     <!-- Panel: Preferencias -->
     <div class="cfg-panel" id="cfgPanel-preferencias">
-      <div class="cfg-placeholder">
-        <div class="cfg-placeholder-icon">⚙</div>
-        <div>Preferencias generales — próximamente</div>
+      <p class="cfg-desc">👤 <strong>Mi vista por defecto</strong></p>
+      <p class="cfg-desc" style="margin-top:-4px;">Toca para elegir qué ves al abrir canciones. Se guarda en tu perfil y te acompaña en cualquier dispositivo.</p>
+      <div id="defaultViewPills" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+        <button class="dv-pill" data-inst="guit1" onclick="dvTogglePill('guit1')">🎸 Marco</button>
+        <button class="dv-pill" data-inst="guit2" onclick="dvTogglePill('guit2')">🎸 Juan</button>
+        <button class="dv-pill" data-inst="bajo"  onclick="dvTogglePill('bajo')">🎸 Hugo</button>
+        <button class="dv-pill" data-inst="bat"   onclick="dvTogglePill('bat')">🥁 Sergito</button>
+        <button class="dv-pill" data-inst="voz"   onclick="dvTogglePill('voz')">🎤 Juan</button>
       </div>
+      <p class="cfg-desc" style="margin-top:10px;font-size:0.7rem;opacity:0.8;">
+        Sin ninguno marcado, las canciones abren mostrando solo la estructura (secciones).
+      </p>
     </div>
 
     <div class="cfg-footer">
@@ -3930,6 +4067,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     </div>
   </div>
 </div>
+<!-- ANCHOR-CFG-END -->
 
 <!-- HEADER -->
 <div class="header">
@@ -4060,6 +4198,14 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
            border:1px solid var(--border);background:var(--surface);color:var(--muted);
            cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;white-space:nowrap;">
     🦅
+  </button>
+
+  <!-- Botón Visor de Letra -->
+  <button id="btnLyrics" onclick="lyricsOpen()" title="Visor de letra"
+    style="font-family:'Space Mono',monospace;font-size:0.8rem;padding:7px 11px;border-radius:8px;
+           border:1px solid var(--border);background:var(--surface);color:var(--muted);
+           cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;white-space:nowrap;">
+    🎤
   </button>
 
   <!-- Botón Notas -->
@@ -4309,6 +4455,33 @@ const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    (.modal-overlay.open, popups de acordes, modales de audio, editor de
    batería .drum-editor-overlay, etc.) que flotan sobre la pantalla activa
    y se cierran volviendo a ella. Tocarlos no afecta al Router.
+
+   PRINCIPIO DE DISEÑO — MULTIBANDA (decisión pendiente, tenerla presente)
+   ----------------------------------------------------------------------
+   A futuro la app podría soportar varias bandas. NO está implementado,
+   pero al añadir features conviene preguntarse: "¿esto asume una sola
+   banda?". Regla práctica: atar los datos PERSONALES al usuario
+   (_userSettings) y no a una banda concreta, para que sigan siendo válidos
+   si esa persona toca en varias. Ej.: la "vista por perfil" se guarda en
+   _userSettings.defaultView (del usuario), así ya es compatible con
+   multibanda. Lo que SÍ habrá que asignar a una banda algún día: canciones,
+   repertorios y miembros.
+
+   VISOR DE LETRA — overlay hoy, posible pantalla a futuro
+   -------------------------------------------------------
+   El visor de letra (🎤 #lyricsOverlay) es HOY un overlay simple, igual que
+   el editor de batería: se abre desde la canción y al cerrar vuelve a ella.
+   Oculta #songPlayerBar al abrirse (como el editor de batería) para que no
+   asome en móvil. DECISIÓN PENDIENTE: cuando la letra se abra también desde
+   Setlist y Concierto (compitiendo con el Cifrado), el "volver" pasará a ser
+   contextual (depende del origen) → ahí conviene convertirlo en PANTALLA del
+   Router. No se hizo ahora porque solo se abre desde la canción y migrarlo
+   luego, con los flujos reales delante, es barato y más acertado.
+
+   >>> PRÓXIMO PASO (anotado): VISOR DE LETRA DESDE CONCIERTO. Abrir la letra
+   directamente desde el Modo Concierto (y luego Setlist), compitiendo con el
+   Cifrado. Es el detonante para convertir el visor en PANTALLA del Router
+   (volver contextual al concierto/setlist de origen).
    ═══════════════════════════════════════════════════════════════════════ */
 
 // ═══════════════════════════════════════════════════════════════
@@ -4348,6 +4521,10 @@ const Router = (function () {
     // 'song' = canción abierta. No tiene pantalla propia: se monta sobre
     // libraryScreen con la clase body.editor-open. Se trata aparte en _apply().
     song:     { el: 'libraryScreen',  how: 'song',    icon: '🎵', title: 'Volver' },
+    // 'lyrics' = visor de letra. Es una CAPA ('layer'): se superpone a la
+    // pantalla de debajo (canción o concierto) SIN ocultarla ni resetear su
+    // estado (p.ej. el Modo Tocar). Al volver, reaparece intacta.
+    lyrics:   { el: 'lyricsOverlay',  how: 'layer',   icon: '🎤', title: 'Volver a la letra' },
   };
 
   let _stack = [];      // [{screen, state}]
@@ -4361,7 +4538,7 @@ const Router = (function () {
     if (def.how === 'song') return;
     const el = document.getElementById(def.el);
     if (!el) return;
-    if (def.how === 'open') {
+    if (def.how === 'open' || def.how === 'layer') {
       el.classList.toggle('open', visible);
     } else {
       el.style.display = visible ? 'flex' : 'none';
@@ -4379,6 +4556,23 @@ const Router = (function () {
   // layer that always sits underneath; overlay screens cover it. To show the
   // song we simply hide every overlay screen and set body.editor-open.
   function _apply(name) {
+    const def = SCREENS[name];
+    // CAPA ('layer', p.ej. el visor de letra): se superpone SIN ocultar la
+    // pantalla de debajo ni resetear su estado (Modo Tocar, etc.). Solo se
+    // muestra encima; al volver (back) se ocultará y reaparece lo de debajo.
+    if (def && def.how === 'layer') {
+      _setVisible(name, true);
+      _active = name;
+      _syncBackBtn();
+      if (typeof _onShow[name] === 'function') {
+        try { _onShow[name](); } catch (e) { console.error('onShow', name, e); }
+      }
+      return;
+    }
+    // Al aplicar una pantalla normal, primero ocultar cualquier capa activa.
+    Object.keys(SCREENS).forEach(n => {
+      if (SCREENS[n].how === 'layer') _setVisible(n, false);
+    });
     _hideAll();
     document.body.classList.remove('editor-open');
     if (name === 'song') {
@@ -4782,6 +4976,7 @@ async function openSong(id, playMode = true) {
   // visible al ocultar todas las pantallas (lo hace Router._apply('song')).
   Router.go('song');
   loadSong(data.data);
+  applyDefaultView();   // arrancar en la vista por defecto del usuario
   // Modo de entrada: por defecto se abre en Tocar (reproducir el cifrado).
   // El botón ✏️ Editar de la biblioteca llama con playMode=false.
   if (playMode && !_readonly)       toggleReadonly();   // entrar en Tocar
@@ -5376,16 +5571,7 @@ function render(scrollTargetId) {
     dupSec.style.color = "#4a4a6a";
     dupSec.addEventListener("click", e => {
       e.stopPropagation();
-      saveUndo();
-      const copy = clone(sec);
-      copy.id = uid();
-      copy.name = sec.name + " (copia)";
-      copy.rows = copy.rows.map(r => ({ ...r, id: uid() }));
-      // No copiar el audio: cada sección debe tener su propio archivo
-      // Compartir el mismo storagePath causaría que borrar uno borre el otro
-      copy.audio = null;
-      songData.sections.splice(si + 1, 0, copy);
-      render(copy.id);
+      dupSecOpen(sec, si);
     });
 
     const arrow = document.createElement("span");
@@ -5893,6 +6079,30 @@ function applyInstFilter() {
     const inst = btn.dataset.inst;
     btn.style.display = (showAll || _activeInst.has(inst)) ? "" : "none";
   });
+}
+
+// Aplica la "vista por defecto" del usuario (_userSettings.defaultView) al
+// filtro activo. Se llama al abrir una canción para que arranque mostrando
+// lo que cada uno quiere ver, en vez de siempre "Todos".
+//   - defaultView no definido        → "Todos" (comportamiento clásico)
+//   - defaultView = []  (vacío)      → solo secciones
+//   - defaultView = ['bajo', ...]    → esos instrumentos
+function applyDefaultView() {
+  const view = _userSettings.defaultView;
+  if (!Array.isArray(view)) {
+    _activeInst = new Set(["all"]);          // sin preferencia → Todos
+  } else if (view.length === 0) {
+    _activeInst = new Set();                  // vacío → solo secciones
+  } else {
+    _activeInst = new Set(view);              // vista personalizada
+  }
+  // Sincronizar las pills de la barra de filtro
+  const allPill = document.querySelector(".inst-pill-all");
+  document.querySelectorAll(".inst-pill").forEach(pill => {
+    pill.classList.toggle("active", _activeInst.has(pill.dataset.inst));
+  });
+  if (allPill) allPill.classList.toggle("sections-only", _activeInst.size === 0);
+  applyInstFilter();
 }
 
 // ═══════════════════════════════════════════════
@@ -7123,6 +7333,7 @@ function syncPlay(fromBanda) {
     _syncAudioEl.play().catch(function() {});
   }
   _syncPlaying      = true;
+  document.body.classList.add("sync-playing");
   _syncStartTs      = performance.now();
   _syncLastNow      = _syncStartTs;
   _syncElapsed      = 0;
@@ -7149,6 +7360,7 @@ function syncPlay(fromBanda) {
 
 function syncStop() {
   _syncPlaying = false;
+  document.body.classList.remove("sync-playing");
   if (_syncRaf) { cancelAnimationFrame(_syncRaf); _syncRaf = null; }
   if (_syncUserScrollTimer) { clearTimeout(_syncUserScrollTimer); _syncUserScrollTimer = null; }
   if (_syncAudioEl) { _syncAudioEl.pause(); _syncAudioEl.src = ""; _syncAudioEl = null; }
@@ -9265,6 +9477,8 @@ function _cmRender() {
 
   // Botón cifrado
   document.getElementById("cmScoreBtn").style.display = s.song_id ? "" : "none";
+  // Botón letra
+  document.getElementById("cmLyricsBtn").style.display = s.song_id ? "" : "none";
 
   // Timer display
   const timerEl = document.getElementById("cmTimer");
@@ -9335,6 +9549,23 @@ function _cmUpdateTimerDisplay() {
   el.textContent = `${m}:${String(s).padStart(2,"0")}`;
   // Parpadeo en los últimos 10 segundos
   el.style.color = remaining <= 10 ? "var(--accent2)" : "var(--accent)";
+}
+
+async function cmOpenLyrics() {
+  const s = _cm.songs[_cm.idx];
+  if (!s || !s.song_id) return;
+  // Cargar la canción desde la BBDD (como el cifrado). _allSongs solo tiene
+  // metadatos; las secciones/letra viven en el campo data de la fila.
+  const { data, error } = await _sb.from("Canciones").select("*").eq("id", s.song_id).single();
+  if (error || !data || !data.data) { alert('No se pudo cargar la letra de esta canción.'); return; }
+  // Guardar estado del concierto para restaurarlo al volver (como el cifrado)
+  clearInterval(_cm.timer);
+  _cmSavedState = {
+    idx: _cm.idx, songs: _cm.songs, auto: _cm.auto,
+    secs: _cm.secs, elapsed: _cm.elapsed, paused: _cm.paused
+  };
+  lyricsSetSource(data.data);   // el visor leerá esta canción, no songData
+  lyricsOpen();                 // se apila sobre 'concert' (Router)
 }
 
 function cmOpenScore() {
@@ -11048,7 +11279,349 @@ function openLibConfig() {
   cfgRenderPalette();
   cfgRenderRules();
   cfgRenderThemePanel();
+  dvRenderPills();
   document.getElementById('cfgModal').classList.add('open');
+}
+
+// ── VISTA POR DEFECTO (Mi vista por perfil) ──────────────────────
+// La selección vive en _userSettings.defaultView (array de instrumentos:
+// 'guit1','guit2','bajo','bat','voz'). Vacío = solo secciones.
+function dvRenderPills() {
+  const view = _userSettings.defaultView || [];
+  document.querySelectorAll('#defaultViewPills .dv-pill').forEach(p => {
+    p.classList.toggle('active', view.includes(p.dataset.inst));
+  });
+}
+
+function dvTogglePill(inst) {
+  if (!Array.isArray(_userSettings.defaultView)) _userSettings.defaultView = [];
+  const view = _userSettings.defaultView;
+  const i = view.indexOf(inst);
+  if (i >= 0) view.splice(i, 1);
+  else view.push(inst);
+  dvRenderPills();
+}
+
+// ── VISOR DE LETRA ───────────────────────────────────────────────
+// Recopila la letra de las filas de voz (una sola fuente de verdad).
+// Preferencias en _userSettings (BBDD): tamaño de fuente y modo columnas.
+//
+// MODO 1 COLUMNA: lista vertical simple, scroll vertical.
+// MODO 2 COLUMNAS: "páginas" apiladas verticalmente. Cada página tiene 2
+//   columnas (izq + der) de la altura de la pantalla. Las secciones se
+//   reparten izq→der→(siguiente página)→izq→der… Una sección no se parte
+//   salvo que no quepa entera en una columna. Entre páginas, una línea
+//   horizontal divisoria. El scroll SIEMPRE es vertical.
+const _LYRICS_FONT_MIN = 14, _LYRICS_FONT_MAX = 56;
+
+// Fuente de datos del visor: por defecto la canción abierta (songData), pero
+// puede fijarse otra explícitamente (p.ej. desde el concierto, que no tiene
+// la canción cargada en el editor). lyricsSetSource(null) vuelve a songData.
+let _lyricsSource = null;
+function lyricsSetSource(song) { _lyricsSource = song || null; }
+function lyricsData() { return _lyricsSource || songData; }
+
+function lyricsGetSections() {
+  // Devuelve [{name, lyric}] solo de secciones con letra de voz
+  const out = [];
+  const data = lyricsData();
+  const secs = (data && data.sections) || [];
+  secs.forEach(sec => {
+    const vozRows = (sec.rows || []).filter(r => r.instrument === 'voz');
+    const lyric = vozRows.map(r => (r.vozText || '').trim()).filter(Boolean).join('\n');
+    if (lyric) out.push({ name: sec.name || '', lyric });
+  });
+  return out;
+}
+
+function lyricsOpen() {
+  const size = _userSettings.lyricsFontPx || 24;
+  const cols2 = _userSettings.lyricsCols2 || false;
+  const body = document.getElementById('lyricsBody');
+  const data = lyricsData();
+  body.style.fontSize = size + 'px';
+  document.getElementById('lyricsColBtn').textContent = cols2 ? '▥ 2 col' : '☰ 1 col';
+  document.getElementById('lyricsTitle').textContent = (data && data.title) ? data.title : 'Letra';
+  document.body.style.overflow = 'hidden';   // bloquear scroll del fondo
+  lyricsPinchSetup();
+  // El visor es una CAPA del Router: se apila sobre la pantalla de origen
+  // (canción o concierto) para que "atrás" vuelva contextualmente a ella.
+  Router.go('lyrics');
+  // Render tras mostrar el overlay (necesitamos medir alturas reales)
+  requestAnimationFrame(() => lyricsRender());
+}
+
+function lyricsClose() {
+  document.body.style.overflow = '';
+  lyricsSetSource(null);   // limpiar fuente explícita al cerrar
+  // Volver a la pantalla de origen (canción o concierto) vía Router.
+  if (Router.current() === 'lyrics') Router.back();
+  else document.getElementById('lyricsOverlay').classList.remove('open');
+}
+
+function lyricsRender() {
+  const body = document.getElementById('lyricsBody');
+  const cols2 = _userSettings.lyricsCols2 || false;
+  const sections = lyricsGetSections();
+  body.innerHTML = '';
+  if (!sections.length) {
+    body.innerHTML = '<div class="lyrics-empty">Esta canción todavía no tiene letra de voz en sus secciones.</div>';
+    return;
+  }
+  if (cols2) lyricsRenderPaged(body, sections);
+  else       lyricsRenderSingle(body, sections);
+}
+
+// Construye un bloque de sección (nombre + texto)
+function lyricsMakeBlock(sec) {
+  const wrap = document.createElement('div');
+  wrap.className = 'lyrics-sec';
+  const name = document.createElement('div');
+  name.className = 'lyrics-sec-name';
+  name.textContent = sec.name;
+  // Color de sección según la config del usuario (igual que Modo Águila).
+  // Si la sección no tiene regla de color, se queda con el gris tenue del CSS.
+  const secColor = getSectionColor(sec.name);
+  if (secColor) {
+    name.style.color = secColor;
+    name.style.opacity = '1';
+  }
+  const text = document.createElement('div');
+  text.className = 'lyrics-sec-text';
+  text.textContent = sec.lyric;
+  wrap.appendChild(name);
+  wrap.appendChild(text);
+  return wrap;
+}
+
+// 1 columna: lista vertical simple
+function lyricsRenderSingle(body, sections) {
+  body.classList.remove('cols2');
+  sections.forEach(sec => body.appendChild(lyricsMakeBlock(sec)));
+}
+
+// 2 columnas en páginas: medir y repartir
+function lyricsRenderPaged(body, sections) {
+  body.classList.add('cols2');
+  const bodyStyle = getComputedStyle(body);
+  const padT = parseFloat(bodyStyle.paddingTop) || 0;
+  const padB = parseFloat(bodyStyle.paddingBottom) || 0;
+  const pageH = body.clientHeight - padT - padB;
+  if (pageH <= 0) { lyricsRenderSingle(body, sections); return; }
+
+  // Medir el ancho REAL de una columna montando una página de prueba igual
+  // que las definitivas (mismo gap, mismo flex), para que la medición de
+  // alturas coincida exactamente con el render y no haya desbordes.
+  const probe = document.createElement('div');
+  probe.className = 'lyrics-page';
+  probe.style.visibility = 'hidden';
+  probe.style.position = 'absolute';
+  probe.style.left = '-9999px';
+  probe.style.width = (body.clientWidth - padT * 0 - parseFloat(bodyStyle.paddingLeft || 0) - parseFloat(bodyStyle.paddingRight || 0)) + 'px';
+  const probeCol = document.createElement('div');
+  probeCol.className = 'lyrics-col';
+  const probeCol2 = document.createElement('div');
+  probeCol2.className = 'lyrics-col';
+  probe.appendChild(probeCol);
+  probe.appendChild(probeCol2);
+  body.appendChild(probe);
+  const colW = probeCol.clientWidth;   // ancho real de una columna
+
+  // Medir cada sección a ese ancho exacto (sin margen).
+  // La separación entre secciones es 0.7em del tamaño de la LETRA (que cambia
+  // con el pellizco), NO del root. Calcularla mal hacía que al agrandar se
+  // subestimara la altura y la sección desbordara antes de recolocarse.
+  const lyricsFontPx = parseFloat(getComputedStyle(body).fontSize) || 24;
+  const SEC_GAP = lyricsFontPx * 0.7;
+  const blocks = sections.map(sec => {
+    const b = lyricsMakeBlock(sec);
+    b.style.marginBottom = '0';
+    probeCol.appendChild(b);
+    const h = b.offsetHeight;
+    probeCol.removeChild(b);
+    return { sec, h };
+  });
+  body.removeChild(probe);
+
+  // Repartir en columnas de altura <= pageH (contando separación entre secciones).
+  // Pequeño margen de seguridad (4px) para que el redondeo sub-pixel no recorte
+  // la última línea de una sección que "cabe justa".
+  const SAFE = 4;
+  const columns = [];
+  let cur = [], curH = 0;
+  function pushCol() { if (cur.length) { columns.push(cur); cur = []; curH = 0; } }
+  blocks.forEach(({ sec, h }) => {
+    const add = (cur.length ? SEC_GAP : 0) + h;
+    if (cur.length && curH + add > pageH - SAFE) pushCol();
+    cur.push({ sec, h });
+    curH += add;
+  });
+  pushCol();
+
+  // Construir páginas (pares de columnas)
+  for (let i = 0; i < columns.length; i += 2) {
+    const page = document.createElement('div');
+    page.className = 'lyrics-page';
+    [columns[i], columns[i + 1]].forEach(colSecs => {
+      const col = document.createElement('div');
+      col.className = 'lyrics-col';
+      (colSecs || []).forEach(({ sec }) => col.appendChild(lyricsMakeBlock(sec)));
+      page.appendChild(col);
+    });
+    body.appendChild(page);
+    if (i + 2 < columns.length) {
+      const hr = document.createElement('div');
+      hr.className = 'lyrics-page-divider';
+      body.appendChild(hr);
+    }
+  }
+}
+
+function lyricsFontStep(dir) {
+  let size = _userSettings.lyricsFontPx || 24;
+  size += dir * 3;
+  size = Math.max(_LYRICS_FONT_MIN, Math.min(_LYRICS_FONT_MAX, size));
+  _userSettings.lyricsFontPx = size;
+  document.getElementById('lyricsBody').style.fontSize = size + 'px';
+  lyricsRender();          // recalcular reparto al cambiar tamaño
+  saveUserSettings();
+}
+
+// Aplicar un tamaño concreto (usado por el pellizco) sin re-render en vivo
+function lyricsSetFont(px, reflow) {
+  px = Math.max(_LYRICS_FONT_MIN, Math.min(_LYRICS_FONT_MAX, Math.round(px)));
+  _userSettings.lyricsFontPx = px;
+  document.getElementById('lyricsBody').style.fontSize = px + 'px';
+  if (reflow) lyricsRender();
+}
+
+// ── PELLIZCO (pinch) para ajustar el tamaño de letra ──────────────
+let _lyricsPinch = null;   // { startDist, startSize }
+function lyricsPinchSetup() {
+  const body = document.getElementById('lyricsBody');
+  if (body._pinchBound) return;
+  body._pinchBound = true;
+
+  // Recalcular el reparto si cambia el viewport (p.ej. aparece/desaparece la
+  // barra del navegador o la botonera de Android) y el visor está abierto.
+  let _rsTimer = null;
+  window.addEventListener('resize', () => {
+    const ov = document.getElementById('lyricsOverlay');
+    if (!ov.classList.contains('open')) return;
+    if (!(_userSettings.lyricsCols2)) return;   // solo importa en 2 columnas
+    clearTimeout(_rsTimer);
+    _rsTimer = setTimeout(() => lyricsRender(), 150);
+  });
+
+  const dist = (t) => {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.hypot(dx, dy);
+  };
+
+  body.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      _lyricsPinch = { startDist: dist(e.touches), startSize: _userSettings.lyricsFontPx || 24 };
+    }
+  }, { passive: true });
+
+  body.addEventListener('touchmove', (e) => {
+    if (_lyricsPinch && e.touches.length === 2) {
+      e.preventDefault();   // evitar zoom del navegador
+      const ratio = dist(e.touches) / _lyricsPinch.startDist;
+      lyricsSetFont(_lyricsPinch.startSize * ratio, false);  // en vivo, sin reflow pesado
+    }
+  }, { passive: false });
+
+  const endPinch = () => {
+    if (_lyricsPinch) {
+      _lyricsPinch = null;
+      lyricsRender();        // recalcular páginas al soltar
+      saveUserSettings();    // guardar tamaño final
+    }
+  };
+  body.addEventListener('touchend', endPinch, { passive: true });
+  body.addEventListener('touchcancel', endPinch, { passive: true });
+}
+
+function lyricsToggleColumns() {
+  _userSettings.lyricsCols2 = !(_userSettings.lyricsCols2 || false);
+  document.getElementById('lyricsColBtn').textContent = _userSettings.lyricsCols2 ? '▥ 2 col' : '☰ 1 col';
+  const body = document.getElementById('lyricsBody');
+  body.scrollTop = 0;
+  lyricsRender();
+  saveUserSettings();
+}
+
+// ── DUPLICAR SECCIÓN CON SELECCIÓN DE INSTRUMENTOS ───────────────
+const _DUP_INST_LABELS = {
+  guit1: { icon: '🎸', label: 'Marco' },
+  guit2: { icon: '🎸', label: 'Juan' },
+  bajo:  { icon: '🎸', label: 'Hugo' },
+  bat:   { icon: '🥁', label: 'Sergito' },
+  voz:   { icon: '🎤', label: 'Juan' },
+};
+let _dupSecCtx = null;          // { sec, si }
+let _dupSecSelected = null;     // Set de instrumentos marcados
+
+function dupSecOpen(sec, si) {
+  _dupSecCtx = { sec, si };
+  // Instrumentos presentes en ESTA sección (sin repetir, en orden de aparición)
+  const present = [];
+  (sec.rows || []).forEach(r => {
+    const inst = r.instrument || 'guit1';
+    if (!present.includes(inst)) present.push(inst);
+  });
+  // Pre-selección: los de la vista actual que estén presentes.
+  // Vista "Todos" (_activeInst tiene 'all') → todos los presentes marcados.
+  const viewAll = _activeInst.has('all');
+  _dupSecSelected = new Set(
+    present.filter(inst => viewAll || _activeInst.has(inst))
+  );
+  // Pintar pills
+  const cont = document.getElementById('dupSecPills');
+  cont.innerHTML = '';
+  if (!present.length) {
+    cont.innerHTML = '<span class="cfg-desc">Esta sección no tiene instrumentos.</span>';
+  }
+  present.forEach(inst => {
+    const meta = _DUP_INST_LABELS[inst] || { icon: '🎵', label: inst };
+    const b = document.createElement('button');
+    b.className = 'dv-pill' + (_dupSecSelected.has(inst) ? ' active' : '');
+    b.textContent = meta.icon + ' ' + meta.label;
+    b.onclick = () => {
+      if (_dupSecSelected.has(inst)) _dupSecSelected.delete(inst);
+      else _dupSecSelected.add(inst);
+      b.classList.toggle('active');
+    };
+    cont.appendChild(b);
+  });
+  document.getElementById('dupSecOverlay').style.display = 'flex';
+}
+
+function dupSecClose() {
+  document.getElementById('dupSecOverlay').style.display = 'none';
+  _dupSecCtx = null;
+  _dupSecSelected = null;
+}
+
+function dupSecConfirm() {
+  if (!_dupSecCtx) return;
+  const { sec, si } = _dupSecCtx;
+  const selected = _dupSecSelected || new Set();
+  saveUndo();
+  const copy = clone(sec);
+  copy.id = uid();
+  copy.name = sec.name + " (copia)";
+  // Quedarse solo con las filas de los instrumentos seleccionados.
+  // Si no hay ninguno marcado → sección vacía (solo nombre/estructura).
+  copy.rows = (copy.rows || [])
+    .filter(r => selected.has(r.instrument || 'guit1'))
+    .map(r => ({ ...r, id: uid() }));
+  copy.audio = null;   // el audio no se copia (cada sección el suyo)
+  songData.sections.splice(si + 1, 0, copy);
+  dupSecClose();
+  render(copy.id);
 }
 
 function cfgRenderThemePanel() {
@@ -11316,6 +11889,7 @@ function drumPatternToHTML(dp, colorClass) {
   <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
     <div id="cmStatus" style="font-size:2.5rem;line-height:1;"></div>
     <button id="cmScoreBtn" onclick="cmOpenScore()" title="Ver cifrado" style="display:none;background:rgba(255,255,255,0.05);border:2px solid var(--muted);border-radius:8px;cursor:pointer;font-size:1.4rem;line-height:1;transition:border-color 0.2s,background 0.2s;padding:8px 14px;" onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.borderColor='var(--muted)';this.style.background='rgba(255,255,255,0.05)'">📄</button>
+    <button id="cmLyricsBtn" onclick="cmOpenLyrics()" title="Ver letra" style="display:none;background:rgba(255,255,255,0.05);border:2px solid var(--muted);border-radius:8px;cursor:pointer;font-size:1.4rem;line-height:1;transition:border-color 0.2s,background 0.2s;padding:8px 14px;" onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.borderColor='var(--muted)';this.style.background='rgba(255,255,255,0.05)'">🎤</button>
   </div>
 
   <!-- Título -->
