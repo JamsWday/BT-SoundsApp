@@ -3272,11 +3272,11 @@ body:has(#lyricsOverlay.open) #songPlayerBar { display: none !important; }
 
 /* ── INSTRUMENT SYSTEM ── */
 :root {
-  --inst-guit1: #4a9eff;   /* Marco → azul */
-  --inst-guit2: #f5c842;   /* Juan  → amarillo */
-  --inst-bajo:  #ff6b6b;   /* Hugo  → rojo */
-  --inst-bat:   #4ade80;   /* Sergio → verde */
-  --inst-voz:   #a78bfa;   /* Juan (voz) → violeta */
+  --inst-guit1: #4a9eff;   /* guitarra 1 → azul */
+  --inst-guit2: #f5c842;   /* guitarra 2 → amarillo */
+  --inst-bajo:  #ff6b6b;   /* bajo → rojo */
+  --inst-bat:   #4ade80;   /* batería → verde */
+  --inst-voz:   #a78bfa;   /* voz → violeta */
 }
 
 /* instrument stripe + icon on left of row */
@@ -3883,7 +3883,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 
 <div id="loginScreen">
   <div class="login-box">
-    <h2> BT SoundsApp</h2>
+    <h2 class="band-app-name"> BT SoundsApp</h2>
     <p class="login-sub">Canciones del grupo</p>
     <div class="login-field">
       <label>Usuario</label>
@@ -3903,7 +3903,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 <!-- HOME SCREEN -->
 <div id="homeScreen">
   <div class="home-logo">
-    <h1>🎸 BT SoundsApp</h1>
+    <h1>🎸 <span class="band-app-name">BT SoundsApp</span></h1>
     <p class="home-sub">Panel de control</p>
     <p class="home-user-line" id="homeUserLine">Bienvenido, <span id="homeUserName">—</span></p>
   </div>
@@ -4050,15 +4050,15 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <p class="cfg-desc">👤 <strong>Mi vista por defecto</strong></p>
       <p class="cfg-desc" style="margin-top:-4px;">Toca para elegir qué ves al abrir canciones. Se guarda en tu perfil y te acompaña en cualquier dispositivo.</p>
       <div id="defaultViewPills" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
-        <button class="dv-pill" data-inst="guit1" onclick="dvTogglePill('guit1')">🎸 Marco</button>
-        <button class="dv-pill" data-inst="guit2" onclick="dvTogglePill('guit2')">🎸 Juan</button>
-        <button class="dv-pill" data-inst="bajo"  onclick="dvTogglePill('bajo')">🎸 Hugo</button>
-        <button class="dv-pill" data-inst="bat"   onclick="dvTogglePill('bat')">🥁 Sergito</button>
-        <button class="dv-pill" data-inst="voz"   onclick="dvTogglePill('voz')">🎤 Juan</button>
+        <!-- pills generadas desde BAND (fuente única) en bandRenderPills() -->
       </div>
       <p class="cfg-desc" style="margin-top:10px;font-size:0.7rem;opacity:0.8;">
         Sin ninguno marcado, las canciones abren mostrando solo la estructura (secciones).
       </p>
+      <div id="bandSwitchRow" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+        <p class="cfg-desc">🎸 <strong>Banda activa:</strong> <span id="bandActiveName">—</span></p>
+        <button class="btn" onclick="bandSwitch()">⇄ Cambiar de banda</button>
+      </div>
     </div>
 
     <div class="cfg-footer">
@@ -4153,11 +4153,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   <div class="inst-filter-bar" id="instFilterBar">
     <span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;"></span>
     <button class="inst-pill inst-pill-all active" data-inst="all"   data-short="💫T" onclick="toggleInstFilter('all')"><span class="pill-label">💫 Todos</span></button>
-    <button class="inst-pill inst-pill-guit1"      data-inst="guit1" data-short="🎸M" onclick="toggleInstFilter('guit1')"><span class="pill-label">🎸 Marco</span></button>
-    <button class="inst-pill inst-pill-guit2"      data-inst="guit2" data-short="🎸J" onclick="toggleInstFilter('guit2')"><span class="pill-label">🎸 Juan</span></button>
-    <button class="inst-pill inst-pill-bajo"        data-inst="bajo"  data-short="🎸H" onclick="toggleInstFilter('bajo')"><span class="pill-label">🎸 Hugo</span></button>
-    <button class="inst-pill inst-pill-bat"         data-inst="bat"   data-short="🥁S" onclick="toggleInstFilter('bat')"><span class="pill-label">🥁 Sergito</span></button>
-    <button class="inst-pill inst-pill-voz"         data-inst="voz"   data-short="🎤J" onclick="toggleInstFilter('voz')"><span class="pill-label">🎤 Juan</span></button>
+    <!-- pills de miembros generadas desde BAND (fuente única) en bandRenderPills() -->
     <button class="btn hdr-icon-btn pill-theme-btn" id="btnThemePill" onclick="cycleTheme()" title="Cambiar tema de color">🌙</button>
   </div>
 </div>
@@ -4690,7 +4686,7 @@ function playBarBack()   { Router.back(); }   // botón volver de la barra Tocar
 
 function showHome() {
   document.body.classList.remove('editor-open');
-  const name = _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || '';
+  const name = currentUserName();
   document.getElementById('homeUserName').textContent = name;
   Router.reset();        // home es la raíz — limpia la pila
   Router.replace('home');
@@ -4700,10 +4696,258 @@ let _currentUser = null;
 let _currentSongId = null; // ID en Supabase de la canción en edición
 
 // ═══════════════════════════════════════════════════════════════
+// BAND — FUENTE ÚNICA de la configuración de la banda (Multibanda Fase A1)
+// Todo lo que antes estaba repetido por el código (miembros, instrumentos,
+// iniciales, iconos, colores, lista de calendario) vive AQUÍ y solo aquí.
+// En fases posteriores este objeto se cargará de la BBDD (tabla bandas).
+// ═══════════════════════════════════════════════════════════════
+const BAND = {
+  name: 'BT Tigre',
+  appName: 'BT SoundsApp',
+  emailDomain: '@btb.com',   // se centraliza el uso en Fase A2
+  // Instrumentos/slots. label = nombre de quien lo toca. short = inicial pill.
+  // color = variable CSS · printColor = hex para imprimir/PDF.
+  // pickable = aparece en el selector de cambio de instrumento de una fila.
+  instruments: [
+    { key:'guit1', icon:'🎸', label:'Marco',   short:'M', color:'var(--inst-guit1)', printColor:'#4a9eff', pickable:true  },
+    { key:'guit2', icon:'🎸', label:'Juan',    short:'J', color:'var(--inst-guit2)', printColor:'#c8a000', pickable:true  },
+    { key:'bajo',  icon:'🎸', label:'Hugo',    short:'H', color:'var(--inst-bajo)',  printColor:'#e04040', pickable:true  },
+    { key:'bat',   icon:'🥁', label:'Sergito', short:'S', color:'var(--inst-bat)',   printColor:'#3ab06a', pickable:true  },
+    { key:'voz',   icon:'🎤', label:'Juan',    short:'J', color:'var(--inst-voz)',   printColor:'#7c5cbf', pickable:false },
+  ],
+  // Miembros (personas) — usado por el calendario/RSVP.
+  members: [
+    { key:'marco',   name:'Marco',   role:'🎸 Guitarra',   initials:'MA' },
+    { key:'juan',    name:'Juan',    role:'🎸🎤 Voz/Guit', initials:'JU' },
+    { key:'hugo',    name:'Hugo',    role:'🎸 Bajo',       initials:'HU' },
+    { key:'sergito', name:'Sergito', role:'🥁 Batería',    initials:'SE' },
+  ],
+};
+// Mapas derivados (para los sitios que consultan por clave)
+const BAND_INST_LABELS = {};   // key → nombre (Marco…)
+const BAND_INST_ICONS  = {};   // key → icono (🎸…)
+const BAND_INST_PRINT  = {};   // key → hex de impresión
+BAND.instruments.forEach(i => {
+  BAND_INST_LABELS[i.key] = i.label;
+  BAND_INST_ICONS[i.key]  = i.icon;
+  BAND_INST_PRINT[i.key]  = i.printColor;
+});
+
+// Genera las pills que antes estaban escritas a mano en el HTML:
+// 1) barra de filtro de instrumentos (#instFilterBar, antes del botón de tema)
+// 2) "Mi vista por defecto" en Preferencias (#defaultViewPills)
+// Mismo markup exacto que el estático anterior → cero cambio visual.
+function bandRenderPills() {
+  // 1) Filtro de instrumentos
+  const bar = document.getElementById('instFilterBar');
+  const themeBtn = document.getElementById('btnThemePill');
+  if (bar && themeBtn && !bar._bandPillsDone) {
+    bar._bandPillsDone = true;
+    BAND.instruments.forEach(i => {
+      const b = document.createElement('button');
+      b.className = 'inst-pill inst-pill-' + i.key;
+      b.dataset.inst = i.key;
+      b.dataset.short = i.icon + i.short;
+      b.setAttribute('onclick', "toggleInstFilter('" + i.key + "')");
+      b.innerHTML = '<span class="pill-label">' + i.icon + ' ' + i.label + '</span>';
+      bar.insertBefore(b, themeBtn);
+    });
+  }
+  // 2) Vista por defecto (Preferencias)
+  const dv = document.getElementById('defaultViewPills');
+  if (dv && !dv._bandPillsDone) {
+    dv._bandPillsDone = true;
+    BAND.instruments.forEach(i => {
+      const b = document.createElement('button');
+      b.className = 'dv-pill';
+      b.dataset.inst = i.key;
+      b.setAttribute('onclick', "dvTogglePill('" + i.key + "')");
+      b.textContent = i.icon + ' ' + i.label;
+      dv.appendChild(b);
+    });
+  }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bandRenderPills);
+else bandRenderPills();
+
+// ── Identidad centralizada (Fase A2) ──────────────────────────────
+// Nombre del usuario actual: patrón que antes estaba repetido 12 veces
+// (email.replace('@btb.com','')). Ahora una sola función, y el dominio
+// sale de BAND.emailDomain.
+function currentUserName() {
+  return _currentUser?._displayName
+      || _currentUser?.email?.split('@')[0]
+      || '';
+}
+// Aplica el nombre de la app/banda a los sitios estáticos del HTML.
+function bandApplyIdentity() {
+  document.title = BAND.appName;
+  document.querySelectorAll('.band-app-name').forEach(el => { el.textContent = BAND.appName; });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bandApplyIdentity);
+else bandApplyIdentity();
+
+// ── Fase B2: cargar BAND desde la BBDD (con FALLBACK al objeto local) ──
+// Actualiza BAND EN SITIO (sin reasignar: hay referencias derivadas como
+// _instOptions o CAL_MEMBERS que apuntan a sus arrays/objetos).
+// Si la carga falla por lo que sea → se queda la config local del código
+// (marcha atrás instantánea, la app funciona igual que antes de B2).
+async function bandLoadFromDB(bandId) {
+  try {
+    let q = _sb.from('bandas').select('*');
+    q = bandId ? q.eq('id', bandId) : q.limit(1);
+    const { data: bandas, error } = await q;
+    if (error || !bandas || !bandas.length) throw (error || new Error('sin bandas'));
+    const b = bandas[0];
+    const [mi, ins] = await Promise.all([
+      _sb.from('banda_miembros').select('*').eq('banda_id', b.id).order('orden'),
+      _sb.from('banda_instrumentos').select('*').eq('banda_id', b.id).order('orden'),
+    ]);
+    if (mi.error || ins.error) throw (mi.error || ins.error);
+
+    // Identidad
+    BAND.id = b.id;
+    BAND.name = b.nombre;
+    BAND.appName = b.app_name;
+    BAND.emailDomain = b.email_domain;
+
+    // Instrumentos: actualizar por clave EN SITIO (mismos objetos)
+    (ins.data || []).forEach(row => {
+      const inst = BAND.instruments.find(i => i.key === row.key);
+      if (inst) {
+        inst.icon = row.icon; inst.label = row.label; inst.short = row.short;
+        inst.color = row.color; inst.printColor = row.print_color;
+        inst.pickable = !!row.pickable;
+      } else {
+        BAND.instruments.push({ key: row.key, icon: row.icon, label: row.label,
+          short: row.short, color: row.color, printColor: row.print_color,
+          pickable: !!row.pickable });
+      }
+    });
+
+    // Miembros: reemplazar contenido EN SITIO (CAL_MEMBERS referencia este array)
+    if (mi.data && mi.data.length) {
+      BAND.members.length = 0;
+      mi.data.forEach(m => BAND.members.push({ key: m.key, name: m.nombre, role: m.rol, initials: m.initials }));
+    }
+
+    // Reconstruir mapas derivados
+    BAND.instruments.forEach(i => {
+      BAND_INST_LABELS[i.key] = i.label;
+      BAND_INST_ICONS[i.key]  = i.icon;
+      BAND_INST_PRINT[i.key]  = i.printColor;
+      _DUP_INST_LABELS[i.key] = { icon: i.icon, label: i.label };
+    });
+
+    bandRebuildPills();
+    bandApplyIdentity();
+    window._bandFromDB = true;
+    console.log('✅ BAND cargada de BBDD:', BAND.name);
+  } catch (e) {
+    window._bandFromDB = false;
+    console.warn('⚠️ BAND: usando configuración local (fallback).', e?.message || e);
+  }
+}
+
+// ── Fase D1: mis bandas + selector ─────────────────────────────────
+// Vínculo usuario↔banda: primero por user_id (robusto), y si no, por
+// key = nombre de login (convención BT). La banda elegida se recuerda
+// en este dispositivo (localStorage).
+async function bandListMyBands() {
+  try {
+    const name = currentUserName();
+    const { data, error } = await _sb.from('banda_miembros')
+      .select('banda_id, user_id, key, bandas ( id, nombre, app_name )')
+      .or(`user_id.eq.${_currentUser.id},key.eq.${name}`);
+    if (error || !data) return [];
+    const seen = new Set(), out = [];
+    data.forEach(r => {
+      const b = r.bandas;
+      if (b && !seen.has(b.id)) { seen.add(b.id); out.push(b); }
+    });
+    return out;
+  } catch (e) { return []; }
+}
+
+// Muestra el selector (overlay) y resuelve con el id de la banda elegida.
+function bandShowSelector(bands) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.id = 'bandSelectOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9900;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;';
+    const h = document.createElement('div');
+    h.textContent = '¿Con qué banda entras?';
+    h.style.cssText = "font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--accent);margin-bottom:6px;text-align:center;";
+    ov.appendChild(h);
+    bands.forEach(b => {
+      const card = document.createElement('button');
+      card.style.cssText = 'width:100%;max-width:340px;padding:18px 20px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;text-align:left;transition:border-color 0.15s;';
+      card.innerHTML = '<div style="font-size:1.05rem;font-weight:600;">🎸 ' + b.nombre + '</div>' +
+                       '<div style="font-size:0.78rem;color:var(--muted);margin-top:3px;">' + (b.app_name || '') + '</div>';
+      card.onmouseover = () => card.style.borderColor = 'var(--accent)';
+      card.onmouseout  = () => card.style.borderColor = 'var(--border)';
+      card.onclick = () => { ov.remove(); resolve(b.id); };
+      ov.appendChild(card);
+    });
+    document.body.appendChild(ov);
+  });
+}
+
+// Flujo completo: mis bandas → elegir (o recordada) → cargar BAND.
+async function bandSelectAndLoad() {
+  const bands = await bandListMyBands();
+  window._myBands = bands;
+  if (!bands.length) { await bandLoadFromDB(); return; }   // fallback clásico
+  let chosen = localStorage.getItem('bandActiveId');
+  if (!bands.find(b => b.id === chosen)) chosen = null;    // olvidar elecciones inválidas
+  if (!chosen && bands.length === 1) chosen = bands[0].id; // única banda → directo
+  if (!chosen) chosen = await bandShowSelector(bands);     // varias → selector
+  localStorage.setItem('bandActiveId', chosen);
+  await bandLoadFromDB(chosen);
+}
+
+// Cambiar de banda desde Configuración (visible solo si tienes varias)
+async function bandSwitch() {
+  const bands = window._myBands && window._myBands.length ? window._myBands : await bandListMyBands();
+  if (!bands || bands.length < 2) { alert('Solo perteneces a una banda.'); return; }
+  const chosen = await bandShowSelector(bands);
+  localStorage.setItem('bandActiveId', chosen);
+  location.reload();   // recarga limpia: todo se recarga ya filtrado por la nueva banda
+}
+
+// ── Fase C2: filtro por banda activa ──────────────────────────────
+// Si la banda no se cargó de BBDD (fallback local, BAND.id vacío), NO se
+// filtra: comportamiento clásico, la app nunca se queda vacía por error.
+function bandFilter(q) { return BAND.id ? q.eq('banda_id', BAND.id) : q; }
+// Añade banda_id a un payload de insert (solo si hay banda cargada).
+function bandPayload(p) { if (BAND.id) p.banda_id = BAND.id; return p; }
+
+// Regenera las pills tras actualizar BAND (quita las generadas y re-crea)
+function bandRebuildPills() {
+  const bar = document.getElementById('instFilterBar');
+  if (bar) {
+    bar.querySelectorAll('.inst-pill:not(.inst-pill-all)').forEach(p => p.remove());
+    bar._bandPillsDone = false;
+  }
+  const dv = document.getElementById('defaultViewPills');
+  if (dv) {
+    dv.querySelectorAll('.dv-pill').forEach(p => p.remove());
+    dv._bandPillsDone = false;
+  }
+  bandRenderPills();
+  // Re-sincronizar el estado activo del filtro en las pills nuevas
+  if (typeof _activeInst !== 'undefined') {
+    document.querySelectorAll('.inst-pill').forEach(pill => {
+      pill.classList.toggle('active', _activeInst.has(pill.dataset.inst));
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // DOCUMENTACIÓN DE ARQUITECTURA — accesible con pulsación larga (5s)
 // sobre la tarjeta "Configuración" del menú principal.
 // ═══════════════════════════════════════════════════════════════
-const ARCH_DOC = `# BT SoundsApp — Documentación de Arquitectura
+const ARCH_DOC = `# ${BAND.appName} — Documentación de Arquitectura
 
 ## Origen e historia
 La app nació como UN SOLO editor de cifrados/acordes para imprimir; era
@@ -4813,7 +5057,7 @@ function archDocDownload(fmt) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'BT-SoundsApp-Arquitectura.' + ext;
+  a.download = BAND.appName.replace(/\s+/g,'-') + '-Arquitectura.' + ext;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -4832,7 +5076,10 @@ async function doLogin() {
   msg.className="login-msg"; msg.textContent="...";
 
   // Añadir @btb.com internamente para Supabase
-  const email = username.toLowerCase().replace(/\s+/g, '') + "@btb.com";
+  // D3-lite: si escribes un email completo (contiene @) se usa tal cual;
+  // si escribes solo un nombre, se añade el dominio de la banda (comodidad BT).
+  const _clean = username.toLowerCase().replace(/\s+/g, '');
+  const email = _clean.includes('@') ? _clean : _clean + BAND.emailDomain;
   const result = await _sb.auth.signInWithPassword({ email, password: pass });
 
   if (result.error) {
@@ -4842,7 +5089,8 @@ async function doLogin() {
   }
 
   _currentUser = result.data.user;
-  _currentUser._displayName = username;
+  _currentUser._displayName = _clean.split("@")[0];
+  await bandSelectAndLoad();   // B2+D1: mis bandas → selector → cargar
   await loadUserSettings();
   document.getElementById("loginScreen").style.display = "none";
   if (window._pendingDeepEventId) {
@@ -4877,7 +5125,7 @@ async function showLibrary() {
   window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility();
   document.body.classList.remove('editor-open');
   document.getElementById("libUserName").textContent =
-    _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || "";
+    currentUserName();
   // Router: si ya estábamos en library (p.ej. volviendo del editor), no re-apilar
   if (Router.current() === 'library') {
     Router.replace('library');
@@ -4891,8 +5139,8 @@ async function loadLibrary() {
   const grid = document.getElementById("libGrid");
   grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⏳</div><p>Cargando...</p></div>';
 
-  const { data, error } = await _sb.from("Canciones")
-    .select("id, titulo, artista, created_by, updated_at, parent_id, version_type")
+  const { data, error } = await bandFilter(_sb.from("Canciones")
+    .select("id, titulo, artista, created_by, updated_at, parent_id, version_type"))
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -4922,7 +5170,7 @@ function renderLibrary(songs) {
       if (!e.target.closest(".card-actions")) openSong(s.id);
     });
     const date = s.updated_at ? new Date(s.updated_at).toLocaleDateString("es-ES") : "";
-    const isOwner = s.created_by === (_currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''));
+    const isOwner = s.created_by === (currentUserName());
     // Count versions/ideas
     const children = songs.filter(c => c.parent_id === s.id);
     const ideas    = children.filter(c => c.version_type !== 'version').length;
@@ -5122,13 +5370,13 @@ async function versionsCreateNew(type) {
     titulo: title,
     artista: document.querySelector('.artist-input')?.value || '',
     data: { title, artist: '', sections: [], tempo: null, keyLabel: '' },
-    created_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
+    created_by: currentUserName(),
     updated_at: new Date().toISOString(),
     parent_id: _currentSongId,
     version_type: type
   };
 
-  const { data, error } = await _sb.from('Canciones').insert(payload).select().single();
+  const { data, error } = await _sb.from('Canciones').insert(bandPayload(payload)).select().single();
   if (error) { alert('Error al crear.'); return; }
 
   versionsClosePanel();
@@ -5193,7 +5441,7 @@ async function saveSongCloud() {
     titulo: songData.title || "(Sin título)",
     artista: songData.artist || "",
     data: songData,
-    created_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
+    created_by: currentUserName(),
     updated_at: new Date().toISOString()
   };
   // Preserve parent link if this is a version/idea
@@ -5206,7 +5454,7 @@ async function saveSongCloud() {
   if (_currentSongId) {
     result = await _sb.from("Canciones").update(payload).eq("id", _currentSongId).select().single();
   } else {
-    result = await _sb.from("Canciones").insert(payload).select().single();
+    result = await _sb.from("Canciones").insert(bandPayload(payload)).select().single();
   }
 
   if (result.error) {
@@ -5260,8 +5508,9 @@ async function _navigateToDeepEvent(eventId) {
   const { data } = await _sb.auth.getSession();
   if (data?.session?.user) {
     _currentUser = data.session.user;
-    _currentUser._displayName = (_currentUser.email || "").replace("@btb.com", "");
+    _currentUser._displayName = (_currentUser.email || "").split("@")[0];
     document.getElementById("loginScreen").style.display = "none";
+    await bandSelectAndLoad();   // B2+D1: mis bandas → selector → cargar
     await loadUserSettings();
     if (deepEventId) {
       await _navigateToDeepEvent(deepEventId);
@@ -5620,13 +5869,9 @@ function render(scrollTargetId) {
 
     sec.rows.forEach((row, ri) => {
       const inst = row.instrument || "guit1"; // default legacy rows → guit1
-      const instMeta = {
-        guit1: { icon: "🎸", color: "var(--inst-guit1)" },
-        guit2: { icon: "🎸", color: "var(--inst-guit2)" },
-        bajo:  { icon: "🎸", color: "var(--inst-bajo)" },
-        bat:   { icon: "🥁", color: "var(--inst-bat)" },
-        voz:   { icon: "🎤", color: "var(--inst-voz)" },
-      }[inst] || { icon: "🎸", color: "var(--inst-guit1)" };
+      const _bi = BAND.instruments.find(i => i.key === inst);   // ← fuente única BAND
+      const instMeta = _bi ? { icon: _bi.icon, color: _bi.color }
+                           : { icon: "🎸", color: "var(--inst-guit1)" };
 
       const rowWrap = document.createElement("div");
       rowWrap.className = `row-wrap row-inst-${inst}`;
@@ -5685,7 +5930,7 @@ function render(scrollTargetId) {
       });
 
       // ── comment row ARRIBA (antes del cifrado)
-      const _instLabels = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
+      const _instLabels = BAND_INST_LABELS;   // ← fuente única BAND
       const _instFirstLetter = { guit1:'M', guit2:'J', bajo:'H', bat:'S', voz:'J' };
 
       const commRow = document.createElement("div");
@@ -5928,13 +6173,7 @@ function render(scrollTargetId) {
     // + add row — instrument picker
     const addRowWrap = document.createElement("div");
     addRowWrap.className = "add-row-inst-wrap";
-    const instDefs = [
-      { key: "guit1", icon: "🎸", label: "Marco",  color: "var(--inst-guit1)" },
-      { key: "guit2", icon: "🎸", label: "Juan",   color: "var(--inst-guit2)" },
-      { key: "bajo",  icon: "🎸", label: "Hugo",   color: "var(--inst-bajo)" },
-      { key: "bat",   icon: "🥁", label: "Sergito",color: "var(--inst-bat)" },
-      { key: "voz",   icon: "🎤", label: "Juan",   color: "var(--inst-voz)" },
-    ];
+    const instDefs = BAND.instruments;   // ← fuente única BAND
     instDefs.forEach(inst => {
       const btn = document.createElement("button");
       btn.className = "add-row-inst-btn";
@@ -6696,12 +6935,7 @@ function closePopup() {
 // ═══════════════════════════════════════════════
 // INSTRUMENT PICKER POPUP
 // ═══════════════════════════════════════════════
-const _instOptions = [
-  { key: "guit1", icon: "🎸", label: "Marco",   color: "var(--inst-guit1)" },
-  { key: "guit2", icon: "🎸", label: "Juan",    color: "var(--inst-guit2)" },
-  { key: "bajo",  icon: "🎸", label: "Hugo",    color: "var(--inst-bajo)"  },
-  { key: "bat",   icon: "🥁", label: "Sergito", color: "var(--inst-bat)"   },
-];
+const _instOptions = BAND.instruments.filter(i => i.pickable);   // ← fuente única BAND (sin voz)
 
 let _instPicker = null;
 
@@ -7866,8 +8100,8 @@ function exportWord() {
   lines.push(`\\pard\\sb0\\sa120\\f0\\fs40\\b ${title}\\b0\\par`);
 
   // Artist + meta line
-  const instLabel = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
-  const instIcon  = { guit1:'🎸', guit2:'🎸', bajo:'🎸', bat:'🥁', voz:'🎤' };
+  const instLabel = BAND_INST_LABELS;   // ← fuente única BAND
+  const instIcon  = BAND_INST_ICONS;
   const instCf    = { guit1:5, guit2:6, bajo:7, bat:8, voz:9 }; // índices colortbl
 
   const metaParts = [];
@@ -8934,7 +9168,7 @@ function showSetlists() {
   document.body.classList.remove('editor-open');
   Router.go('setlist');
   document.getElementById("slUserName").textContent =
-    _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || "";
+    currentUserName();
   _showSlList();
   // Cargar biblioteca en paralelo para poder autolinkar
   if (!_allSongs.length) loadLibrary();
@@ -8973,8 +9207,8 @@ function backToSetlists() {
 async function loadSetlists() {
   const grid = document.getElementById("slGrid");
   grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⏳</div><p>Cargando...</p></div>';
-  const { data, error } = await _sb.from("setlists")
-    .select("id, name, songs, updated_at, date, venue, created_by")
+  const { data, error } = await bandFilter(_sb.from("setlists")
+    .select("id, name, songs, updated_at, date, venue, created_by"))
     .order("updated_at", { ascending: false });
   if (error) {
     grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⚠️</div><p>Error cargando repertorios.</p></div>';
@@ -9066,13 +9300,13 @@ function closeNewSetlistModal() { document.getElementById("slNewModal").style.di
 async function confirmNewSetlist() {
   const name = document.getElementById("slNewName").value.trim();
   if (!name) { alert("El repertorio necesita un nombre."); return; }
-  const { data, error } = await _sb.from("setlists").insert({
+  const { data, error } = await _sb.from("setlists").insert(bandPayload({
     user_id: _currentUser.id,
     name,
     songs: [],
     created_by: _currentUser._displayName || "",
     updated_at: new Date().toISOString()
-  }).select().single();
+  })).select().single();
   if (error) { alert("Error al crear: " + error.message); return; }
   closeNewSetlistModal();
   openSetlist(data.id);
@@ -9132,13 +9366,13 @@ async function duplicateSetlist(id, e) {
   e.stopPropagation();
   const orig = _allSetlists.find(s => s.id === id);
   if (!orig) return;
-  const { error } = await _sb.from("setlists").insert({
+  const { error } = await _sb.from("setlists").insert(bandPayload({
     user_id: _currentUser.id,
     name: (orig.name || "Repertorio") + " (copia)",
     songs: JSON.parse(JSON.stringify(orig.songs || [])),
     created_by: _currentUser._displayName || "",
     updated_at: new Date().toISOString()
-  });
+  }));
   if (error) { alert("Error al duplicar."); return; }
   loadSetlists();
 }
@@ -9620,7 +9854,7 @@ function exportSetlistPDF() {
         </thead>
         <tbody>${rows}</tbody>
       </table>
-      <p style="margin-top:32px;font-size:0.7rem;color:#bbb;">Generado con BT SoundsApp</p>
+      <p style="margin-top:32px;font-size:0.7rem;color:#bbb;">Generado con ${BAND.appName}</p>
     </div>`;
 
   window.print();
@@ -9694,7 +9928,7 @@ function copyShareUrl() {
             </tr>`).join("")}
         </tbody>
       </table>
-      <p style="margin-top:32px;font-size:0.72rem;color:#ccc;">Compartido con BT SoundsApp</p>
+      <p style="margin-top:32px;font-size:0.72rem;color:#ccc;">Compartido con ${BAND.appName}</p>
     </div>`;
 })();
 
@@ -9704,8 +9938,8 @@ function copyShareUrl() {
 // ═══════════════════════════════════════════════
 // Shared HTML builder — used by both printScore() and exportScorePDF()
 function buildScoreHTML() {
-  const instLabel = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
-  const instColor = { guit1:'#4a9eff', guit2:'#c8a000', bajo:'#e04040', bat:'#3ab06a', voz:'#7c5cbf' };
+  const instLabel = BAND_INST_LABELS;   // ← fuente única BAND
+  const instColor = BAND_INST_PRINT;
 
   const meta = [];
   if (songData.artist)        meta.push(songData.artist);
@@ -9828,7 +10062,7 @@ function buildScoreHTML() {
       ${meta.length ? `<div class="p-meta">${meta.join(' · ')}</div>` : ''}
     </div>
     ${sectionsHTML}
-    <div class="p-footer">BT SoundsApp</div>
+    <div class="p-footer">${BAND.appName}</div>
   </div>`;
 }
 
@@ -9883,8 +10117,8 @@ function exportScorePDF() {
     }
 
     // 2. Build content HTML (no <style> tag — styles are in <head>)
-    const instLabel = { guit1:'Marco', guit2:'Juan', bajo:'Hugo', bat:'Sergito', voz:'Juan' };
-    const instColor = { guit1:'#4a9eff', guit2:'#c8a000', bajo:'#e04040', bat:'#3ab06a', voz:'#7c5cbf' };
+    const instLabel = BAND_INST_LABELS;   // ← fuente única BAND
+    const instColor = BAND_INST_PRINT;
 
     const meta = [];
     if (songData.artist)        meta.push(songData.artist);
@@ -9941,7 +10175,7 @@ function exportScorePDF() {
         ${meta.length ? `<div class="pdf-meta">${meta.join(' · ')}</div>` : ''}
       </div>
       ${sectionsHTML}
-      <div class="pdf-footer">BT SoundsApp</div>
+      <div class="pdf-footer">${BAND.appName}</div>
     </div>`;
 
     // 3. Render into a real visible-but-offscreen div (required for html2canvas)
@@ -11280,6 +11514,14 @@ function openLibConfig() {
   cfgRenderRules();
   cfgRenderThemePanel();
   dvRenderPills();
+  // D1: mostrar "Cambiar de banda" solo si perteneces a varias
+  const row = document.getElementById('bandSwitchRow');
+  if (row) {
+    const many = window._myBands && window._myBands.length > 1;
+    row.style.display = many ? '' : 'none';
+    const nm = document.getElementById('bandActiveName');
+    if (nm) nm.textContent = BAND.name || '—';
+  }
   document.getElementById('cfgModal').classList.add('open');
 }
 
@@ -11554,13 +11796,9 @@ function lyricsToggleColumns() {
 }
 
 // ── DUPLICAR SECCIÓN CON SELECCIÓN DE INSTRUMENTOS ───────────────
-const _DUP_INST_LABELS = {
-  guit1: { icon: '🎸', label: 'Marco' },
-  guit2: { icon: '🎸', label: 'Juan' },
-  bajo:  { icon: '🎸', label: 'Hugo' },
-  bat:   { icon: '🥁', label: 'Sergito' },
-  voz:   { icon: '🎤', label: 'Juan' },
-};
+// Derivado de BAND (fuente única): key → {icon, label}
+const _DUP_INST_LABELS = {};
+BAND.instruments.forEach(i => { _DUP_INST_LABELS[i.key] = { icon: i.icon, label: i.label }; });
 let _dupSecCtx = null;          // { sec, si }
 let _dupSecSelected = null;     // Set de instrumentos marcados
 
@@ -13664,12 +13902,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // CALENDAR MODULE
 // ══════════════════════════════════════════════════════════
 
-const CAL_MEMBERS = [
-  { key: 'marco',   name: 'Marco',   role: '🎸 Guitarra',  initials: 'MA' },
-  { key: 'juan',    name: 'Juan',    role: '🎸🎤 Voz/Guit', initials: 'JU' },
-  { key: 'hugo',    name: 'Hugo',    role: '🎸 Bajo',       initials: 'HU' },
-  { key: 'sergito', name: 'Sergito', role: '🥁 Batería',    initials: 'SE' },
-];
+const CAL_MEMBERS = BAND.members;   // ← fuente única BAND
 
 let _calYear  = new Date().getFullYear();
 let _calMonth = new Date().getMonth(); // 0-based
@@ -13710,7 +13943,7 @@ function showCalendar() {
   document.body.classList.remove('editor-open');
   Router.go('calendar');
   document.getElementById('calUserName').textContent =
-    _currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || '';
+    currentUserName();
   _calRender();
   _calLoadData();
 }
@@ -13749,15 +13982,19 @@ async function _calLoadData() {
   const to   = new Date(_calYear, _calMonth + 2, 0).toISOString().slice(0,10);
 
   const [evRes, avRes] = await Promise.all([
-    _sb.from('cal_events').select('*').gte('date', from).lte('date', to).order('date'),
+    bandFilter(_sb.from('cal_events').select('*')).gte('date', from).lte('date', to).order('date'),
     _sb.from('cal_availability').select('*').gte('date', from).lte('date', to)
   ]);
 
   _calEvents = evRes.data || [];
 
   // Build avail map: { 'YYYY-MM-DD': { member_key: 'yes'|'no' } }
+  // Solo miembros de la BANDA ACTIVA: la disponibilidad es personal (te sigue
+  // a todas tus bandas), pero cada banda solo ve la de SUS miembros.
+  const _bandKeys = new Set(BAND.members.map(m => m.key));
   _calAvail = {};
   (avRes.data || []).forEach(row => {
+    if (!_bandKeys.has(row.member_key)) return;   // no es miembro de esta banda
     if (!_calAvail[row.date]) _calAvail[row.date] = {};
     _calAvail[row.date][row.member_key] = row.status;
   });
@@ -14028,7 +14265,7 @@ async function calSetAvail(dateStr, memberKey, status) {
     member_key: memberKey,
     member_name: CAL_MEMBERS.find(m=>m.key===memberKey)?.name || memberKey,
     status,
-    updated_by: _currentUser._displayName || _currentUser.email?.replace('@btb.com',''),
+    updated_by: currentUserName(),
     updated_at: new Date().toISOString()
   }, { onConflict: 'date,member_key' });
 
@@ -14105,7 +14342,7 @@ function _calRenderCell(dateStr) {
 
 // Returns the member key for the logged-in user
 function _calMyKey() {
-  const me = (_currentUser?._displayName || _currentUser?.email?.replace('@btb.com','') || '').toLowerCase().trim();
+  const me = (currentUserName()).toLowerCase().trim();
   const m = CAL_MEMBERS.find(m => m.key === me) ||
             CAL_MEMBERS.find(m => m.name.toLowerCase() === me);
   return m?.key || me;
@@ -14125,7 +14362,7 @@ async function calTapAvail(dateStr) {
       date: dateStr, member_key: myKey,
       member_name: CAL_MEMBERS.find(m=>m.key===myKey)?.name || myKey,
       status: next,
-      updated_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
+      updated_by: currentUserName(),
       updated_at: new Date().toISOString()
     }, { onConflict: 'date,member_key' });
     if (error) { console.error(error); return; }
@@ -14148,7 +14385,7 @@ async function calOpenForm(eventId, dateStr) {
   // Populate setlist dropdown
   const sel = document.getElementById('calFormSetlist');
   sel.innerHTML = '<option value="">— Sin repertorio —</option>';
-  const { data: sls } = await _sb.from('setlists').select('id, name').order('name');
+  const { data: sls } = await bandFilter(_sb.from('setlists').select('id, name')).order('name');
   (sls||[]).forEach(sl => {
     const opt = document.createElement('option');
     opt.value = sl.id; opt.textContent = sl.name;
@@ -14224,7 +14461,7 @@ async function calSaveEvent() {
   const payload = {
     type, title, date, time, venue, notes,
     setlist_id: setlistId,
-    created_by: _currentUser?._displayName || _currentUser?.email?.replace('@btb.com',''),
+    created_by: currentUserName(),
   };
 
   let error;
@@ -14232,7 +14469,7 @@ async function calSaveEvent() {
     ({ error } = await _sb.from('cal_events').update(payload).eq('id', id));
   } else {
     payload.created_at = new Date().toISOString();
-    ({ error } = await _sb.from('cal_events').insert(payload));
+    ({ error } = await _sb.from('cal_events').insert(bandPayload(payload)));
   }
 
   if (error) { alert('Error al guardar: ' + error.message); return; }
@@ -14694,7 +14931,7 @@ const _HELP_MAP = [
     zone: "Editor · Instrumentos", icon: "➕",
     title: "Añadir línea de instrumento",
     body: "Crea una nueva línea para un instrumento específico dentro de esta sección. Cada músico puede tener sus propios acordes o indicaciones.",
-    tip: "💡 Marco y Juan pueden tener acordes diferentes en la misma sección (guitarra rítmica vs melodía)." },
+    tip: "💡 Dos guitarras pueden tener acordes diferentes en la misma sección (rítmica vs melodía)." },
 
   { sel: ".comment-row, .comment-input",
     zone: "Editor · Notas", icon: "💬",
@@ -14790,7 +15027,7 @@ const _HELP_MAP = [
   { sel: ".drum-editor-overlay, #drumEditorOverlay",
     zone: "Editor · Batería", icon: "🥁",
     title: "Editor de batería",
-    body: "Editor visual de patrones rítmicos. Activa los tiempos en la cuadrícula para crear el patrón de Sergito.",
+    body: "Editor visual de patrones rítmicos. Activa los tiempos en la cuadrícula para crear el patrón de batería.",
     tip: "💡 Cada fila es un elemento de la batería: bombo, caja, hi-hat, etc." },
 ];
 
@@ -15071,7 +15308,7 @@ function calShareLink(btn) {
 
   if (navigator.share) {
     navigator.share({
-      title: `BT SoundsApp — ${eventName}`,
+      title: `${BAND.appName} — ${eventName}`,
       text:  msg
     }).catch(() => {});
     return;
@@ -15131,7 +15368,7 @@ function calShareEventGroup(eventId) {
 
   if (navigator.share) {
     navigator.share({
-      title: `BT SoundsApp — ${ev.title || 'Evento'}`,
+      title: `${BAND.appName} — ${ev.title || 'Evento'}`,
       text:  msg
     }).catch(() => {});
     return;
@@ -15396,7 +15633,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ── RSVP SCREEN ── -->
 <div id="rsvpScreen">
-  <div class="rsvp-logo">BT SoundsApp</div>
+  <div class="rsvp-logo band-app-name">BT SoundsApp</div>
   <div class="rsvp-event-icon" id="rsvpIcon">🎸</div>
   <div class="rsvp-event-name" id="rsvpEventName">—</div>
   <div class="rsvp-event-meta" id="rsvpEventMeta"></div>
