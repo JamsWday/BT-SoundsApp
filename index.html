@@ -13194,6 +13194,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .cal-chip.ensayo   { background: rgba(61,186,110,0.25); color: #3dba6e; }
 .cal-chip.concierto { background: rgba(232,64,64,0.25); color: #ff6666; }
 .cal-chip.otro     { background: rgba(58,159,212,0.25); color: #3a9fd4; }
+.cal-chip.birra    { background: rgba(232,168,32,0.25); color: #e8a820; }
 
 /* ── BOTTOM ZONE: disponibilidad → toggle propio ── */
 .cal-avail-zone {
@@ -13584,6 +13585,8 @@ document.addEventListener('DOMContentLoaded', function() {
 .cal-event-card.ensayo:hover { box-shadow: 0 4px 18px rgba(61,186,110,0.3); }
 .cal-event-card.concierto { border-left-color: #e84040; box-shadow: 0 2px 10px rgba(232,64,64,0.18); }
 .cal-event-card.concierto:hover { box-shadow: 0 4px 18px rgba(232,64,64,0.3); }
+.cal-event-card.birra    { border-left-color: #e8a820; box-shadow: 0 2px 10px rgba(232,168,32,0.18); }
+.cal-event-card.birra:hover { box-shadow: 0 4px 18px rgba(232,168,32,0.3); }
 .cal-event-card.otro     { border-left-color: #3a9fd4; box-shadow: 0 2px 10px rgba(58,159,212,0.18); }
 .cal-event-card.otro:hover { box-shadow: 0 4px 18px rgba(58,159,212,0.3); }
 .cal-event-title {
@@ -13911,6 +13914,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <select class="cal-form-select" id="calFormType" onchange="calFormCheckConflict()">
         <option value="ensayo">🎸 Ensayo</option>
         <option value="concierto">🎤 Concierto</option>
+        <option value="birra">🍺 Quedada</option>
         <option value="otro">📌 Otro</option>
       </select>
     </div>
@@ -14139,7 +14143,7 @@ function _calRender() {
         dayEvents.slice(0, 4).forEach(ev => {
           const ic = document.createElement('span');
           ic.className = 'cal-ev-icon';
-          ic.textContent = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : '📌';
+          ic.textContent = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : ev.type==='birra' ? '🍺' : '📌';
           ic.title = ev.title || '';
           iconsRow.appendChild(ic);
         });
@@ -14151,7 +14155,7 @@ function _calRender() {
         dayEvents.slice(0, 3).forEach(ev => {
           const chip = document.createElement('div');
           chip.className = `cal-chip ${ev.type || 'otro'}`;
-          const icon = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : '📌';
+          const icon = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : ev.type==='birra' ? '🍺' : '📌';
           chip.textContent = `${icon} ${ev.title || '—'}`;
           chips.appendChild(chip);
         });
@@ -14236,12 +14240,12 @@ function _calRenderPanelBody(dateStr) {
     dayEvents.forEach(ev => {
       const card = document.createElement('div');
       card.className = `cal-event-card ${ev.type||'otro'}`;
-      const icon = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : '📌';
-      const typeLabel = ev.type==='ensayo' ? 'Ensayo' : ev.type==='concierto' ? 'Concierto' : 'Otro';
+      const icon = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : ev.type==='birra' ? '🍺' : '📌';
+      const typeLabel = ev.type==='ensayo' ? 'Ensayo' : ev.type==='concierto' ? 'Concierto' : ev.type==='birra' ? 'Quedada' : 'Otro';
 
       // Check conflicts
       const noCount = CAL_MEMBERS.filter(m => (dayAvail[m.key]||'none')==='no').length;
-      const conflictHtml = (ev.type==='ensayo' || ev.type==='concierto') && noCount > 0
+      const conflictHtml = (ev.type==='ensayo' || ev.type==='concierto' || ev.type==='birra') && noCount > 0
         ? `<div class="cal-conflict-warn" style="margin-top:8px;font-size:0.7rem;">
             ⚠️ ${noCount} miembro${noCount>1?'s':''} no puede${noCount>1?'n':''} este día
            </div>` : '';
@@ -14493,7 +14497,7 @@ function calFormCheckConflict() {
   const type    = document.getElementById('calFormType').value;
   const conflict = document.getElementById('calFormConflict');
 
-  if (!dateStr || (type !== 'ensayo' && type !== 'concierto')) {
+  if (!dateStr || (type !== 'ensayo' && type !== 'concierto' && type !== 'birra')) {
     conflict.classList.remove('show'); return;
   }
   const dayAvail = _calAvail[dateStr] || {};
@@ -15404,7 +15408,7 @@ function calShareEventGroup(eventId) {
   const base = window.location.href.split('?')[0].split('#')[0];
   const url  = `${base}#cal/${eventId}`;
 
-  const icon = ev.type === 'ensayo' ? '🎸' : ev.type === 'concierto' ? '🎤' : '📌';
+  const icon = ev.type === 'ensayo' ? '🎸' : ev.type === 'concierto' ? '🎤' : ev.type === 'birra' ? '🍺' : '📌';
 
   // Fecha y hora
   let dateLine = '';
@@ -15499,7 +15503,7 @@ function _rsvpShowError(msg) {
   if (!member) { _rsvpShowError('Miembro no reconocido'); return; }
 
   // 3. Renderizar
-  const icon = ev.type === 'ensayo' ? '🎸' : ev.type === 'concierto' ? '🎤' : '📌';
+  const icon = ev.type === 'ensayo' ? '🎸' : ev.type === 'concierto' ? '🎤' : ev.type === 'birra' ? '🍺' : '📌';
   document.getElementById('rsvpIcon').textContent = icon;
   document.getElementById('rsvpEventName').textContent = ev.title || '—';
 
