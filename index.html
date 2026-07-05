@@ -4824,6 +4824,20 @@ async function bandLoadFromDB(bandId) {
           pickable: !!row.pickable });
       }
     });
+    // …y ELIMINAR los que esta banda no tiene (si no, quedarían pills/labels
+    // "fantasma" de la banda anterior al cambiar a una banda con menos slots)
+    if (ins.data && ins.data.length) {
+      const dbKeys = new Set(ins.data.map(r => r.key));
+      for (let i = BAND.instruments.length - 1; i >= 0; i--) {
+        if (!dbKeys.has(BAND.instruments[i].key)) {
+          delete BAND_INST_LABELS[BAND.instruments[i].key];
+          delete BAND_INST_ICONS[BAND.instruments[i].key];
+          delete BAND_INST_PRINT[BAND.instruments[i].key];
+          delete _DUP_INST_LABELS[BAND.instruments[i].key];
+          BAND.instruments.splice(i, 1);
+        }
+      }
+    }
 
     // Miembros: reemplazar contenido EN SITIO (CAL_MEMBERS referencia este array)
     if (mi.data && mi.data.length) {
@@ -4953,67 +4967,113 @@ const ARCH_DOC = `# ${BAND.appName} — Documentación de Arquitectura
 La app nació como UN SOLO editor de cifrados/acordes para imprimir; era
 literalmente la página entera. Con el tiempo se le añadieron: biblioteca,
 repertorios (setlists), modo concierto, calendario, editor de batería,
-audio, etc. Ese crecimiento orgánico explica varias decisiones de diseño.
+audio, visor de letra y soporte multibanda. Ese crecimiento orgánico
+explica varias decisiones de diseño.
 
 ## La "capa base" / el editor  (IMPORTANTE)
 El editor de canción (.header + #zoomWrapper + #chart + #songPlayerBar) NO
-es una pantalla normal: es la CAPA BASE histórica. Vive siempre en el DOM,
-en el flujo normal del documento. Las demás pantallas (home, biblioteca,
-repertorio, concierto, calendario) son overlays con position:fixed; inset:0
-que se ponen ENCIMA para taparlo.
-
+es una pantalla normal: es la CAPA BASE histórica. Vive siempre en el DOM.
+Las demás pantallas (home, biblioteca, repertorio, concierto, calendario)
+son overlays position:fixed;inset:0 que se ponen ENCIMA para taparlo.
 - Mostrar una canción  = ocultar todas las pantallas (se ve el editor).
-- Mostrar otra pantalla = ponerla encima (tapa el editor).
-- La clase body.editor-open indica "estoy en una canción".
-
-Consecuencia conocida: como el editor siempre estaba presente, en móvil
-asomaba por debajo al recolocarse la barra del navegador durante el scroll.
-PARCHE aplicado: con body:not(.editor-open) ocultamos el editor
-(display:none) cuando no estás en una canción.
-
-## Deuda técnica / mejora futura (no urgente)
-Lo "correcto de libro" sería convertir el editor en UNA PANTALLA MÁS (su
-propio contenedor fixed que el Router muestre/oculte como a las otras), y
-que 'song' deje de ser una pseudo-pantalla montada con editor-open. Es
-cirugía mayor porque MUCHAS cosas cuelgan de editor-open (barra de tocar,
-modo inmersivo, reproductor…). Se decidió NO hacerlo mientras la app está
-en uso: el parche resuelve el síntoma con riesgo mínimo.
+- body.editor-open indica "estoy en una canción".
+- Parche: body:not(.editor-open) oculta el editor para que no asome en
+  móvil al recolocarse la barra del navegador.
 
 ## Navegación — Router
-Toda la navegación entre pantallas pasa por el módulo Router. Una sola pila
-(_stack) es la fuente de verdad de "dónde estoy" y "cómo vuelvo". El botón
-volver lee la pila y muestra el icono del origen (🎵 biblioteca, 🎭
-repertorio/concierto…). NO hay un segundo sistema: el antiguo
-(_navStack/navPush/navPop) se eliminó.
-
-- Router.go(screen)      → navega apilando (para poder volver)
-- Router.replace(screen) → navega sin apilar
-- Router.back()          → vuelve a la pantalla anterior de la pila
-- Router.reset()         → vacía la pila (login/logout/home)
-- Router.onShow(s, fn)   → hook al mostrar una pantalla (p.ej. concierto
-                           restaura su estado/timer al volver del cifrado)
-
-## Pantallas registradas
-home · library · setlist · concert · calendar · song (pseudo-pantalla:
-monta el editor sobre la capa base con editor-open).
+Toda la navegación pasa por el módulo Router. Una sola pila (_stack) es la
+fuente de verdad de "dónde estoy" y "cómo vuelvo".
+- Router.go / replace / back / reset / onShow / current
+- Pantallas: home · library · setlist · concert · calendar · song
+  (pseudo-pantalla sobre la capa base) · lyrics (tipo CAPA, ver abajo).
+- Tipo de pantalla 'layer' (p.ej. el visor de letra): se SUPERPONE a la
+  pantalla de debajo SIN ocultarla ni resetear su estado (Modo Tocar,
+  concierto en marcha...). Al volver, lo de debajo reaparece intacto.
 
 ## Modales / popups / paneles
-NO son pantallas y NO se apilan en el Router. Son overlays temporales
-(.modal-overlay.open, popups de acordes, modales de audio, editor de
-batería .drum-editor-overlay, etc.) que flotan sobre la pantalla activa y
-se cierran volviendo a ella. Tocarlos no afecta al Router.
+NO son pantallas y NO se apilan en el Router (popups de acordes, editor de
+batería, duplicar sección, notas...). Flotan y se cierran volviendo.
 
-## Editor de batería — subdivisiones / tuplets
-El grid soporta tresillos (3), quintillos (5) y sextillos (6) por beat.
-Modelo de datos: bar.tuplets = { "<beat>": {div:N} } — solo se guardan las
-excepciones; un beat sin entrada usa la subdivisión base. Toda la lógica de
-"cuántos pasos tiene un beat" está centralizada en deBarLayout() /
-deBaseStepsPerBeat() / deStepLabel(), usadas por el grid, el preview y el
-audio. El dato admite tuplets por-voz a futuro (tuplets[beat].voices).
+## Vista por perfil
+Cada usuario define en Preferencias su "vista por defecto" (qué
+instrumentos ve al abrir una canción). Se guarda en
+_userSettings.defaultView (BBDD user_settings, por usuario). El filtro
+manual sigue disponible; al abrir cada canción arranca en tu vista.
+
+## Visor de letra (🎤)
+Pantalla tipo 'layer' del Router. Recopila la letra de las filas del
+instrumento voz (row.vozText) — fuente única, NO usa sec.lyric (eso es el
+comentario de sección). Tamaño con pellizco y modo 1/2 columnas ("páginas"
+apiladas con divisor), guardados por usuario (lyricsFontPx, lyricsCols2).
+Accesible desde la canción y desde Modo Concierto (compite con el cifrado).
+
+## Editor de batería — tuplets
+Tresillos(3)/quintillos(5)/sextillos(6) por beat. bar.tuplets =
+{ "<beat>": {div:N} } — solo se guardan excepciones. Lógica centralizada
+en deBarLayout()/deBaseStepsPerBeat()/deStepLabel() (grid, preview, audio).
 
 ## Deshacer / rehacer
-El historial (_history) se resetea al cargar cada canción (resetHistory())
-para que no se mezcle entre canciones.
+_history se resetea al cargar cada canción (resetHistory()).
+
+## ═══ MULTIBANDA ═══
+La app soporta varias bandas. Un usuario puede pertenecer a varias y
+elegir cuál ve. Construido en 4 etapas (aditivo, reversible, por fases).
+
+### BAND — fuente única
+Todo lo de la banda (nombre, appName, emailDomain, instrumentos con
+etiquetas/iniciales/colores, miembros para calendario) vive en el objeto
+BAND. NADA de eso está repetido por el código: pills, pickers, exports,
+calendario... derivan de BAND (o de sus mapas BAND_INST_*).
+
+### Datos (Supabase)
+- Tablas: bandas · banda_miembros (personas; user_id vincula con Auth,
+  key es respaldo por nombre de login) · banda_instrumentos (slots).
+- Las tablas de contenido (Canciones, setlists, cal_events) tienen
+  banda_id. user_settings y cal_availability NO lo tienen: son personales.
+- Al entrar, bandLoadFromDB(bandId) carga BAND de la BBDD y actualiza EN
+  SITIO (referencias vivas), añadiendo/quitando instrumentos según la
+  banda. FALLBACK: si falla la carga, queda la config local del código.
+
+### Filtro por banda activa
+- bandFilter(query) añade .eq('banda_id', BAND.id) a los LISTADOS.
+- bandPayload(obj) añade banda_id a los INSERTS.
+- Si BAND.id no está (fallback), NO se filtra: la app nunca queda vacía.
+- Accesos por id no se filtran (el id ya es único).
+- Disponibilidades del calendario: son personales (te siguen a todas tus
+  bandas) pero cada banda solo MUESTRA las de SUS miembros.
+
+### Selector y sesión
+- bandSelectAndLoad(): busca tus bandas (user_id o key) → si hay varias,
+  selector "¿Con qué banda entras?" → la elección se RECUERDA en el
+  dispositivo (localStorage bandActiveId) → entradas siguientes directas.
+- Cambiar: Configuración → Preferencias → "⇄ Cambiar de banda" (solo
+  visible con varias bandas). Hace location.reload() para recargar limpio.
+
+### Login flexible
+Si escribes un email completo (contiene @) se usa tal cual; si escribes
+solo un nombre se añade BAND.emailDomain (comodidad BT). El nombre de
+usuario interno = parte antes de la @ (currentUserName()).
+
+### Alta de bandas (modo admin)
+Plantilla SQL parametrizada (multibanda-D2-plantilla-alta-banda.sql):
+banda + miembros + instrumentos + vínculo user_id tras crear los usuarios
+en Supabase Auth. Sin UI de gestión por ahora (decisión: admin único,
+diseñado para poder abrirse a "cualquiera crea su banda" en el futuro).
+
+### Convenciones y pendientes multibanda
+- CONVENCIÓN: el key de una persona debe ser EL MISMO en todas sus bandas
+  (la disponibilidad del calendario se comparte por member_key).
+- keys de instrumentos limitadas a guit1/guit2/bajo/bat/voz por ahora
+  (los colores CSS están ligados a esas 5). Pendiente: colores desde dato.
+- Pendiente de diseñar con caso real: eventos estando en 2 bandas.
+- El "Modo Banda 🐯" es SINCRONÍA en vivo, no multibanda (nombre confuso).
+- Copias de seguridad: tablas backup_* con fecha en la propia BBDD
+  (borrarlas cuando todo esté consolidado).
+
+## Principio de diseño transversal
+Datos PERSONALES → atados al usuario (_userSettings, favoritos futuros,
+disponibilidad). CONTENIDO → atado a la banda (canciones, repertorios,
+eventos, etiquetas futuras).
 
 ---
 Documento generado desde la propia app · pulsación larga en Configuración.`;
@@ -6935,7 +6995,7 @@ function closePopup() {
 // ═══════════════════════════════════════════════
 // INSTRUMENT PICKER POPUP
 // ═══════════════════════════════════════════════
-const _instOptions = BAND.instruments.filter(i => i.pickable);   // ← fuente única BAND (sin voz)
+const _instOptions = () => BAND.instruments.filter(i => i.pickable);   // ← fuente única BAND, LIVE (sin voz)
 
 let _instPicker = null;
 
@@ -6951,7 +7011,7 @@ function openInstPicker(anchor, row, sec) {
     display:flex; flex-direction:column; gap:4px; min-width:140px;
   `;
 
-  _instOptions.forEach(opt => {
+  _instOptions().forEach(opt => {
     const btn = document.createElement("button");
     const isActive = row.instrument === opt.key;
     btn.style.cssText = `
