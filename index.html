@@ -13587,6 +13587,26 @@ document.addEventListener('DOMContentLoaded', function() {
 .cal-event-card.concierto:hover { box-shadow: 0 4px 18px rgba(232,64,64,0.3); }
 .cal-event-card.birra    { border-left-color: #e8a820; box-shadow: 0 2px 10px rgba(232,168,32,0.18); }
 .cal-event-card.birra:hover { box-shadow: 0 4px 18px rgba(232,168,32,0.3); }
+/* ── Asistencia por evento ── */
+.ev-att-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.ev-att {
+  font-family:'Space Mono',monospace; font-size:0.62rem; letter-spacing:0.03em;
+  padding:2px 7px; border-radius:12px; border:1px solid var(--border);
+  color:var(--muted); background:rgba(255,255,255,0.03);
+}
+.ev-att.yes      { color:#3dba6e; border-color:#3dba6e; }
+.ev-att.no       { color:#ff6666; border-color:#ff6666; }
+.ev-att.prev-yes { color:#3dba6e; opacity:0.45; border-style:dashed; }
+.ev-att.prev-no  { color:#ff6666; opacity:0.45; border-style:dashed; }
+.ev-att-btns { display:flex; gap:8px; margin-top:8px; }
+.ev-att-btn {
+  font-family:'Space Mono',monospace; font-size:0.68rem; padding:5px 12px;
+  border-radius:8px; border:1.5px solid var(--border); background:transparent;
+  color:var(--muted); cursor:pointer; transition:all 0.15s;
+}
+.ev-att-btn.yes.active { background:rgba(61,186,110,0.18); color:#3dba6e; border-color:#3dba6e; font-weight:700; }
+.ev-att-btn.no.active  { background:rgba(232,64,64,0.18);  color:#ff6666; border-color:#ff6666; font-weight:700; }
+.ev-att-btn:hover { border-color:var(--accent); }
 .cal-event-card.otro     { border-left-color: #3a9fd4; box-shadow: 0 2px 10px rgba(58,159,212,0.18); }
 .cal-event-card.otro:hover { box-shadow: 0 4px 18px rgba(58,159,212,0.3); }
 .cal-event-title {
@@ -13972,6 +13992,7 @@ let _calYear  = new Date().getFullYear();
 let _calMonth = new Date().getMonth(); // 0-based
 let _calEvents = [];       // from cal_events
 let _calAvail  = {};       // { "YYYY-MM-DD": { member_key: 'yes'|'no' } }
+let _calEvRsvp = {};       // { event_id: { member_key: 'yes'|'no' } } — asistencia por evento
 let _calOpenDate = null;   // currently open day panel date string
 
 const _MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -14051,6 +14072,18 @@ async function _calLoadData() {
   ]);
 
   _calEvents = evRes.data || [];
+
+  // Asistencia por evento (cal_event_rsvp) de los eventos cargados
+  _calEvRsvp = {};
+  const _evIds = _calEvents.map(e => e.id).filter(Boolean);
+  if (_evIds.length) {
+    const { data: _rs } = await _sb.from('cal_event_rsvp')
+      .select('event_id, member_key, status').in('event_id', _evIds);
+    (_rs || []).forEach(r => {
+      if (!_calEvRsvp[r.event_id]) _calEvRsvp[r.event_id] = {};
+      _calEvRsvp[r.event_id][r.member_key] = r.status;
+    });
+  }
 
   // Build avail map: { 'YYYY-MM-DD': { member_key: 'yes'|'no' } }
   // Solo miembros de la BANDA ACTIVA: la disponibilidad es personal (te sigue
@@ -14243,12 +14276,35 @@ function _calRenderPanelBody(dateStr) {
       const icon = ev.type==='ensayo' ? '🎸' : ev.type==='concierto' ? '🎤' : ev.type==='birra' ? '🍺' : '📌';
       const typeLabel = ev.type==='ensayo' ? 'Ensayo' : ev.type==='concierto' ? 'Concierto' : ev.type==='birra' ? 'Quedada' : 'Otro';
 
-      // Check conflicts
-      const noCount = CAL_MEMBERS.filter(m => (dayAvail[m.key]||'none')==='no').length;
-      const conflictHtml = (ev.type==='ensayo' || ev.type==='concierto' || ev.type==='birra') && noCount > 0
-        ? `<div class="cal-conflict-warn" style="margin-top:8px;font-size:0.7rem;">
-            ⚠️ ${noCount} miembro${noCount>1?'s':''} no puede${noCount>1?'n':''} este día
-           </div>` : '';
+      // Asistencia por evento (prioridad: respuesta al evento > previsión del día)
+      const evR = _calEvRsvp[ev.id] || {};
+      const confirmedNo = CAL_MEMBERS.filter(m => evR[m.key]==='no').length;
+      const prevNo      = CAL_MEMBERS.filter(m => !evR[m.key] && (dayAvail[m.key]||'none')==='no').length;
+      let conflictHtml = '';
+      if ((ev.type==='ensayo' || ev.type==='concierto' || ev.type==='birra') && (confirmedNo+prevNo) > 0) {
+        const parts = [];
+        if (confirmedNo) parts.push(`${confirmedNo} no viene${confirmedNo>1?'n':''}`);
+        if (prevNo)      parts.push(`${prevNo} en principio no puede${prevNo>1?'n':''}`);
+        conflictHtml = `<div class="cal-conflict-warn" style="margin-top:8px;font-size:0.7rem;">⚠️ ${parts.join(' · ')}</div>`;
+      }
+
+      // Fila de estados + mis botones Voy / No voy
+      const attRow = CAL_MEMBERS.map(m => {
+        const r = evR[m.key], prev = dayAvail[m.key];
+        let cls='none', mark='—', tip=m.name+': sin respuesta';
+        if (r==='yes')       { cls='yes';      mark='✓'; tip=m.name+' viene'; }
+        else if (r==='no')   { cls='no';       mark='✗'; tip=m.name+' no viene'; }
+        else if (prev==='yes'){ cls='prev-yes'; mark='✓'; tip=m.name+' en principio puede (previsión del día)'; }
+        else if (prev==='no') { cls='prev-no';  mark='✗'; tip=m.name+' en principio no puede (previsión del día)'; }
+        return `<span class="ev-att ${cls}" title="${tip}">${m.initials||m.key} ${mark}</span>`;
+      }).join('');
+      const myR = evR[myKey] || 'none';
+      const attHtml = `
+        <div class="ev-att-row">${attRow}</div>
+        <div class="ev-att-btns">
+          <button class="ev-att-btn yes ${myR==='yes'?'active':''}" onclick="calEvRespond('${ev.id}','yes','${dateStr}')">✓ Voy</button>
+          <button class="ev-att-btn no ${myR==='no'?'active':''}"  onclick="calEvRespond('${ev.id}','no','${dateStr}')">✗ No voy</button>
+        </div>`;
 
       // Setlist link
       let setlistHtml = '';
@@ -14266,6 +14322,7 @@ function _calRenderPanelBody(dateStr) {
           ${ev.venue ? `<span>📍 ${ev.venue}</span>` : ''}
         </div>
         ${ev.notes ? `<div class="cal-event-notes" style="white-space:pre-wrap;">${ev.notes}</div>` : ''}
+        ${attHtml}
         ${conflictHtml}
         <div class="cal-event-actions">
           <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
@@ -14320,6 +14377,36 @@ function calCloseDayPanel() {
 }
 
 // ── Availability ─────────────────────────────────────────
+// Responder a UN EVENTO (voy / no voy). Tocar tu estado activo lo quita
+// (vuelve a la previsión del día). Prioridad: evento > día.
+async function calEvRespond(eventId, status, dateStr) {
+  if (!_currentUser) return;
+  const myKey = _calMyKey();
+  const me = CAL_MEMBERS.find(m => m.key === myKey);
+  const current = (_calEvRsvp[eventId] || {})[myKey];
+  let error;
+  if (current === status) {
+    // quitar mi respuesta → vuelve la previsión del día
+    ({ error } = await _sb.from('cal_event_rsvp').delete()
+      .match({ event_id: eventId, member_key: myKey }));
+    if (!error && _calEvRsvp[eventId]) delete _calEvRsvp[eventId][myKey];
+  } else {
+    ({ error } = await _sb.from('cal_event_rsvp').upsert({
+      event_id: eventId,
+      member_key: myKey,
+      member_name: me?.name || myKey,
+      status,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'event_id,member_key' }));
+    if (!error) {
+      if (!_calEvRsvp[eventId]) _calEvRsvp[eventId] = {};
+      _calEvRsvp[eventId][myKey] = status;
+    }
+  }
+  if (error) { alert('Error al guardar tu respuesta.'); return; }
+  _calRenderPanelBody(dateStr);   // re-pintar el panel del día
+}
+
 async function calSetAvail(dateStr, memberKey, status) {
   if (!_currentUser) return;
 
@@ -15565,15 +15652,16 @@ async function rsvpRespond(status) {
     return;
   }
 
-  // 2. Guardar disponibilidad
-  const { error: avErr } = await _sb.from('cal_availability').upsert({
-    date:        ctx.date,
+  // 2. Guardar la respuesta AL EVENTO (antes pisaba la disponibilidad del
+  //    día entero — con varios eventos el mismo día era incorrecto).
+  //    La previsión del día (cal_availability) no se toca desde un evento.
+  const { error: avErr } = await _sb.from('cal_event_rsvp').upsert({
+    event_id:    ctx.event.id,
     member_key:  ctx.member.key,
-    member_name: ctx.member.name,
+    member_name: ctx.member.name + ' (RSVP)',
     status,
-    updated_by:  ctx.member.name + ' (RSVP)',
     updated_at:  new Date().toISOString()
-  }, { onConflict: 'date,member_key' });
+  }, { onConflict: 'event_id,member_key' });
 
   const done = document.getElementById('rsvpDone');
   if (avErr) {
