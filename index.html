@@ -13095,6 +13095,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .cal-ev-ensayo  { background: #3dba6e; }
 .cal-ev-concierto { background: #e84040; }
 .cal-ev-otro    { background: #3a9fd4; }
+.cal-ev-birra   { background: #e8a820; }
 
 /* Body */
 .cal-body {
@@ -13594,15 +13595,14 @@ document.addEventListener('DOMContentLoaded', function() {
   padding:2px 7px; border-radius:12px; border:1px solid var(--border);
   color:var(--muted); background:rgba(255,255,255,0.03);
 }
-.ev-att.yes      { color:#3dba6e; border-color:#3dba6e; }
-.ev-att.no       { color:#ff6666; border-color:#ff6666; }
-.ev-att.prev-yes { color:#3dba6e; opacity:0.45; border-style:dashed; }
-.ev-att.prev-no  { color:#ff6666; opacity:0.45; border-style:dashed; }
+.ev-att.yes { background:rgba(61,186,110,0.22); color:#3dba6e; border-color:#3dba6e; font-weight:700; }
+.ev-att.no  { background:rgba(232,64,64,0.22);  color:#ff6666; border-color:#ff6666; font-weight:700; }
 .ev-att-btns { display:flex; gap:8px; margin-top:8px; }
 .ev-att-btn {
-  font-family:'Space Mono',monospace; font-size:0.68rem; padding:5px 12px;
-  border-radius:8px; border:1.5px solid var(--border); background:transparent;
-  color:var(--muted); cursor:pointer; transition:all 0.15s;
+  font-family:'Space Mono',monospace; font-size:0.7rem; padding:6px 14px;
+  border-radius:8px; border:1.5px solid var(--muted); background:var(--surface, rgba(255,255,255,0.05));
+  color:var(--text); cursor:pointer; transition:all 0.15s;
+  box-shadow:0 1px 3px rgba(0,0,0,0.15);
 }
 .ev-att-btn.yes.active { background:rgba(61,186,110,0.18); color:#3dba6e; border-color:#3dba6e; font-weight:700; }
 .ev-att-btn.no.active  { background:rgba(232,64,64,0.18);  color:#ff6666; border-color:#ff6666; font-weight:700; }
@@ -13626,10 +13626,10 @@ document.addEventListener('DOMContentLoaded', function() {
   display: flex; gap: 5px; margin-top: 8px;
 }
 .cal-event-btn {
-  font-family: 'Space Mono', monospace; font-size: 0.6rem;
-  padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);
-  background: transparent; color: var(--muted); cursor: pointer;
-  transition: all 0.12s;
+  font-family: 'Space Mono', monospace; font-size: 0.62rem;
+  padding: 4px 10px; border-radius: 6px; border: 1.5px solid var(--muted);
+  background: var(--surface, rgba(255,255,255,0.05)); color: var(--text); cursor: pointer;
+  transition: all 0.12s; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 .cal-event-btn:hover { border-color: var(--accent); color: var(--accent); }
 .cal-event-btn.danger:hover { border-color: #e84040; color: #e84040; }
@@ -13865,6 +13865,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="cal-legend">
     <span class="cal-legend-item"><span class="cal-legend-dot cal-ev-ensayo"></span>🎸 Ensayo</span>
     <span class="cal-legend-item"><span class="cal-legend-dot cal-ev-concierto"></span>🎤 Concierto</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot cal-ev-birra"></span>🍺 Quedada</span>
     <span class="cal-legend-item"><span class="cal-legend-dot cal-ev-otro"></span>📌 Otro</span>
     <span style="margin-left:auto;font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);">
       <span style="color:#3dba6e;font-weight:700;">●</span> puede
@@ -14290,12 +14291,12 @@ function _calRenderPanelBody(dateStr) {
 
       // Fila de estados + mis botones Voy / No voy
       const attRow = CAL_MEMBERS.map(m => {
-        const r = evR[m.key], prev = dayAvail[m.key];
-        let cls='none', mark='—', tip=m.name+': sin respuesta';
-        if (r==='yes')       { cls='yes';      mark='✓'; tip=m.name+' viene'; }
-        else if (r==='no')   { cls='no';       mark='✗'; tip=m.name+' no viene'; }
-        else if (prev==='yes'){ cls='prev-yes'; mark='✓'; tip=m.name+' en principio puede (previsión del día)'; }
-        else if (prev==='no') { cls='prev-no';  mark='✗'; tip=m.name+' en principio no puede (previsión del día)'; }
+        const r = evR[m.key];
+        // Solo respuestas REALES al evento (sin previsiones: la previsión del
+        // día se comunica en palabras en el aviso ⚠️, no con códigos visuales)
+        let cls='none', mark='—', tip=m.name+': sin responder';
+        if (r==='yes')     { cls='yes'; mark='✓'; tip=m.name+' viene'; }
+        else if (r==='no') { cls='no';  mark='✗'; tip=m.name+' no viene'; }
         return `<span class="ev-att ${cls}" title="${tip}">${m.initials||m.key} ${mark}</span>`;
       }).join('');
       const myR = evR[myKey] || 'none';
@@ -14337,25 +14338,35 @@ function _calRenderPanelBody(dateStr) {
   body.appendChild(evSection);
 
   // ── My availability (DESPUÉS de los eventos) ──
+  // El panel SE ADAPTA: si el día tiene eventos, la acción es responder a
+  // los eventos (botones en cada tarjeta), no la disponibilidad genérica.
+  const _dayHasEvents = _calEvents.some(e => e.date === dateStr);
   const mySection = document.createElement('div');
   mySection.className = 'cal-my-avail';
-  mySection.innerHTML = `
-    <div class="cal-my-avail-title">🙋 Mi disponibilidad</div>
-    <div class="cal-avail-btns">
-      <button class="cal-avail-btn yes-btn ${myStatus==='yes'?'active':''}"
-        onclick="calSetAvail('${dateStr}','${myKey}','yes')">✓ Puedo</button>
-      <button class="cal-avail-btn no-btn ${myStatus==='no'?'active':''}"
-        onclick="calSetAvail('${dateStr}','${myKey}','no')">✗ No puedo</button>
-    </div>`;
+  if (_dayHasEvents) {
+    mySection.innerHTML = `
+      <div class="cal-my-avail-title">🙋 Mi disponibilidad</div>
+      <div class="cal-avail-hint" style="font-size:0.72rem;color:var(--muted);padding:4px 2px;">⬆ Responde a los eventos del día</div>`;
+  } else {
+    mySection.innerHTML = `
+      <div class="cal-my-avail-title">🙋 Mi disponibilidad</div>
+      <div class="cal-avail-btns">
+        <button class="cal-avail-btn yes-btn ${myStatus==='yes'?'active':''}"
+          onclick="calSetAvail('${dateStr}','${myKey}','yes')">✓ Puedo</button>
+        <button class="cal-avail-btn no-btn ${myStatus==='no'?'active':''}"
+          onclick="calSetAvail('${dateStr}','${myKey}','no')">✗ No puedo</button>
+      </div>`;
+  }
   body.appendChild(mySection);
 
   // ── Band availability ──
+  // Estado según la MATRIZ (fuente única, la misma que la celda del mes)
   const bandSection = document.createElement('div');
   bandSection.className = 'cal-band-avail';
   let bandHtml = '<div class="cal-band-avail-title">👥 Disponibilidad del grupo</div>';
   CAL_MEMBERS.forEach(m => {
-    const st = dayAvail[m.key] || 'none';
-    const stLabel = st==='yes' ? '✓ Puede' : st==='no' ? '✗ No puede' : '— Sin responder';
+    const _ms = _calMemberDayStatus(dateStr, m.key);
+    const st = _ms.st, stLabel = _ms.label;
     bandHtml += `
       <div class="cal-member-row">
         <div class="cal-member-avatar ${st}">${m.initials}</div>
@@ -14405,10 +14416,24 @@ async function calEvRespond(eventId, status, dateStr) {
   }
   if (error) { alert('Error al guardar tu respuesta.'); return; }
   _calRenderPanelBody(dateStr);   // re-pintar el panel del día
+  _calRenderCell(dateStr);        // …y la celda del mes (derivación "va a un evento")
 }
 
 async function calSetAvail(dateStr, memberKey, status) {
   if (!_currentUser) return;
+
+  // Toggle-quitar: tocar tu estado activo otra vez = quitar la disponibilidad
+  // (igual que en la asistencia por evento — consistencia entre capas)
+  const current = (_calAvail[dateStr] || {})[memberKey];
+  if (current === status) {
+    const { error } = await _sb.from('cal_availability').delete()
+      .match({ date: dateStr, member_key: memberKey });
+    if (error) { console.error('Availability error:', error); return; }
+    if (_calAvail[dateStr]) delete _calAvail[dateStr][memberKey];
+    _calRenderCell(dateStr);
+    if (_calOpenDate === dateStr) _calRenderPanelBody(dateStr);
+    return;
+  }
 
   // Upsert
   const { error } = await _sb.from('cal_availability').upsert({
@@ -14432,12 +14457,31 @@ async function calSetAvail(dateStr, memberKey, status) {
 }
 
 // Build the bottom availability zone for a date
+// ── MATRIZ de estado por miembro y día (FUENTE ÚNICA: celda y panel) ──
+// Eventos del día: algún '✓ voy' → va · algún '✗ no voy' (sin ningún ✓) →
+// no va (de momento) · sin respuestas → previsión del día · nada → none.
+function _calMemberDayStatus(dateStr, key) {
+  const dayEvs = _calEvents.filter(e => e.date === dateStr);
+  const rs = dayEvs.map(e => (_calEvRsvp[e.id] || {})[key]).filter(Boolean);
+  if (rs.includes('yes')) return { st:'yes',  label:'✓ Va a un evento',     tip:'✓ va a un evento' };
+  if (rs.includes('no'))  return { st:'no',   label:'✗ No va (de momento)', tip:'✗ no va (de momento)' };
+  // Día CON eventos y sin respuesta a ninguno → no sale nada (la previsión
+  // del día solo se comunica en palabras, en el ⚠️ de cada evento)
+  if (dayEvs.length) return { st:'none', label:'— Sin responder', tip:'sin responder' };
+  const day = (_calAvail[dateStr] || {})[key];
+  if (day === 'yes') return { st:'yes',  label:'✓ Puede',    tip:'✓ puede' };
+  if (day === 'no')  return { st:'no',   label:'✗ No puede', tip:'✗ no puede' };
+  return { st:'none', label:'— Sin responder', tip:'sin responder' };
+}
+
 function _calBuildAvailZone(dateStr) {
   const myKey   = _calMyKey();
-  const dayAvail = _calAvail[dateStr] || {};
+  const _hasEvents = _calEvents.some(e => e.date === dateStr);
 
-  // Only show members who have responded (yes/no) + mine always shown if set
-  const visible = CAL_MEMBERS.filter(m => dayAvail[m.key] === 'yes' || dayAvail[m.key] === 'no');
+  // Estado según la MATRIZ (fuente única): visibles = con algún estado
+  const visible = CAL_MEMBERS
+    .map(m => ({ m, s: _calMemberDayStatus(dateStr, m.key) }))
+    .filter(x => x.s.st !== 'none');
   const count   = visible.length;
 
   const zone = document.createElement('div');
@@ -14445,20 +14489,25 @@ function _calBuildAvailZone(dateStr) {
   zone.dataset.date = dateStr;
   zone.dataset.count = count || 1; // min 1 for sizing
 
-  // Tap on empty zone = toggle my status
+  // Día CON eventos: la zona te lleva a los eventos (panel), no cicla el día.
+  // Día sin eventos: toggle rápido de mi disponibilidad, como siempre.
   zone.addEventListener('click', e => {
     e.stopPropagation();
+    if (_hasEvents) { _calOpenDayPanel(dateStr); return; }
     calTapAvail(dateStr);
   });
 
-  visible.forEach(m => {
-    const status = dayAvail[m.key];
+  visible.forEach(({ m, s: ms }) => {
     const dot = document.createElement('div');
-    dot.className = `cal-avail-dot ${status}` + (m.key === myKey ? ' mine' : '');
+    dot.className = `cal-avail-dot ${ms.st}` + (m.key === myKey ? ' mine' : '');
     dot.textContent = m.initials.charAt(0);
-    dot.title = `${m.name}: ${status==='yes'?'✓ puede':'✗ no puede'}`;
+    dot.title = `${m.name}: ${ms.tip}`;
     if (m.key === myKey) {
-      dot.addEventListener('click', e => { e.stopPropagation(); calTapAvail(dateStr); });
+      dot.addEventListener('click', e => {
+        e.stopPropagation();
+        if (_hasEvents) { _calOpenDayPanel(dateStr); return; }
+        calTapAvail(dateStr);
+      });
     }
     zone.appendChild(dot);
   });
@@ -14501,6 +14550,8 @@ function _calMyKey() {
 
 // One-tap cycle: none→yes, yes→no, no→delete row (none)
 async function calTapAvail(dateStr) {
+  // Día con eventos: la acción es responder a los eventos → abrir el panel
+  if (_calEvents.some(e => e.date === dateStr)) { _calOpenDayPanel(dateStr); return; }
   const myKey = _calMyKey();
   const current = (_calAvail[dateStr] || {})[myKey] || 'none';
   let next;
