@@ -1738,6 +1738,38 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   letter-spacing: 0.08em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.song-card .card-tags { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0 2px; }
+.card-tag {
+  font-family:'Space Mono',monospace; font-size:0.56rem; font-weight:700;
+  color:#fff; padding:2px 7px; border-radius:10px; letter-spacing:0.03em;
+  white-space:nowrap;
+}
+/* En modo lista: etiquetas como puntitos de color (sin texto) para que
+   quepan; y el título cede espacio antes que las etiquetas */
+#libGrid.list-mode .song-card .card-tags { flex-wrap:nowrap; flex-shrink:0; margin:0; gap:6px; margin-right:10px; }
+#libGrid.list-mode .card-tag {
+  width:12px; height:12px; padding:0; border-radius:50%;
+  font-size:0; overflow:hidden; flex-shrink:0;
+}
+#libGrid.list-mode .song-card .card-title {
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;
+}
+.tag-pick {
+  font-family:'Space Mono',monospace; font-size:0.72rem; font-weight:700;
+  padding:7px 14px; border-radius:16px; border:2px solid; background:transparent;
+  cursor:pointer; transition:all 0.12s;
+}
+.tag-pick:active { transform:scale(0.95); }
+.lib-tagfilter {
+  display:flex; flex-wrap:wrap; gap:6px; padding:2px 2px 10px; margin-top:8px;
+}
+.lib-tagchip {
+  font-family:'Space Mono',monospace; font-size:0.66rem; font-weight:700;
+  padding:5px 11px; border-radius:14px; border:1.5px solid; background:transparent;
+  cursor:pointer; transition:all 0.12s; white-space:nowrap;
+}
+.lib-tagchip:active { transform:scale(0.95); }
+.lib-tagchip.clear { border-color:var(--muted); color:var(--muted); }
 .song-card .card-meta {
   font-family: 'IBM Plex Sans', sans-serif;
   font-size: 0.72rem;
@@ -1790,6 +1822,7 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
 .lib-search:focus { border-color: var(--accent); }
 .lib-toolbar {
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 4px;
 }
 /* ── LIST MODE toggle button ── */
 .lib-view-btn {
@@ -1861,7 +1894,8 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   letter-spacing: 0;
 }
 #libGrid.list-mode .song-card .card-btn .btn-label { display: none; }
-#libGrid.list-mode .song-card .card-btn:not(.danger) { display: none; }
+/* En modo lista: mostrar SOLO el botón de etiquetas (borrar/editar ocultos) */
+#libGrid.list-mode .song-card .card-btn:not(.tag-btn) { display: none; }
 @media (max-width: 500px) {
   #libGrid.list-mode .song-card .card-artist,
   #libGrid.list-mode .song-card .card-meta { display: none; }
@@ -3950,6 +3984,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <button class="lib-view-btn" id="libViewBtn" onclick="toggleLibView()" title="Alternar modo lista / tarjetas">☰ Lista</button>
       <input class="lib-search" id="libSearch" placeholder="🔍 Buscar canción o artista..." oninput="filterLibrary()" />
     </div>
+    <div class="lib-tagfilter" id="libTagFilter" style="display:none;"></div>
     <div class="lib-grid" id="libGrid"></div>
   </div>
 </div>
@@ -4005,14 +4040,25 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 </div>
 
 <!-- ══ MODAL CONFIGURACIÓN BIBLIOTECA ══ -->
-<div class="cfg-overlay" id="cfgModal">
-  <div class="cfg-modal">
+<div class="cfg-overlay" id="tagPickerOverlay">
+  <div class="cfg-modal" style="max-width:380px;">
+    <div class="cfg-modal-hdr">
+      <span class="cfg-modal-title" id="tagPickerTitle">🏷️ Etiquetas</span>
+      <button class="cfg-close" onclick="closeTagPicker()">✕</button>
+    </div>
+    <p class="cfg-desc">Toca para asignar o quitar etiquetas de esta canción.</p>
+    <div id="tagPickerList" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 4px 4px;"></div>
+  </div>
+</div>
+
+<div class="cfg-overlay" id="cfgModal">  <div class="cfg-modal">
     <div class="cfg-modal-hdr">
       <span class="cfg-modal-title">⚙ Configuración</span>
       <button class="cfg-close" onclick="closeLibConfig()">✕</button>
     </div>
     <div class="cfg-tabs">
       <button class="cfg-tab active" onclick="cfgSwitchTab('secciones',this)">Secciones</button>
+      <button class="cfg-tab" onclick="cfgSwitchTab('etiquetas',this)">Etiquetas</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('instrumentos',this)">Instrumentos</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('tema',this)">Tema</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('preferencias',this)">Preferencias</button>
@@ -4028,6 +4074,18 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
         <button class="cfg-add-btn" onclick="cfgAddRule()">+ Añadir</button>
       </div>
       <div class="cfg-palette" id="cfgPalette"></div>
+    </div>
+
+    <!-- Panel: Etiquetas -->
+    <div class="cfg-panel" id="cfgPanel-etiquetas">
+      <p class="cfg-desc">Etiquetas de la banda para clasificar y filtrar canciones (p. ej. «Nuestras», «Nueva», «En construcción»). Las ven y usan todos los miembros.</p>
+      <div class="cfg-rules" id="cfgTagsList"></div>
+      <div class="cfg-add-row">
+        <input class="cfg-add-input" id="cfgTagInput" placeholder="ej: Nuestras, Nueva, En construcción…" maxlength="30"
+               onkeydown="if(event.key==='Enter')cfgAddTag()" />
+        <button class="cfg-add-btn" onclick="cfgAddTag()">+ Añadir</button>
+      </div>
+      <div class="cfg-palette" id="cfgTagPalette"></div>
     </div>
 
     <!-- Panel: Instrumentos -->
@@ -5151,6 +5209,7 @@ async function doLogin() {
   _currentUser = result.data.user;
   _currentUser._displayName = _clean.split("@")[0];
   await bandSelectAndLoad();   // B2+D1: mis bandas → selector → cargar
+  await loadBandTags();        // catálogo de etiquetas de la banda
   await loadUserSettings();
   document.getElementById("loginScreen").style.display = "none";
   if (window._pendingDeepEventId) {
@@ -5200,7 +5259,7 @@ async function loadLibrary() {
   grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⏳</div><p>Cargando...</p></div>';
 
   const { data, error } = await bandFilter(_sb.from("Canciones")
-    .select("id, titulo, artista, created_by, updated_at, parent_id, version_type"))
+    .select("id, titulo, artista, created_by, updated_at, parent_id, version_type, tags"))
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -5208,7 +5267,13 @@ async function loadLibrary() {
     return;
   }
   _allSongs = data || [];
-  renderLibrary(_allSongs);
+  // Limpiar filtros de etiqueta que ya no existan en el catálogo
+  if (_activeTagFilter.size) {
+    const valid = new Set(_bandTags.map(t => t.id));
+    _activeTagFilter.forEach(id => { if (!valid.has(id)) _activeTagFilter.delete(id); });
+  }
+  renderTagFilter();
+  renderLibrary(_getFilteredSongs());
 }
 
 function renderLibrary(songs) {
@@ -5236,25 +5301,131 @@ function renderLibrary(songs) {
     const ideas    = children.filter(c => c.version_type !== 'version').length;
     const versions = children.filter(c => c.version_type === 'version').length;
     const badgeHtml = children.length ? `<span class="song-versions-badge">${ideas ? `<span>💡${ideas}</span>` : ''}${versions ? `<span>💿${versions}</span>` : ''}</span>` : '';
+    // Píldoras de etiquetas asignadas (de la columna tags)
+    const songTags = Array.isArray(s.tags) ? s.tags : [];
+    const tagsHtml = songTags.length ? `<div class="card-tags">${
+      songTags.map(id => {
+        const t = _bandTags.find(x => x.id === id);
+        return t ? `<span class="card-tag" style="background:${t.color};" title="${esc(t.nombre)}">${esc(t.nombre)}</span>` : '';
+      }).join('')
+    }</div>` : '';
     card.innerHTML = `
       <div class="card-title">${esc(s.titulo) || "(Sin título)"}${badgeHtml}</div>
       <div class="card-artist">${esc(s.artista) || "—"}</div>
+      ${tagsHtml}
       <div class="card-meta">${date}</div>
       <div class="card-by">✏️ ${esc(s.created_by) || "desconocido"}</div>
       <div class="card-actions">
         <button class="card-btn" onclick="openSong('${s.id}', false)">✏️<span class="btn-label"> Editar</span></button>
+        <button class="card-btn tag-btn" onclick="openTagPicker('${s.id}', event)">🏷️<span class="btn-label"> Etiquetas</span></button>
         ${isOwner ? `<button class="card-btn danger" onclick="deleteSong('${s.id}', event)">🗑<span class="btn-label"> Borrar</span></button>` : ""}
       </div>`;
     grid.appendChild(card);
   });
 }
 
+// ── Asignar etiquetas a una canción (popup) ────────────────────
+let _tagPickerSongId = null;
+function openTagPicker(songId, e) {
+  if (e) e.stopPropagation();
+  _tagPickerSongId = songId;
+  const song = _allSongs.find(s => String(s.id) === String(songId));
+  const current = new Set(Array.isArray(song?.tags) ? song.tags : []);
+  const ov = document.getElementById('tagPickerOverlay');
+  const list = document.getElementById('tagPickerList');
+  const title = document.getElementById('tagPickerTitle');
+  title.textContent = '🏷️ ' + (song?.titulo || 'Etiquetas');
+  if (!_bandTags.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:12px 4px;text-align:center;">No hay etiquetas. Créalas en ⚙ Configuración → Etiquetas.</div>';
+  } else {
+    list.innerHTML = '';
+    _bandTags.forEach(t => {
+      const on = current.has(t.id);
+      const b = document.createElement('button');
+      b.className = 'tag-pick' + (on ? ' on' : '');
+      b.dataset.name = t.nombre;
+      b.style.cssText = `border-color:${t.color};` + (on ? `background:${t.color};color:#fff;` : `color:${t.color};`);
+      b.textContent = (on ? '✓ ' : '') + t.nombre;
+      b.onclick = () => toggleTagOnSong(t.id, b, t.color);
+      list.appendChild(b);
+    });
+  }
+  ov.classList.add('open');
+}
+
+function closeTagPicker() {
+  document.getElementById('tagPickerOverlay').classList.remove('open');
+  _tagPickerSongId = null;
+}
+
+async function toggleTagOnSong(tagId, btn, color) {
+  const song = _allSongs.find(s => String(s.id) === String(_tagPickerSongId));
+  if (!song) return;
+  const tags = new Set(Array.isArray(song.tags) ? song.tags : []);
+  if (tags.has(tagId)) tags.delete(tagId); else tags.add(tagId);
+  const arr = [...tags];
+  const { data, error } = await _sb.from('Canciones')
+    .update({ tags: arr }).eq('id', song.id).select('id, tags');
+  if (error) { alert('No se pudo guardar la etiqueta: ' + error.message); return; }
+  song.tags = (data && data.length && data[0].tags) ? data[0].tags : arr;
+  const on = (song.tags || []).includes(tagId);
+  btn.classList.toggle('on', on);
+  btn.textContent = (on ? '✓ ' : '') + btn.dataset.name;
+  btn.style.cssText = `border-color:${color};` + (on ? `background:${color};color:#fff;` : `color:${color};`);
+  renderLibrary(_getFilteredSongs());
+}
+
+// Lista actual según el buscador (para re-render tras cambios)
+function _getFilteredSongs() {
+  const q = (document.getElementById("libSearch")?.value || "").toLowerCase();
+  let list = _allSongs;
+  if (q) list = list.filter(s =>
+    (s.titulo||"").toLowerCase().includes(q) || (s.artista||"").toLowerCase().includes(q));
+  // Filtro por etiquetas (AND: la canción debe tener TODAS las marcadas)
+  if (_activeTagFilter.size) {
+    list = list.filter(s => {
+      const tags = Array.isArray(s.tags) ? s.tags : [];
+      for (const id of _activeTagFilter) if (!tags.includes(id)) return false;
+      return true;
+    });
+  }
+  return list;
+}
+
+// ── Filtro de biblioteca por etiquetas ─────────────────────────
+let _activeTagFilter = new Set();
+function renderTagFilter() {
+  const bar = document.getElementById('libTagFilter');
+  if (!bar) return;
+  if (!_bandTags.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = '';
+  _bandTags.forEach(t => {
+    const on = _activeTagFilter.has(t.id);
+    const b = document.createElement('button');
+    b.className = 'lib-tagchip' + (on ? ' on' : '');
+    b.dataset.name = t.nombre;
+    b.style.cssText = `border-color:${t.color};` + (on ? `background:${t.color};color:#fff;` : `color:${t.color};`);
+    b.textContent = (on ? '✓ ' : '') + t.nombre;
+    b.onclick = () => {
+      if (_activeTagFilter.has(t.id)) _activeTagFilter.delete(t.id);
+      else _activeTagFilter.add(t.id);
+      renderTagFilter();
+      renderLibrary(_getFilteredSongs());
+    };
+    bar.appendChild(b);
+  });
+  if (_activeTagFilter.size) {
+    const clear = document.createElement('button');
+    clear.className = 'lib-tagchip clear';
+    clear.textContent = '✕ Quitar filtro';
+    clear.onclick = () => { _activeTagFilter.clear(); renderTagFilter(); renderLibrary(_getFilteredSongs()); };
+    bar.appendChild(clear);
+  }
+}
+
 function filterLibrary() {
-  const q = document.getElementById("libSearch").value.toLowerCase();
-  const filtered = _allSongs.filter(s =>
-    (s.titulo||"").toLowerCase().includes(q) || (s.artista||"").toLowerCase().includes(q)
-  );
-  renderLibrary(filtered);
+  renderLibrary(_getFilteredSongs());
 }
 
 let _libListMode = false;
@@ -5273,6 +5444,8 @@ function toggleLibView() {
     btn.textContent = "☰ Lista";
     btn.title = "Cambiar a modo lista compacto";
   }
+  // Re-render para que el botón Borrar aparezca/desaparezca según el modo
+  renderLibrary(_getFilteredSongs());
 }
 
 async function openSong(id, playMode = true) {
@@ -5571,6 +5744,7 @@ async function _navigateToDeepEvent(eventId) {
     _currentUser._displayName = (_currentUser.email || "").split("@")[0];
     document.getElementById("loginScreen").style.display = "none";
     await bandSelectAndLoad();   // B2+D1: mis bandas → selector → cargar
+  await loadBandTags();        // catálogo de etiquetas de la banda
     await loadUserSettings();
     if (deepEventId) {
       await _navigateToDeepEvent(deepEventId);
@@ -11520,6 +11694,92 @@ const CFG_PALETTE = [
 ];
 
 let _cfgSelectedColor = 0;  // índice en CFG_PALETTE
+let _cfgTagColor = 0;       // índice de color para nueva etiqueta
+let _bandTags = [];         // catálogo de etiquetas de la banda [{id,nombre,color,orden}]
+
+// ── Etiquetas de banda (catálogo) ──────────────────────────────
+async function loadBandTags() {
+  _bandTags = [];
+  if (!BAND.id) return;
+  try {
+    const { data, error } = await _sb.from('banda_etiquetas')
+      .select('*').eq('banda_id', BAND.id).order('orden');
+    if (!error && data) _bandTags = data;
+  } catch (e) { console.warn('etiquetas:', e?.message || e); }
+}
+
+function cfgRenderTagPalette() {
+  const el = document.getElementById('cfgTagPalette');
+  if (!el) return;
+  el.innerHTML = '';
+  CFG_PALETTE.forEach((c, i) => {
+    const s = document.createElement('div');
+    s.className = 'cfg-pal-swatch' + (i === _cfgTagColor ? ' selected' : '');
+    s.style.background = c.hex;
+    s.title = c.label;
+    s.onclick = () => { _cfgTagColor = i; cfgRenderTagPalette(); };
+    el.appendChild(s);
+  });
+}
+
+function cfgRenderTags() {
+  const list = document.getElementById('cfgTagsList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!BAND.id) {
+    list.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.65rem;color:var(--muted);padding:8px 0;">Las etiquetas necesitan una banda cargada.</div>';
+    return;
+  }
+  if (!_bandTags.length) {
+    list.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.65rem;color:var(--muted);padding:8px 0;">Sin etiquetas. Añade una abajo.</div>';
+    return;
+  }
+  _bandTags.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'cfg-rule-row';
+    row.innerHTML = `
+      <span class="cfg-preview-pill" style="background:${t.color};color:#fff;">${t.nombre}</span>
+      <span style="flex:1;"></span>
+      <div class="cfg-swatch" style="background:${t.color}" title="Clic para cambiar color" onclick="cfgCycleTagColor('${t.id}')"></div>
+      <button class="cfg-del" onclick="cfgDeleteTag('${t.id}')" title="Eliminar">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+async function cfgAddTag() {
+  const input = document.getElementById('cfgTagInput');
+  const nombre = input.value.trim();
+  if (!nombre || !BAND.id) return;
+  // evitar duplicados (sin distinguir mayúsculas/tildes)
+  if (_bandTags.find(t => _cfgNorm(t.nombre) === _cfgNorm(nombre))) { input.select(); return; }
+  const color = CFG_PALETTE[_cfgTagColor].hex;
+  const orden = _bandTags.length ? Math.max(..._bandTags.map(t => t.orden || 0)) + 1 : 1;
+  const { data, error } = await _sb.from('banda_etiquetas')
+    .insert({ banda_id: BAND.id, nombre, color, orden }).select().single();
+  if (error) { alert('No se pudo crear la etiqueta.'); return; }
+  _bandTags.push(data);
+  input.value = '';
+  cfgRenderTags();
+}
+
+async function cfgCycleTagColor(id) {
+  const t = _bandTags.find(x => x.id === id);
+  if (!t) return;
+  const idx = CFG_PALETTE.findIndex(p => p.hex === t.color);
+  const next = CFG_PALETTE[(idx + 1) % CFG_PALETTE.length].hex;
+  const { error } = await _sb.from('banda_etiquetas').update({ color: next }).eq('id', id);
+  if (error) return;
+  t.color = next;
+  cfgRenderTags();
+}
+
+async function cfgDeleteTag(id) {
+  const { error } = await _sb.from('banda_etiquetas').delete().eq('id', id);
+  if (error) { alert('No se pudo eliminar.'); return; }
+  _bandTags = _bandTags.filter(t => t.id !== id);
+  cfgRenderTags();
+}
 
 // Carga settings desde Supabase (llamar tras login)
 async function loadUserSettings() {
@@ -11952,6 +12212,7 @@ function cfgSwitchTab(id, btn) {
   document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('cfgPanel-' + id).classList.add('active');
+  if (id === 'etiquetas') { cfgRenderTags(); cfgRenderTagPalette(); }
 }
 
 function cfgRenderPalette() {
