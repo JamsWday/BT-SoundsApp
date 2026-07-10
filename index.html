@@ -5592,17 +5592,49 @@ function versionsRenderPanel() {
   });
 }
 
-async function versionsCreateNew(type) {
+let _versionNewType = 'idea';
+function versionsCreateNew(type) {
   if (!_currentSongId) { alert('Guarda la canción principal primero.'); return; }
+  _versionNewType = type;
   const parentTitle = document.querySelector('.title-input')?.value || 'Canción';
   const defaultTitle = type === 'idea' ? `💡 Idea de ${parentTitle}` : `💿 Versión de ${parentTitle}`;
-  const title = prompt('Nombre:', defaultTitle);
-  if (!title) return;
+  document.getElementById('versionNewTitle').textContent = type === 'idea' ? '💡 Nueva idea' : '💿 Nueva versión';
+  const input = document.getElementById('versionNewName');
+  input.value = defaultTitle;
+  document.getElementById('versionNewModal').style.display = 'flex';
+  setTimeout(() => input.select(), 50);
+}
+
+function versionsCloseNewModal() {
+  document.getElementById('versionNewModal').style.display = 'none';
+}
+
+async function versionsConfirmNew(copiar) {
+  const title = document.getElementById('versionNewName').value.trim();
+  if (!title) { document.getElementById('versionNewName').focus(); return; }
+  const type = _versionNewType;
+  const artista = document.querySelector('.artist-input')?.value || '';
+  // Copia PROFUNDA e independiente: cambios posteriores no afectan a la original
+  const dataNueva = copiar
+    ? {
+        title,
+        artist: artista,
+        sections: JSON.parse(JSON.stringify(songData.sections || [])),
+        tempo: songData.tempo ?? null,
+        keyLabel: songData.keyLabel || ''
+      }
+    : { title, artist: '', sections: [], tempo: null, keyLabel: '' };
+  // SEGURIDAD AUDIO: las secciones copiadas conservan el src (pueden
+  // REPRODUCIR el mismo audio) pero SIN storagePath — así la copia nunca
+  // puede borrar del Storage el fichero de la canción original.
+  (dataNueva.sections || []).forEach(sec => {
+    if (sec.audio && sec.audio.storagePath) delete sec.audio.storagePath;
+  });
 
   const payload = {
     titulo: title,
-    artista: document.querySelector('.artist-input')?.value || '',
-    data: { title, artist: '', sections: [], tempo: null, keyLabel: '' },
+    artista,
+    data: dataNueva,
     created_by: currentUserName(),
     updated_at: new Date().toISOString(),
     parent_id: _currentSongId,
@@ -5612,6 +5644,7 @@ async function versionsCreateNew(type) {
   const { data, error } = await _sb.from('Canciones').insert(bandPayload(payload)).select().single();
   if (error) { alert('Error al crear.'); return; }
 
+  versionsCloseNewModal();
   versionsClosePanel();
   openSong(data.id, false);   // versión recién creada → Editar
 }
@@ -7289,9 +7322,7 @@ function toggleReadonly() {
     var btnBanda = document.getElementById("btnBanda");
     if (btnBanda) { btnBanda.classList.remove("banda-on"); btnBanda.style.display = "none"; }
     document.body.classList.remove("sync-on");
-    var btnScroll = { textContent: "", classList: { add:function(){}, remove:function(){} } }; // alias removed
     var btnAudio  = document.getElementById("syncPlayAudioBtn");
-    if (btnScroll) btnScroll.style.display = "none";
     if (btnAudio)  btnAudio.style.display  = "none";
   }
   resizeAllVozTextareas();
@@ -12374,6 +12405,30 @@ function drumPatternToHTML(dp, colorClass) {
 </div>
 
 <!-- Modal nuevo repertorio -->
+<!-- Modal: nueva versión/idea (nombre + vacía/copiar) -->
+<div id="versionNewModal" style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:24px 26px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;">
+    <h3 id="versionNewTitle" style="font-family:'Playfair Display',serif;color:var(--accent);font-size:1.1rem;">Nueva idea</h3>
+    <div style="display:flex;flex-direction:column;gap:5px;">
+      <label style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Nombre *</label>
+      <input id="versionNewName"
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.88rem;outline:none;width:100%;" />
+    </div>
+    <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">¿Cómo empezar?</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn" onclick="versionsConfirmNew(true)" style="text-align:left;padding:12px 14px;white-space:normal;line-height:1.35;">
+        📋 Copiar estructura de la original
+        <div style="font-size:0.68rem;opacity:0.75;font-weight:normal;margin-top:3px;white-space:normal;">Secciones, acordes, letra, batería… listos para trabajar</div>
+      </button>
+      <button class="btn" onclick="versionsConfirmNew(false)" style="text-align:left;padding:12px 14px;white-space:normal;line-height:1.35;">
+        📄 Empezar vacía
+        <div style="font-size:0.68rem;opacity:0.75;margin-top:3px;white-space:normal;">Lienzo en blanco</div>
+      </button>
+    </div>
+    <button class="btn" onclick="versionsCloseNewModal()" style="opacity:0.8;">Cancelar</button>
+  </div>
+</div>
+
 <div id="slNewModal" style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:24px 26px;width:100%;max-width:400px;display:flex;flex-direction:column;gap:14px;">
     <h3 style="font-family:'Playfair Display',serif;color:var(--accent);font-size:1.1rem;">Nuevo repertorio</h3>
