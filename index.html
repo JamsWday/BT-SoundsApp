@@ -2206,7 +2206,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   .drum-preview-beat-lbl {
     width: 13px;
     flex: 0 0 13px;
-    font-size: 0.38rem;
+    font-size: 0.48rem;
   }
   .drum-preview-voice-lbl {
     width: 22px;
@@ -2214,7 +2214,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
     font-size: 0.48rem;
   }
   .drum-preview-beat-hdr  { padding-left: 22px; }
-  .drum-preview-bar-label { padding-left: 0; font-size: 0.46rem; }
+  .drum-preview-bar-label { padding-left: 0; font-size: 0.56rem; }
 }
 .drum-preview-bar {
   display: flex;
@@ -2225,7 +2225,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 }
 .drum-preview-bar-label {
   font-family: 'Space Mono', monospace;
-  font-size: 0.52rem;
+  font-size: 0.62rem;
   color: var(--muted);
   letter-spacing: 0.08em;
   padding-left: 0;
@@ -2235,7 +2235,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 }
 .drum-preview-bar-repeat {
   font-family: 'Space Mono', monospace;
-  font-size: 0.52rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: var(--accent);
   letter-spacing: 0;
@@ -2256,11 +2256,11 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 }
 .drum-preview-tuplet-badge {
   position: absolute;
-  top: -9px;
+  top: -11px;
   left: 50%;
   transform: translateX(-50%);
   font-family: 'Space Mono', monospace;
-  font-size: 0.42rem;
+  font-size: 0.56rem;
   font-weight: 700;
   color: #a78bfa;
   background: var(--bg, #0e0e12);
@@ -2279,7 +2279,7 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
 }
 .drum-preview-beat-lbl {
   font-family: 'Space Mono', monospace;
-  font-size: 0.42rem;
+  font-size: 0.52rem;
   color: var(--dim);
   text-align: center;
   width: 16px;
@@ -2288,8 +2288,8 @@ body.readonly .sec-play-btn.visible { display: flex !important; }
   line-height: 1;
   letter-spacing: 0;
 }
-.drum-preview-beat-lbl.down        { color: var(--accent); font-weight: 700; font-size: 0.46rem; }
-.drum-preview-beat-lbl.subdiv-plus { color: var(--accent); font-weight: 700; font-size: 0.46rem; opacity: 0.75; }
+.drum-preview-beat-lbl.down        { color: var(--accent); font-weight: 700; font-size: 0.56rem; }
+.drum-preview-beat-lbl.subdiv-plus { color: var(--accent); font-weight: 700; font-size: 0.56rem; opacity: 0.75; }
 .drum-preview-beat-lbl.subdiv-e    { color: var(--muted);  font-weight: 600; font-size: 0.44rem; opacity: 0.9; }
 .drum-preview-beat-lbl.subdiv-a    { color: var(--muted);  font-weight: 600; font-size: 0.44rem; opacity: 0.9; }
 [data-theme="neon"] .drum-preview-beat-lbl.subdiv-e,
@@ -2607,15 +2607,15 @@ body.readonly .drum-add-btn  { display: none !important; }
 }
 .de-beat-lbl {
   font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
+  font-size: 0.68rem;
   color: var(--dim);
   text-align: center;
   flex: 0 0 26px;
   width: 26px;
   letter-spacing: 0;
 }
-.de-beat-lbl.down        { color: var(--accent); font-weight: 700; font-size: 0.6rem; }
-.de-beat-lbl.subdiv-plus { color: var(--accent); font-weight: 700; font-size: 0.6rem; opacity: 0.75; }
+.de-beat-lbl.down        { color: var(--accent); font-weight: 700; font-size: 0.72rem; }
+.de-beat-lbl.subdiv-plus { color: var(--accent); font-weight: 700; font-size: 0.72rem; opacity: 0.75; }
 .de-beat-lbl.subdiv-e   { color: var(--muted);  font-weight: 600; font-size: 0.57rem; opacity: 0.9; }
 .de-beat-lbl.subdiv-a   { color: var(--muted);  font-weight: 600; font-size: 0.57rem; opacity: 0.9; }
 
@@ -2625,7 +2625,7 @@ body.readonly .drum-add-btn  { display: none !important; }
 [data-theme="neon"] .de-beat-lbl.subdiv-plus { color: #00ffe7; opacity: 0.85; }
 .de-bar-lbl {
   font-family: 'Space Mono', monospace;
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   color: var(--muted);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -2752,11 +2752,11 @@ body.readonly .drum-add-btn  { display: none !important; }
 /* tuplet number badge above the beat */
 .de-tuplet-badge {
   position: absolute;
-  top: -11px;
+  top: -13px;
   left: 50%;
   transform: translateX(-50%);
   font-family: 'Space Mono', monospace;
-  font-size: 0.5rem;
+  font-size: 0.64rem;
   font-weight: 700;
   color: #a78bfa;
   background: var(--bg, #0e0e12);
@@ -6585,6 +6585,10 @@ function applyInstFilter() {
     const inst = btn.dataset.inst;
     btn.style.display = (showAll || _activeInst.has(inst)) ? "" : "none";
   });
+  // Los textarea de voz auto-ajustan su altura midiendo scrollHeight; si se
+  // renderizaron OCULTOS (filtro sin voz) midieron 0 y quedan colapsados a
+  // una línea. Al cambiar el filtro, re-medimos ya visibles.
+  resizeAllVozTextareas();
 }
 
 // Aplica la "vista por defecto" del usuario (_userSettings.defaultView) al
@@ -11046,7 +11050,29 @@ function deRenderGrid() {
     barLbl.className = 'de-bar-lbl';
 
     const barTitle = document.createElement('span');
-    barTitle.textContent = 'Compás ' + (bi + 1);
+    barTitle.textContent = bar.label ? bar.label : ('Compás ' + (bi + 1));
+    barTitle.title = 'Toca para renombrar el compás (numeración de la composición)';
+    barTitle.style.cursor = 'pointer';
+    if (bar.label) barTitle.style.color = 'var(--accent)';
+    barTitle.addEventListener('click', () => {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.maxLength = 8;
+      inp.value = bar.label || '';
+      inp.placeholder = 'C' + (bi + 1);
+      inp.style.cssText = 'width:72px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;color:var(--text);font-family:\'Space Mono\',monospace;font-size:0.7rem;padding:2px 6px;outline:none;';
+      const save = () => {
+        const v = inp.value.trim();
+        if (v) bar.label = v; else delete bar.label;
+        barTitle.textContent = bar.label ? bar.label : ('Compás ' + (bi + 1));
+        barTitle.style.color = bar.label ? 'var(--accent)' : '';
+        inp.replaceWith(barTitle);
+      };
+      inp.addEventListener('blur', save);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+      barTitle.replaceWith(inp);
+      inp.focus(); inp.select();
+    });
     barLbl.appendChild(barTitle);
 
     // Expanding line
@@ -11249,7 +11275,8 @@ function renderDrumPreview(container, row) {
     const barLbl = document.createElement('div');
     barLbl.className = 'drum-preview-bar-label';
     const barLblTxt = document.createElement('span');
-    barLblTxt.textContent = 'C' + (bi + 1);
+    barLblTxt.textContent = bar.label ? bar.label : ('C' + (bi + 1));
+    if (bar.label) barLblTxt.style.color = 'var(--accent)';
     barLbl.appendChild(barLblTxt);
     const barRepSpan = document.createElement('span');
     barRepSpan.className = 'drum-preview-bar-repeat';
@@ -13100,6 +13127,9 @@ function toggleEagleMode() {
   const toggles = document.getElementById('eagleToggles');
 
   document.body.classList.toggle('eagle-mode', _eagleOn);
+  // Águila cambia tamaños de fuente/line-height de los textarea de voz →
+  // re-medir alturas al entrar y al salir (mismo bug de medir en frío).
+  resizeAllVozTextareas();
 
   if (_eagleOn) {
     btn.classList.add('eagle-on');
