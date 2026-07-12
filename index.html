@@ -1513,6 +1513,7 @@ body.readonly #songKeyBar > div { background: transparent; border-color: transpa
 body.readonly #songKeyPill { pointer-events: none; font-size: 0.85rem; letter-spacing: 0.08em; border-color: transparent; background: transparent; }
 /* Eagle button and toggles must stay clickable in readonly */
 body.readonly #btnEagle,
+body.readonly #btnDrumScore,
 body.readonly #btnLyrics,
 body.readonly #eagleToggles,
 body.readonly #btnEagleSections,
@@ -3990,6 +3991,18 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 </div>
 
 <!-- ══ VISOR DE LETRA (pantalla completa, solo letra) ══ -->
+<!-- ── VISOR PARTITURA DE BATERÍA (Peldaño 2 · Fase 1) ── -->
+<div id="drumScoreOverlay" style="display:none;position:fixed;inset:0;z-index:9600;background:var(--bg);flex-direction:column;height:100vh;height:100dvh;overflow:hidden;">
+  <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <span id="drumScoreTitle" style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--accent);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🥁 Batería</span>
+    <button onclick="drumScoreZoom(-1)" title="Reducir" style="font-family:'Space Mono',monospace;font-size:0.9rem;padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;">−</button>
+    <span id="drumScoreZoomLbl" style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--muted);min-width:38px;text-align:center;">100%</span>
+    <button onclick="drumScoreZoom(1)" title="Ampliar" style="font-family:'Space Mono',monospace;font-size:0.9rem;padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;">+</button>
+    <button onclick="drumScoreClose()" title="Cerrar" style="font-family:'Space Mono',monospace;font-size:0.9rem;padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;">✕</button>
+  </div>
+  <div id="drumScoreBody" style="flex:1;overflow:auto;padding:14px 12px 60px;-webkit-overflow-scrolling:touch;touch-action:pan-y;"></div>
+</div>
+
 <div id="lyricsOverlay" style="display:none;position:fixed;inset:0;z-index:9600;background:var(--bg);flex-direction:column;height:100vh;height:100dvh;overflow:hidden;">
   <!-- Barra superior: controles -->
   <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
@@ -4255,6 +4268,8 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   </button>
 
   <!-- Botón Visor de Letra -->
+  <button id="btnDrumScore" onclick="drumScoreOpen()" title="Partitura de batería"
+    style="background:rgba(255,255,255,0.05);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:1.05rem;line-height:1;padding:6px 10px;">🥁</button>
   <button id="btnLyrics" onclick="lyricsOpen()" title="Visor de letra"
     style="font-family:'Space Mono',monospace;font-size:0.8rem;padding:7px 11px;border-radius:8px;
            border:1px solid var(--border);background:var(--surface);color:var(--muted);
@@ -4579,6 +4594,8 @@ const Router = (function () {
     // pantalla de debajo (canción o concierto) SIN ocultarla ni resetear su
     // estado (p.ej. el Modo Tocar). Al volver, reaparece intacta.
     lyrics:   { el: 'lyricsOverlay',  how: 'layer',   icon: '🎤', title: 'Volver a la letra' },
+    // 'drumscore' = partitura de batería. Misma naturaleza CAPA que lyrics.
+    drumscore:{ el: 'drumScoreOverlay', how: 'layer', icon: '🥁', title: 'Volver a la batería' },
   };
 
   let _stack = [];      // [{screen, state}]
@@ -11107,7 +11124,8 @@ function deRenderGrid() {
       delBtn.textContent = '✕';
       delBtn.title = 'Eliminar este compás';
       delBtn.addEventListener('click', () => {
-        if (!confirm('¿Eliminar el Compás ' + (bi + 1) + '?')) return;
+        const _lbl = bar.label ? '"' + bar.label + '"' : ('Compás ' + (bi + 1));
+        if (!confirm('¿Eliminar el ' + _lbl + '?')) return;
         _de.pattern.bars.splice(bi, 1);
         deRenderGrid();
       });
@@ -11241,13 +11259,9 @@ function renderDrumPreview(container, row) {
   const usedVoices = DE_VOICES.filter(v =>
     dp.bars.some(bar => (bar.voices[v.id] || []).length > 0)
   );
-  if (!usedVoices.length) {
-    const empty = document.createElement('span');
-    empty.style.cssText = 'font-family:"Space Mono",monospace;font-size:0.6rem;color:var(--dim);';
-    empty.textContent = '(patrón vacío)';
-    container.appendChild(empty);
-    return;
-  }
+  // Unificación visual (11/07): los patrones sin toques se pintan con el
+  // MISMO flujo que los demás — leyendas de pulso sí, filas de voz ninguna
+  // (la filosofía de toda la app: leyendas + solo voces con toques).
 
   // Preview cell width (compact). Beat width fits densest tuplet across bars.
   const PV_CELL_W = 17;
@@ -11375,8 +11389,46 @@ const _dau = {
   barSteps: [],              // flat array: [{barIdx, stepIdx}] across all repeats
 };
 
+// ── KIT DE SAMPLES (Peldaño 1) ────────────────────────────────
+// Sonidos reales del editor de batería. INTERCAMBIABLE: para usar la
+// batería grabada de la banda, basta sustituir los dataURL de cada voz.
+// Mientras un sample no esté decodificado, suena el sinte de siempre.
+const DRUM_SAMPLES = {
+  // VACÍO a propósito: el kit generado por código no convenció al batería 😄
+  // (sonaba peor que el sinte). El mecanismo queda listo: cuando la banda
+  // grabe su batería, añadir aquí cada voz como dataURL de audio, ej.:
+  //   BD: 'data:audio/ogg;base64,....',
+  // Voces: BD, SD, HH, HH_OPEN, C, RD, T1, T2, T3
+}
+const _dauBuffers = {};
+let _dauKitLoading = false;
+function dauLoadKit(ctx) {
+  if (_dauKitLoading) return;
+  _dauKitLoading = true;
+  Object.entries(DRUM_SAMPLES).forEach(([voice, url]) => {
+    fetch(url)
+      .then(r => r.arrayBuffer())
+      .then(ab => ctx.decodeAudioData(ab))
+      .then(buf => { _dauBuffers[voice] = buf; })
+      .catch(() => { /* fallback: sinte */ });
+  });
+}
+
 // ── Synth voices ──────────────────────────────────────────────
 function dauSynth(voice, audioCtx, when, accent, velOverride) {
+  // Sample real si está cargado (acentos/ghosts via masterVel del gain)
+  const _buf = _dauBuffers[voice];
+  if (_buf) {
+    const g0 = audioCtx.createGain();
+    const mv = velOverride !== undefined ? velOverride : (accent ? 1.35 : 0.62);
+    g0.gain.setValueAtTime(mv, when);
+    g0.connect(audioCtx.destination);
+    const src = audioCtx.createBufferSource();
+    src.buffer = _buf;
+    src.connect(g0);
+    src.start(when);
+    return;
+  }
   const g = audioCtx.createGain();
   // Master gain: acento sube claramente, ghost baja
   const masterVel = velOverride !== undefined ? velOverride : (accent ? 1.35 : 0.62);
@@ -11667,6 +11719,7 @@ function dePlay() {
 
   // Init AudioContext on first use (requires user gesture)
   if (!_dau.ctx) _dau.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  dauLoadKit(_dau.ctx);
   if (_dau.ctx.state === 'suspended') _dau.ctx.resume();
 
   _dau.playing = true;
@@ -11952,6 +12005,80 @@ function lyricsGetSections() {
     if (lyric) out.push({ name: sec.name || '', lyric });
   });
   return out;
+}
+
+// ── Visor PARTITURA DE BATERÍA (capa del Router) ─────────────
+function drumScoreOpen() {
+  const body = document.getElementById('drumScoreBody');
+  document.getElementById('drumScoreTitle').textContent = '🥁 ' + ((songData && songData.title) || 'Batería');
+  body.innerHTML = '';
+  const secs = (songData && songData.sections) || [];
+  secs.forEach(sec => {
+    const h = document.createElement('div');
+    h.className = 'ds-sec';
+    const col = getSectionColor(sec.name) || 'var(--accent)';
+    h.style.borderLeftColor = col; h.style.color = col;
+    h.textContent = sec.name || '(sección)';
+    body.appendChild(h);
+    const drumRows = (sec.rows || []).filter(r => r.instrument === 'bat' && r.drumPattern && r.drumPattern.bars && r.drumPattern.bars.length);
+    if (!drumRows.length) {
+      const e = document.createElement('div');
+      e.className = 'ds-empty';
+      e.textContent = '· sin batería ·';
+      body.appendChild(e);
+      return;
+    }
+    drumRows.forEach(row => {
+      const c = document.createElement('div');
+      c.style.margin = '4px 0 10px';
+      renderDrumPreview(c, row);
+      body.appendChild(c);
+    });
+  });
+  _dsApplyZoom(_userSettings.drumScoreZoom || 1);
+  document.body.style.overflow = 'hidden';
+  _dsPinchSetup();
+  Router.go('drumscore');
+}
+
+function drumScoreClose() {
+  document.body.style.overflow = '';
+  if (Router.current() === 'drumscore') Router.back();
+  else document.getElementById('drumScoreOverlay').classList.remove('open');
+}
+
+function _dsApplyZoom(z) {
+  z = Math.min(2.2, Math.max(0.5, z));
+  const body = document.getElementById('drumScoreBody');
+  body.style.zoom = z;
+  document.getElementById('drumScoreZoomLbl').textContent = Math.round(z * 100) + '%';
+  _userSettings.drumScoreZoom = z;
+  return z;
+}
+function drumScoreZoom(dir) {
+  const z = _dsApplyZoom((_userSettings.drumScoreZoom || 1) + dir * 0.15);
+  saveUserSettings();
+  return z;
+}
+let _dsPinchDone = false;
+function _dsPinchSetup() {
+  if (_dsPinchDone) return; _dsPinchDone = true;
+  const el = document.getElementById('drumScoreBody');
+  let d0 = null, z0 = 1;
+  el.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      d0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      z0 = _userSettings.drumScoreZoom || 1;
+    }
+  }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && d0) {
+      e.preventDefault();
+      const d1 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      _dsApplyZoom(z0 * (d1 / d0));
+    }
+  }, { passive: false });
+  el.addEventListener('touchend', () => { if (d0) { d0 = null; saveUserSettings(); } });
 }
 
 function lyricsOpen() {
@@ -13781,6 +13908,15 @@ document.addEventListener('DOMContentLoaded', function() {
   display: none; max-width: 900px; margin: 8px auto 0; padding: 0 20px;
 }
 #versionBreadcrumb.visible { display: block; }
+#drumScoreOverlay.open { display: flex !important; }
+#drumScoreBody .ds-sec {
+  font-family:'Space Mono',monospace; font-size:0.72rem; letter-spacing:0.06em;
+  padding:3px 0 3px 8px; border-left:3px solid var(--accent); margin:16px 0 6px;
+}
+#drumScoreBody .ds-sec:first-child { margin-top:0; }
+#drumScoreBody .ds-empty { color:var(--dim); font-size:0.6rem; font-family:'Space Mono',monospace; padding:2px 0 2px 11px; }
+#drumScoreBody .drum-preview-wrap { overflow: visible; padding:0; }
+#drumScoreBody .drum-preview-bars { overflow: visible; row-gap: 18px; }
 .version-breadcrumb-inner {
   display: inline-flex; align-items: center; gap: 6px;
   font-family: 'IBM Plex Sans', sans-serif; font-size: 0.78rem; color: var(--muted);
