@@ -12096,6 +12096,15 @@ function _dsPinchSetup() {
     }
   }, { passive: false });
   el.addEventListener('touchend', () => { if (d0) { d0 = null; saveUserSettings(); } });
+  // Tap en un compás → reproducir desde ahí (salta si ya sonaba)
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-ds-bar]');
+    if (!b) return;
+    _dspStop();
+    _dspBuild();
+    const bar = _dsp.bars[parseInt(b.dataset.dsBar)];
+    if (bar) _dspPlayFrom(bar.t0);
+  });
 }
 
 // ── FASE 2: PLAY de la canción con cursor ─────────────────────
@@ -12123,6 +12132,7 @@ function _dspBuild() {
         const layout = deBarLayout(bar, ts, sdiv);
         const reps = bar.repeat || 1;
         const barEl = (barEls.length === dp.bars.length) ? barEls[bi] : null;
+        if (barEl && barEl.dataset.dsBar === undefined) barEl.dataset.dsBar = _dsp.bars.length;
         const barT0 = t;
         for (let r = 0; r < reps; r++) {
           layout.forEach(slot => {
@@ -12150,19 +12160,28 @@ function _dspBuild() {
     }
   });
   _dsp.events.sort((a, b) => a.t - b.t);
+  _dsp.total = t;
   return t; // duración total
 }
 
 function drumScorePlayToggle() {
   if (_dsp.playing) { _dspStop(); return; }
-  const total = _dspBuild();
+  _dspBuild();
+  _dspPlayFrom(0);
+}
+
+// Arranca (o salta) la reproducción desde un punto de la línea de tiempo.
+// Usado por ▶ (desde 0) y por el tap en un compás (desde su t0).
+function _dspPlayFrom(startT) {
   if (!_dsp.events.length) return;
   if (_dau.playing) deStop();
   if (!_dau.ctx) _dau.ctx = new (window.AudioContext || window.webkitAudioContext)();
   dauLoadKit(_dau.ctx);
   if (_dau.ctx.state === 'suspended') _dau.ctx.resume();
-  _dsp.playing = true; _dsp.evIdx = 0; _dsp.curBar = -1;
-  _dsp.t0 = _dau.ctx.currentTime + 0.12;
+  _dsp.playing = true; _dsp.curBar = -1;
+  _dsp.evIdx = _dsp.events.findIndex(ev => ev.t >= startT - 0.001);
+  if (_dsp.evIdx === -1) _dsp.evIdx = _dsp.events.length;
+  _dsp.t0 = _dau.ctx.currentTime + 0.12 - startT;
   document.getElementById('drumScorePlayBtn').textContent = '⏹';
   // Planificador con lookahead
   _dsp.timer = setInterval(() => {
@@ -12172,7 +12191,7 @@ function drumScorePlayToggle() {
       const ev = _dsp.events[_dsp.evIdx++];
       dauSynth(ev.v, _dau.ctx, _dsp.t0 + ev.t, false, ev.vel);
     }
-    if (_dsp.evIdx >= _dsp.events.length && _dau.ctx.currentTime > _dsp.t0 + total + 0.4) _dspStop();
+    if (_dsp.evIdx >= _dsp.events.length && _dau.ctx.currentTime > _dsp.t0 + _dsp.total + 0.4) _dspStop();
   }, 30);
   // Cursor por compás
   _dsp.curTimer = setInterval(() => {
@@ -14068,6 +14087,7 @@ document.addEventListener('DOMContentLoaded', function() {
 #drumScoreBody .ds-empty { color:var(--dim); font-size:0.6rem; font-family:'Space Mono',monospace; padding:2px 0 2px 11px; }
 #drumScoreBody .drum-preview-wrap { overflow: visible; padding:0; }
 #drumScoreBody .drum-preview-bars { overflow: visible; row-gap: 18px; }
+#drumScoreBody [data-ds-bar] { cursor: pointer; }
 #drumScoreBody .ds-bar-playing {
   outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px;
   background: rgba(255,255,255,0.04);
