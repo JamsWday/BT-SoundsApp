@@ -4011,6 +4011,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   <!-- Barra superior: controles -->
   <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
     <span id="lyricsTitle" style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--accent);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Letra</span>
+    <span id="lyricsNavPos" style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--muted);flex-shrink:0;display:none;">1/1</span>
     <!-- Columnas -->
     <button id="lyricsColBtn" onclick="lyricsToggleColumns()" title="1 o 2 columnas"
       style="font-family:'Space Mono',monospace;font-size:0.78rem;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap;">☰ 1 col</button>
@@ -9686,8 +9687,9 @@ function _renderSongList() {
     const mainRow = document.createElement("div");
     mainRow.style.cssText = "display:flex;align-items:center;gap:10px;";
 
+    // Mismos iconos que en Concierto: 📄 cifrado · 🎤 letra (coherencia visual)
     const linkBadge = linked
-      ? `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--green);border:1px solid rgba(57,255,20,0.4);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;white-space:nowrap;" class="sl-open-btn">📄 Cifrado</span>`
+      ? `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:#1a9e4b;border:1px solid #1a9e4b;border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;white-space:nowrap;" class="sl-open-btn">📄 Cifrado</span><span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;white-space:nowrap;" class="sl-lyrics-btn">🎤 Letra</span>`
       : `<span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;white-space:nowrap;" class="sl-link-btn">🔗 Vincular</span>`;
 
     const inlineStyle = (size, weight) =>
@@ -9747,11 +9749,11 @@ function _renderSongList() {
 
     // Notas inline editables + badge vincular/cifrado a la derecha
     const notesRow = document.createElement("div");
-    notesRow.style.cssText = "display:flex;align-items:center;gap:6px;padding-left:52px;";
+    notesRow.style.cssText = "display:flex;align-items:center;gap:6px;padding-left:52px;flex-wrap:wrap;";
     const notesInput = document.createElement("input");
     notesInput.value = song.notes || "";
     notesInput.placeholder = "Notas, observaciones...";
-    notesInput.style.cssText = "flex:1;background:transparent;border:none;border-bottom:1px dashed transparent;color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;font-style:italic;outline:none;transition:all 0.2s;padding:1px 0;";
+    notesInput.style.cssText = "flex:1 1 100%;min-width:120px;background:transparent;border:none;border-bottom:1px dashed transparent;color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;font-style:italic;outline:none;transition:all 0.2s;padding:1px 0;";
     notesInput.addEventListener("focus", () => { notesInput.style.borderBottomColor = "var(--accent2)"; notesInput.style.color = "var(--text)"; });
     notesInput.addEventListener("blur",  () => { notesInput.style.borderBottomColor = "transparent"; notesInput.style.color = "var(--muted)"; });
     notesInput.addEventListener("input", () => { song.notes = notesInput.value; _slDirty = true; });
@@ -9759,7 +9761,7 @@ function _renderSongList() {
     // Badge al final de la fila de notas
     const badgeEl = document.createElement("span");
     badgeEl.innerHTML = linkBadge;
-    notesRow.appendChild(badgeEl.firstElementChild);
+    while (badgeEl.firstElementChild) notesRow.appendChild(badgeEl.firstElementChild);
 
     row.appendChild(mainRow);
     row.appendChild(notesRow);
@@ -9775,6 +9777,17 @@ function _renderSongList() {
     const openBtn = notesRow.querySelector(".sl-open-btn");
     if (openBtn) openBtn.addEventListener("click", () => {
       openSong(song.song_id, true);   // Repertorio → Modo Tocar
+    });
+
+    // Abrir letra (mismo patrón que Concierto: cargar BBDD → fuente → visor)
+    const lyrBtn = notesRow.querySelector(".sl-lyrics-btn");
+    if (lyrBtn) lyrBtn.addEventListener("click", async () => {
+      if (!song.song_id) return;
+      const { data, error } = await _sb.from("Canciones").select("*").eq("id", song.song_id).single();
+      if (error || !data || !data.data) { alert('No se pudo cargar la letra de esta canción.'); return; }
+      lyricsSetSource(data.data);   // el visor leerá esta canción
+      lyricsSetNav((_currentSetlist.songs || []).map(x => ({ song_id: x.song_id, title: x.title })), idx);
+      lyricsOpen();                 // se apila sobre 'setlist' (Router) → atrás vuelve aquí
     });
 
     // Vincular
@@ -9961,6 +9974,7 @@ Router.onShow('concert', () => {
 });
 
 function openConcertMode() {
+  _cmSwipeSetup();
   const songs = _currentSetlist?.songs || [];
   if (!songs.length) { alert("El repertorio no tiene canciones."); return; }
   _cm.songs   = songs;
@@ -10017,6 +10031,28 @@ function _cmRender() {
     seg.style.cssText = `flex:1;height:4px;background:${i < _cm.idx ? "var(--green)" : i === _cm.idx ? "var(--accent)" : "var(--dim)"};transition:background 0.3s;`;
     prog.appendChild(seg);
   });
+}
+
+function _cmSwipeSetup() {
+  const scr = document.getElementById('concertMode');
+  if (!scr || scr._swipeBound) return;
+  scr._swipeBound = true;
+  let x=0, y=0, t=0, multi=false;
+  scr.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) { multi = true; return; }
+    multi = false;
+    x = e.touches[0].clientX; y = e.touches[0].clientY; t = Date.now();
+  }, { passive: true });
+  scr.addEventListener('touchend', e => {
+    if (multi) return;
+    // no robar el gesto si empezó sobre un control (botones, inputs)
+    if (e.target.closest('button, input, label, a')) return;
+    const c = e.changedTouches[0];
+    const dx = c.clientX - x, dy = c.clientY - y, dt = Date.now() - t;
+    if (dt < 600 && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) {
+      if (dx < 0) cmNext(); else cmPrev();   // izq = siguiente, der = anterior
+    }
+  }, { passive: true });
 }
 
 function cmNext() {
@@ -10089,6 +10125,7 @@ async function cmOpenLyrics() {
     secs: _cm.secs, elapsed: _cm.elapsed, paused: _cm.paused
   };
   lyricsSetSource(data.data);   // el visor leerá esta canción, no songData
+  lyricsSetNav((_cm.songs || []).map(x => ({ song_id: x.song_id, title: x.title })), _cm.idx);
   lyricsOpen();                 // se apila sobre 'concert' (Router)
 }
 
@@ -12002,6 +12039,45 @@ const _LYRICS_FONT_MIN = 14, _LYRICS_FONT_MAX = 56;
 // la canción cargada en el editor). lyricsSetSource(null) vuelve a songData.
 let _lyricsSource = null;
 function lyricsSetSource(song) { _lyricsSource = song || null; }
+
+// ── Navegación entre letras (swipe) cuando venimos de una LISTA ──────
+// _lyricsNav = { items:[{song_id,title}], idx } · null = canción suelta (sin swipe)
+let _lyricsNav = null;
+function lyricsSetNav(items, idx) {
+  const valid = (items || []).filter(it => it && it.song_id);
+  _lyricsNav = valid.length > 1 ? { items: valid, idx: Math.max(0, idx) } : null;
+  _lyricsUpdatePos();
+}
+function _lyricsUpdatePos() {
+  const el = document.getElementById('lyricsNavPos');
+  if (!el) return;
+  if (_lyricsNav) {
+    // idx real en la lista completa (con posibles items sin id)
+    el.textContent = (_lyricsNav.idx + 1) + '/' + _lyricsNav.items.length;
+    el.style.display = '';
+  } else { el.style.display = 'none'; }
+}
+async function lyricsGoRel(dir) {
+  if (!_lyricsNav) return;
+  const n = _lyricsNav.items.length;
+  let i = _lyricsNav.idx + dir;
+  if (i < 0 || i >= n) return;            // sin bucle: en los extremos, nada
+  // saltar posiciones sin song_id (por si acaso)
+  while (i >= 0 && i < n && !_lyricsNav.items[i].song_id) i += dir;
+  if (i < 0 || i >= n) return;
+  const it = _lyricsNav.items[i];
+  const { data, error } = await _sb.from("Canciones").select("*").eq("id", it.song_id).single();
+  if (error || !data || !data.data) return;
+  _lyricsNav.idx = i;
+  _lyricsUpdatePos();
+  lyricsSetSource(data.data);
+  const t = document.getElementById('lyricsTitle');
+  if (t) t.textContent = (data.data.title) ? data.data.title : (it.title || 'Letra');
+  // pequeño feedback de transición
+  const body = document.getElementById('lyricsBody');
+  if (body) { body.style.opacity = '0'; }
+  requestAnimationFrame(() => { lyricsRender(); if (body) { body.scrollTop = 0; body.style.transition='opacity .15s'; body.style.opacity='1'; } });
+}
 function lyricsData() { return _lyricsSource || songData; }
 
 function lyricsGetSections() {
@@ -12267,6 +12343,8 @@ function lyricsOpen() {
 function lyricsClose() {
   document.body.style.overflow = '';
   lyricsSetSource(null);   // limpiar fuente explícita al cerrar
+  _lyricsNav = null;       // fin de la navegación por lista
+  _lyricsUpdatePos();
   // Volver a la pantalla de origen (canción o concierto) vía Router.
   if (Router.current() === 'lyrics') Router.back();
   else document.getElementById('lyricsOverlay').classList.remove('open');
@@ -12414,6 +12492,23 @@ function lyricsPinchSetup() {
   const body = document.getElementById('lyricsBody');
   if (body._pinchBound) return;
   body._pinchBound = true;
+
+  // ── Swipe horizontal → letra anterior/siguiente (solo si hay lista) ──
+  let _swX = 0, _swY = 0, _swT = 0, _swMulti = false;
+  body.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) { _swMulti = true; return; }
+    _swMulti = false;
+    _swX = e.touches[0].clientX; _swY = e.touches[0].clientY; _swT = Date.now();
+  }, { passive: true });
+  body.addEventListener('touchend', e => {
+    if (_swMulti || !_lyricsNav) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - _swX, dy = t.clientY - _swY, dt = Date.now() - _swT;
+    // gesto horizontal claro: rápido, largo en X, poco en Y
+    if (dt < 600 && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) {
+      lyricsGoRel(dx < 0 ? 1 : -1);   // izquierda = siguiente, derecha = anterior
+    }
+  }, { passive: true });
 
   // Recalcular el reparto si cambia el viewport (p.ej. aparece/desaparece la
   // barra del navegador o la botonera de Android) y el visor está abierto.
@@ -12839,16 +12934,20 @@ function drumPatternToHTML(dp, colorClass) {
   <div id="cmTimer" style="font-family:'Space Mono',monospace;font-size:2.2rem;font-weight:700;color:var(--accent);margin-bottom:28px;display:none;min-height:2.8rem;"></div>
 
   <!-- Controles -->
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;">
-    <button onclick="cmPrev()" style="font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 24px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;">← Anterior</button>
-    <button id="cmMainBtn" onclick="cmNext()" style="font-family:'Space Mono',monospace;font-size:0.88rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:14px 36px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--bg);cursor:pointer;">Siguiente →</button>
-    <button id="cmPauseBtn" onclick="cmTogglePause()" style="display:none;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 24px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;">⏸ Pausar</button>
-    <button onclick="closeConcertMode()" style="font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 24px;border-radius:6px;border:1px solid rgba(192,64,64,0.5);background:transparent;color:#c04040;cursor:pointer;">✕ Salir</button>
+  <div style="display:flex;flex-direction:column;gap:10px;align-items:stretch;width:100%;max-width:340px;">
+    <button id="cmMainBtn" onclick="cmNext()" style="font-family:'Space Mono',monospace;font-size:0.9rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:15px 24px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--bg);cursor:pointer;">Siguiente →</button>
+    <div style="display:flex;gap:10px;">
+      <button onclick="cmPrev()" style="flex:1;font-family:'Space Mono',monospace;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;">← Anterior</button>
+      <button id="cmPauseBtn" onclick="cmTogglePause()" style="display:none;flex:1;font-family:'Space Mono',monospace;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;">⏸ Pausar</button>
+    </div>
+    <button onclick="closeConcertMode()" style="font-family:'Space Mono',monospace;font-size:0.66rem;letter-spacing:0.1em;text-transform:uppercase;padding:9px 18px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);opacity:0.6;cursor:pointer;">✕ Salir</button>
   </div>
 
 
-  <!-- Config avance automático -->
-  <div style="position:absolute;bottom:20px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);">
+  <!-- Config avance automático — OCULTO (14/07): sin utilidad real por ahora.
+       Se mantiene en el DOM (checkbox off) para no romper las lecturas del JS;
+       recuperar = quitar el display:none de este contenedor. -->
+  <div style="display:none;position:absolute;bottom:20px;left:0;right:0;align-items:center;justify-content:center;gap:10px;font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);">
     <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
       <input type="checkbox" id="cmAutoChk" style="accent-color:var(--accent);" onchange="cmToggleAuto()" />
       Avance automático cada
