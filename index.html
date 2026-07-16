@@ -3644,6 +3644,62 @@ body.readonly #playBar { display: flex !important; }
 }
 #homeScreen.open { display: flex; }
 
+/* ── Popup de novedades del muro (Fase 3) ── */
+#newsPop {
+  /* 9400: por encima del modal de Config (9200) para que la vista previa
+     se vea al configurar las frases */
+  position: fixed; inset: 0; z-index: 9400;
+  background: rgba(0,0,0,0.55);
+  display: none; align-items: center; justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(2px);
+}
+#newsPop.open { display: flex; animation: newsPopIn 0.25s ease-out; }
+@keyframes newsPopIn { from { opacity: 0; } to { opacity: 1; } }
+#newsPopCard {
+  position: relative;
+  background: #f5c842; color: #14141e;
+  border-radius: 14px;
+  padding: 30px 26px 24px;
+  width: 100%; max-width: 340px;
+  text-align: center;
+  transform: rotate(-2deg);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  animation: newsCardIn 0.35s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes newsCardIn {
+  from { transform: rotate(-2deg) scale(0.6); opacity: 0; }
+  to   { transform: rotate(-2deg) scale(1);   opacity: 1; }
+}
+#newsPopX {
+  position: absolute; top: 8px; right: 10px;
+  background: none; border: none; cursor: pointer;
+  font-size: 1rem; color: rgba(20,20,30,0.5);
+  padding: 4px 6px; line-height: 1;
+}
+#newsPopX:hover { color: #14141e; }
+#newsPopTitle {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em;
+  line-height: 1.25; margin-bottom: 6px;
+}
+#newsPopSub {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem; color: rgba(20,20,30,0.7);
+  margin-bottom: 20px;
+}
+#newsPopGo {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.95rem; font-weight: 700; letter-spacing: 0.1em;
+  background: #14141e; color: #f5c842;
+  border: none; border-radius: 10px;
+  padding: 13px 34px; cursor: pointer;
+  transition: transform 0.15s;
+}
+#newsPopGo:active { transform: scale(0.94); }
+
+
+
 .home-logo {
   text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -3680,6 +3736,7 @@ body.readonly #playBar { display: flex !important; }
   max-width: 480px;
 }
 .home-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -3954,19 +4011,21 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <div class="home-card-label">Repertorios</div>
       <div class="home-card-desc">Setlists y modo concierto</div>
     </div>
+    <div class="home-card hc-muro" onclick="showMuro()">
+      <span id="muroBadge">0</span>
+      <div class="home-card-icon">📢</div>
+      <div class="home-card-label">Novedades</div>
+      <div class="home-card-desc">El muro de la banda</div>
+    </div>
     <div class="home-card hc-eventos" onclick="showCalendar()">
       <div class="home-card-icon">📅</div>
       <div class="home-card-label">Eventos</div>
       <div class="home-card-desc">Ensayos, conciertos y agenda</div>
     </div>
-    <div class="home-card hc-config" id="hcConfig" onclick="openLibConfig()">
-      <div class="home-card-icon">⚙️</div>
-      <div class="home-card-label">Configuración</div>
-      <div class="home-card-desc">Tema, secciones y ajustes</div>
-    </div>
   </div>
 
   <div class="home-footer">
+    <button class="home-footer-btn" id="hcConfig" onclick="openLibConfig()">⚙️ Configuración</button>
     <button class="home-footer-btn" onclick="cycleTheme()">🌙 Tema</button>
     <button class="home-footer-btn" onclick="doLogout()">Salir</button>
   </div>
@@ -4077,6 +4136,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     <div class="cfg-tabs">
       <button class="cfg-tab active" onclick="cfgSwitchTab('secciones',this)">Secciones</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('etiquetas',this)">Etiquetas</button>
+      <button class="cfg-tab" onclick="cfgSwitchTab('frases',this)">Novedades</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('instrumentos',this)">Instrumentos</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('tema',this)">Tema</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('preferencias',this)">Preferencias</button>
@@ -4104,6 +4164,31 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
         <button class="cfg-add-btn" onclick="cfgAddTag()">+ Añadir</button>
       </div>
       <div class="cfg-palette" id="cfgTagPalette"></div>
+    </div>
+
+    <!-- Panel: Frases del muro -->
+    <div class="cfg-panel" id="cfgPanel-frases">
+      <p class="cfg-desc">Frases del aviso de novedades 📢. Cuando hay mensajes sin leer en el muro, salta un aviso con UNA de estas frases al azar. Son de la banda: ponedle vuestro tono.</p>
+      <div class="cfg-rules" id="cfgFrasesList"></div>
+      <div class="cfg-add-row">
+        <input class="cfg-add-input" id="cfgFraseInput" placeholder="ej: RUGE EL MURO, ¡EXTRA EXTRA!…" maxlength="60"
+               onkeydown="if(event.key==='Enter')cfgAddFrase()" />
+        <button class="cfg-add-btn" onclick="cfgAddFrase()">+ Añadir</button>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="cfg-add-btn" onclick="cfgPreviewFrase()" style="width:100%;">👀 Ver cómo queda el aviso</button>
+      </div>
+
+      <p class="cfg-desc" style="margin-top:22px;">Frases cuando te MENCIONAN ⭐. Si alguien te nombra con @tu-nombre, el aviso usa una de estas.</p>
+      <div class="cfg-rules" id="cfgFrasesMenList"></div>
+      <div class="cfg-add-row">
+        <input class="cfg-add-input" id="cfgFraseMenInput" placeholder="ej: ¡HAY ALGO PARA TI!, HABLAN DE TI…" maxlength="60"
+               onkeydown="if(event.key==='Enter')cfgAddFraseMen()" />
+        <button class="cfg-add-btn" onclick="cfgAddFraseMen()">+ Añadir</button>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="cfg-add-btn" onclick="cfgPreviewFraseMen()" style="width:100%;">👀 Ver el aviso de mención</button>
+      </div>
     </div>
 
     <!-- Panel: Instrumentos -->
@@ -4592,6 +4677,7 @@ const Router = (function () {
     setlist:  { el: 'setlistScreen',  how: 'display', icon: '🎭', title: 'Volver al repertorio' },
     concert:  { el: 'concertMode',    how: 'display', icon: '🎭', title: 'Volver al concierto' },
     calendar: { el: 'calendarScreen', how: 'open',    icon: '📅', title: 'Volver al calendario' },
+    muro:     { el: 'muroScreen',     how: 'open',    icon: '📢', title: 'Volver a novedades' },
     // 'song' = canción abierta. No tiene pantalla propia: se monta sobre
     // libraryScreen con la clase body.editor-open. Se trata aparte en _apply().
     song:     { el: 'libraryScreen',  how: 'song',    icon: '🎵', title: 'Volver' },
@@ -4765,6 +4851,7 @@ function editorGoBack() { Router.back(); }   // botón volver del editor
 function playBarBack()   { Router.back(); }   // botón volver de la barra Tocar
 
 function showHome() {
+  muroCheckNews();   // el sticker se entera de si hay algo nuevo
   document.body.classList.remove('editor-open');
   const name = currentUserName();
   document.getElementById('homeUserName').textContent = name;
@@ -4890,6 +4977,8 @@ async function bandLoadFromDB(bandId) {
     BAND.name = b.nombre;
     BAND.appName = b.app_name;
     BAND.emailDomain = b.email_domain;
+    // Ajustes libres de la banda (jsonb): frases del muro, y lo que venga
+    BAND.config = b.config || {};
 
     // Instrumentos: actualizar por clave EN SITIO (mismos objetos)
     (ins.data || []).forEach(row => {
@@ -11880,6 +11969,126 @@ function cfgRenderTagPalette() {
   });
 }
 
+// ── Frases del aviso de novedades (viven en BAND.config.frasesMuro) ──
+function cfgRenderFrases() {
+  const list = document.getElementById('cfgFrasesList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!BAND.id) {
+    list.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.65rem;color:var(--muted);padding:8px 0;">Necesita una banda cargada.</div>';
+    return;
+  }
+  const frases = (BAND.config && BAND.config.frasesMuro) || [];
+  if (!frases.length) {
+    list.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.65rem;color:var(--muted);padding:8px 0;">Sin frases propias: se usan las de serie (HAY COSAS NUEVAS, ¡EXTRA EXTRA!, OJO AL MURO 👀…). Añade las vuestras abajo.</div>';
+    return;
+  }
+  frases.forEach((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'cfg-rule-row';
+    row.innerHTML = `
+      <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--text);flex:1;">${esc(f)}</span>
+      <button class="cfg-del" onclick="cfgDeleteFrase(${i})" title="Eliminar">✕</button>`;
+    list.appendChild(row);
+  });
+}
+
+async function _cfgSaveFrases(frases) {
+  const cfg = Object.assign({}, BAND.config || {}, { frasesMuro: frases });
+  // .select() para saber si REALMENTE se escribió: sin permiso de UPDATE,
+  // Supabase no da error… simplemente no afecta a ninguna fila.
+  const { data, error } = await _sb.from('bandas')
+    .update({ config: cfg }).eq('id', BAND.id).select('id, config');
+  if (error) { alert('No se pudo guardar: ' + error.message); return false; }
+  if (!data || !data.length) {
+    alert('No se guardó: la app no tiene permiso para escribir en la tabla "bandas" (falta política RLS de UPDATE). Te paso el SQL para arreglarlo.');
+    return false;
+  }
+  BAND.config = data[0].config || cfg;   // fuente de verdad: lo que quedó en BBDD
+  cfgRenderFrases();
+  return true;
+}
+
+// Vista previa: enseña el popup real con una frase al azar (sin tocar nada)
+function cfgPreviewFrase() {
+  const frases = _muroFrases();
+  document.getElementById('newsPopTitle').textContent = frases[Math.floor(Math.random() * frases.length)];
+  document.getElementById('newsPopSub').textContent = 'vista previa';
+  const pop = document.getElementById('newsPop');
+  pop.dataset.count = '0';
+  pop.classList.add('open');
+}
+
+function cfgRenderFrasesMen() {
+  const list = document.getElementById('cfgFrasesMenList');
+  if (!list || !BAND.id) return;
+  list.innerHTML = '';
+  const frases = (BAND.config && BAND.config.frasesMencion) || [];
+  if (!frases.length) {
+    list.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.65rem;color:var(--muted);padding:8px 0;">Sin frases propias: se usan las de serie (¡HAY ALGO PARA TI!, HABLAN DE TI…).</div>';
+    return;
+  }
+  frases.forEach((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'cfg-rule-row';
+    row.innerHTML = `
+      <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--text);flex:1;">${esc(f)}</span>
+      <button class="cfg-del" onclick="cfgDeleteFraseMen(${i})" title="Eliminar">✕</button>`;
+    list.appendChild(row);
+  });
+}
+
+async function _cfgSaveFrasesMen(frases) {
+  const cfg = Object.assign({}, BAND.config || {}, { frasesMencion: frases });
+  const { data, error } = await _sb.from('bandas')
+    .update({ config: cfg }).eq('id', BAND.id).select('id, config');
+  if (error || !data || !data.length) { alert('No se pudo guardar.'); return false; }
+  BAND.config = data[0].config || cfg;
+  cfgRenderFrasesMen();
+  return true;
+}
+
+async function cfgAddFraseMen() {
+  const input = document.getElementById('cfgFraseMenInput');
+  const f = input.value.trim();
+  if (!f || !BAND.id) return;
+  const frases = [...((BAND.config && BAND.config.frasesMencion) || [])];
+  if (frases.some(x => _cfgNorm(x) === _cfgNorm(f))) { input.select(); return; }
+  frases.push(f);
+  if (await _cfgSaveFrasesMen(frases)) input.value = '';
+}
+
+async function cfgDeleteFraseMen(i) {
+  const frases = [...((BAND.config && BAND.config.frasesMencion) || [])];
+  frases.splice(i, 1);
+  await _cfgSaveFrasesMen(frases);
+}
+
+function cfgPreviewFraseMen() {
+  const frases = _muroFrasesMencion();
+  document.getElementById('newsPopTitle').textContent = frases[Math.floor(Math.random() * frases.length)];
+  document.getElementById('newsPopSub').textContent = 'vista previa · mención';
+  const pop = document.getElementById('newsPop');
+  pop.dataset.count = '0';
+  pop.classList.add('open');
+}
+
+async function cfgAddFrase() {
+  const input = document.getElementById('cfgFraseInput');
+  const f = input.value.trim();
+  if (!f || !BAND.id) return;
+  const frases = [...((BAND.config && BAND.config.frasesMuro) || [])];
+  if (frases.some(x => _cfgNorm(x) === _cfgNorm(f))) { input.select(); return; }
+  frases.push(f);
+  if (await _cfgSaveFrases(frases)) input.value = '';
+}
+
+async function cfgDeleteFrase(i) {
+  const frases = [...((BAND.config && BAND.config.frasesMuro) || [])];
+  frases.splice(i, 1);
+  await _cfgSaveFrases(frases);
+}
+
 function cfgRenderTags() {
   const list = document.getElementById('cfgTagsList');
   if (!list) return;
@@ -12659,6 +12868,7 @@ function cfgSwitchTab(id, btn) {
   btn.classList.add('active');
   document.getElementById('cfgPanel-' + id).classList.add('active');
   if (id === 'etiquetas') { cfgRenderTags(); cfgRenderTagPalette(); }
+  if (id === 'frases')    { cfgRenderFrases(); cfgRenderFrasesMen(); }
 }
 
 function cfgRenderPalette() {
@@ -13766,6 +13976,102 @@ document.addEventListener('DOMContentLoaded', function() {
 ══════════════════════════════════════════════════════════ -->
 <style>
 /* ── Calendar Screen ── */
+#muroScreen {
+  position: fixed; inset: 0; z-index: 7600;
+  background: var(--bg);
+  display: none; flex-direction: column;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+#muroScreen.open { display: flex; }
+/* Menú de menciones (@) */
+#muroMentionWrap { position: relative; height: 0; }
+#muroMentionMenu {
+  display: none;
+  /* Se despliega HACIA ABAJO, justo bajo el textarea (antes se salía por arriba) */
+  position: absolute; top: 4px; left: 0; right: 0; z-index: 20;
+  /* Scroll propio del menú: overscroll-contain evita que el gesto se
+     escape a la página cuando llegas al final de la lista */
+  max-height: 210px; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  min-width: 180px;
+  /* Nunca más ancho que el campo: los títulos largos se recortan */
+  max-width: 100%;
+}
+#muroMentionMenu.open { display: block; }
+.muro-mention-opt {
+  padding: 9px 13px; cursor: pointer;
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem;
+  color: var(--text); display: flex; align-items: center; gap: 8px;
+  /* Que el título largo se recorte en vez de ensanchar el menú */
+  min-width: 0; overflow: hidden; white-space: nowrap;
+}
+.muro-mention-opt .k { flex-shrink: 0; max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
+.muro-mention-opt:hover, .muro-mention-opt.sel { background: rgba(255,255,255,0.08); }
+.muro-mention-opt .k { font-family:'Space Mono',monospace; font-size:0.7rem; color: var(--muted); }
+/* Mención dentro de un mensaje */
+.muro-at { color: var(--accent); font-weight: 700; }
+.muro-at.me { background: rgba(241,196,15,0.25); color: #f1c40f; border-radius: 4px; padding: 0 3px; }
+/* Enlace a canción (#) dentro de un mensaje */
+.muro-song {
+  color: var(--accent2, #a78bfa); font-weight: 700; cursor: pointer;
+  border-bottom: 1px dashed currentColor;
+}
+.muro-song:active { opacity: 0.6; }
+/* Reacciones */
+.muro-reax { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; align-items: center; }
+.muro-reax-btn {
+  font-size: 0.78rem; line-height: 1;
+  padding: 4px 8px; border-radius: 12px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text); cursor: pointer;
+  transition: all 0.12s;
+  display: flex; align-items: center; gap: 4px;
+}
+.muro-reax-btn .n { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+.muro-reax-btn.mine { border-color: var(--accent); background: rgba(0,224,198,0.12); }
+.muro-reax-btn.mine .n { color: var(--accent); }
+.muro-reax-btn:active { transform: scale(0.92); }
+/* Botón + para añadir reacción */
+.muro-reax-add {
+  font-size: 0.8rem; padding: 4px 9px; border-radius: 12px;
+  border: 1px dashed var(--border); background: transparent;
+  color: var(--muted); cursor: pointer; opacity: 0.7;
+}
+.muro-reax-add:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
+/* Selector de emojis */
+.muro-reax-picker {
+  display: flex; gap: 4px; padding: 4px;
+  background: var(--surface2); border: 1px solid var(--accent);
+  border-radius: 14px;
+}
+.muro-reax-picker button {
+  font-size: 1rem; padding: 4px 7px; border: none; background: none;
+  cursor: pointer; border-radius: 8px; line-height: 1;
+}
+.muro-reax-picker button:hover { background: rgba(255,255,255,0.1); }
+/* Contador: dorado con estrella si te mencionan */
+#muroBadge.mention { background: #f1c40f; color: #14141e; box-shadow: 0 2px 8px rgba(241,196,15,0.6); }
+.home-card.hc-muro { border-color: rgba(241,196,15,0.28); }
+/* Contador de mensajes sin leer: círculo rojo arriba a la derecha */
+#muroBadge {
+  display: none;
+  /* DENTRO de la tarjeta: si sobresale, el redondeo/recorte se lo come */
+  position: absolute; top: 10px; right: 10px;
+  min-width: 24px; height: 24px; padding: 0 6px;
+  border-radius: 12px;
+  background: #e84040; color: #fff;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem; font-weight: 700;
+  align-items: center; justify-content: center;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(232,64,64,0.55);
+}
+#muroBadge.on { display: flex; }
+.home-card.hc-muro:hover { border-color: #f1c40f; background: rgba(241,196,15,0.05); }
+
 #calendarScreen {
   position: fixed; inset: 0; z-index: 7600;
   background: var(--bg);
@@ -14606,6 +14912,41 @@ document.addEventListener('DOMContentLoaded', function() {
 </style>
 
 <!-- Calendar Screen HTML -->
+<!-- ══ POPUP DE NOVEDADES (Fase 3) ══ -->
+<div id="newsPop" onclick="if(event.target===this)newsPopClose()">
+  <div id="newsPopCard">
+    <button id="newsPopX" onclick="newsPopClose()" title="Cerrar">✕</button>
+    <div id="newsPopTitle">HAY COSAS NUEVAS</div>
+    <div id="newsPopSub">1 mensaje sin leer</div>
+    <button id="newsPopGo" onclick="newsPopGo()">VER! 📢</button>
+  </div>
+</div>
+
+<!-- ══ MURO DE LA BANDA (Fase 1) ══ -->
+<div id="muroScreen">
+  <div class="cal-header">
+    <button class="btn hdr-icon-btn" onclick="showHome()" title="Inicio" style="font-size:1.1rem;">⌂</button>
+    <h1>📢 Novedades</h1>
+    <span class="lib-user" id="muroUserName"></span>
+  </div>
+
+  <div style="max-width:720px;margin:0 auto;padding:14px 14px 60px;">
+    <!-- Escribir -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+      <textarea id="muroInput" rows="2" maxlength="500" placeholder="Cuenta algo a la banda… (@ para alguien · # para una canción)"
+        autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="true"
+        oninput="_muroMentionCheck()" onkeydown="_muroMentionKey(event)"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;outline:none;resize:vertical;"></textarea>
+      <div id="muroMentionWrap"><div id="muroMentionMenu"></div></div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="muroPost()" style="padding:8px 20px;">Publicar</button>
+      </div>
+    </div>
+    <!-- Lista -->
+    <div id="muroList" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+</div>
+
 <div id="calendarScreen">
   <div class="cal-header">
     <button class="btn hdr-icon-btn" onclick="showHome()" title="Inicio" style="font-size:1.1rem;">⌂</button>
@@ -14779,6 +15120,346 @@ const _DAY_NAMES   = ['domingo','lunes','martes','miércoles','jueves','viernes'
 })();
 
 // ── Navigation ──────────────────────────────────────────
+// ══ MURO DE LA BANDA (Fase 1) ══════════════════════════════════
+// Módulo independiente: tabla propia banda_muro, dato de BANDA.
+async function showMuro() {
+  window._immersiveDeactivate && window._immersiveDeactivate();
+  window._immersiveResetZoom  && window._immersiveResetZoom();
+  document.body.classList.remove('editor-open');
+  Router.go('muro');
+  document.getElementById('muroUserName').textContent = currentUserName();
+  // Las canciones PRIMERO: los mensajes necesitan la lista para pintar
+  // los enlaces #Canción# ya en el primer render.
+  await _muroLoadSongs();
+  muroLoad();
+  // Visto: a partir de ahora, solo será novedad lo posterior a este momento
+  _userSettings.muroLastSeen = new Date().toISOString();
+  saveUserSettings();
+  _muroSetBadge(0);   // leído → contador a cero
+}
+
+// ── Popup de novedades (Fase 3) ──────────────────────────────
+// Frases por defecto; una banda puede poner las suyas en su config
+// (BAND.config.frasesMuro). Se elige una AL AZAR en cada aviso.
+const MURO_FRASES_DEF = [
+  'HAY COSAS NUEVAS',
+  '¡EXTRA, EXTRA!',
+  'OJO AL MURO 👀',
+  'LA BANDA HA ESCRITO',
+  'SE CUECE ALGO'
+];
+function _muroFrases() {
+  const f = BAND && BAND.config && BAND.config.frasesMuro;
+  return (Array.isArray(f) && f.length) ? f : MURO_FRASES_DEF;
+}
+// Frases para cuando te MENCIONAN (configurables por banda igual que las otras)
+const MURO_FRASES_MENCION_DEF = [
+  '¡HAY ALGO PARA TI!',
+  'TE ESTÁN BUSCANDO 👀',
+  'HABLAN DE TI',
+  '¡EH, QUE VA CONTIGO!'
+];
+function _muroFrasesMencion() {
+  const f = BAND && BAND.config && BAND.config.frasesMencion;
+  return (Array.isArray(f) && f.length) ? f : MURO_FRASES_MENCION_DEF;
+}
+
+// "Leído" = marca de tiempo de la última visita al muro (por usuario)
+function _muroLastSeen() { return _userSettings.muroLastSeen || '1970-01-01T00:00:00Z'; }
+
+// Si cierras con ✕, no insiste... hasta que llegue algo NUEVO de verdad
+// (guardamos cuántos había al cerrar; si el número sube, vuelve a saltar).
+let _newsPopDismissedAt = -1;
+
+async function muroCheckNews() {
+  if (!BAND.id || !_currentUser) return;
+  try {
+    const { data, error } = await _sb.from('banda_muro')
+      .select('autor,texto,created_at').eq('banda_id', BAND.id)
+      .gt('created_at', _muroLastSeen());
+    if (error) return;
+    const me = currentUserName();
+    const nuevos = (data || []).filter(m => m.autor !== me);   // lo tuyo no es novedad
+    // ¿Alguno me menciona? → aviso especial y contador dorado
+    const meCitan = nuevos.filter(m => _muroMentionsOf(m.texto || '')
+      .some(k => _cfgNorm(k) === _cfgNorm(me))).length;
+    _muroSetBadge(nuevos.length, meCitan > 0);
+    if (!nuevos.length) return;
+    if (nuevos.length <= _newsPopDismissedAt) return;   // ya lo cerraste y no hay más
+    const frases = meCitan ? _muroFrasesMencion() : _muroFrases();
+    document.getElementById('newsPopTitle').textContent = frases[Math.floor(Math.random() * frases.length)];
+    document.getElementById('newsPopSub').textContent = meCitan
+      ? (meCitan === 1 ? '1 mensaje te menciona' : meCitan + ' mensajes te mencionan')
+      : (nuevos.length === 1 ? '1 mensaje sin leer' : nuevos.length + ' mensajes sin leer');
+    document.getElementById('newsPop').dataset.count = nuevos.length;
+    document.getElementById('newsPop').classList.add('open');
+  } catch (e) { /* silencioso: nunca bloquear el Home */ }
+}
+
+// Contador del Home: círculo rojo con los mensajes sin leer
+function _muroSetBadge(n, mention) {
+  const b = document.getElementById('muroBadge');
+  if (!b) return;
+  b.textContent = (n > 99 ? '99+' : n) + (mention ? '⭐' : '');
+  b.classList.toggle('on', n > 0);
+  b.classList.toggle('mention', !!mention);   // dorado si te mencionan
+}
+
+function newsPopClose() {
+  const pop = document.getElementById('newsPop');
+  _newsPopDismissedAt = parseInt(pop.dataset.count || '0');   // recordar hasta cuántos vi
+  pop.classList.remove('open');
+}
+function newsPopGo()    { newsPopClose(); showMuro(); }
+
+async function muroLoad() {
+  const list = document.getElementById('muroList');
+  list.innerHTML = '<div style="color:var(--muted);font-family:\'Space Mono\',monospace;font-size:0.7rem;padding:10px 2px;">Cargando…</div>';
+  const { data, error } = await _sb.from('banda_muro')
+    .select('*').eq('banda_id', BAND.id)
+    .order('created_at', { ascending: false }).limit(100);
+  if (error) { list.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;">No se pudo cargar el muro.</div>'; return; }
+  _muroRender(data || []);
+}
+
+function _muroRender(msgs) {
+  const list = document.getElementById('muroList');
+  list.innerHTML = '';
+  if (!msgs.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-family:\'IBM Plex Sans\',sans-serif;font-size:0.85rem;text-align:center;padding:30px 10px;opacity:0.7;">Nada por aquí todavía.<br>Sé el primero en contar algo. 📢</div>';
+    return;
+  }
+  const me = currentUserName();
+  msgs.forEach(m => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;';
+    const mem = (BAND.members || []).find(x => x.key === m.autor);
+    // El emoji del miembro sale de su role (ej: '🥁 Batería'); si no, genérico
+    const icon = (mem && mem.role) ? (mem.role.split(' ')[0] || '🎵') : '🎵';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+        <span style="font-size:0.95rem;">${icon}</span>
+        <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--accent);font-weight:700;">${esc(m.autor)}</span>
+        <span style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);">${_muroWhen(m.created_at)}</span>
+        <span style="flex:1;"></span>
+        ${m.autor === me ? `<button onclick="muroDelete('${m.id}')" title="Borrar" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;">✕</button>` : ''}
+      </div>
+      <div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;color:var(--text);white-space:pre-wrap;word-break:break-word;">${_muroHighlight(m.texto)}</div>`;
+    card.appendChild(_muroReaxRow(m));
+    list.appendChild(card);
+  });
+}
+
+// Fecha amable: hoy → hora · ayer · resto → fecha corta
+function _muroWhen(iso) {
+  const d = new Date(iso), now = new Date();
+  const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const hoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((hoy - dd) / 86400000);
+  const hora = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  if (diff === 0) return hora;
+  if (diff === 1) return 'ayer ' + hora;
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+}
+
+// ── REACCIONES (Fase 5) ──────────────────────────────────────
+// Viven en banda_muro.reacciones (jsonb): {"👍":["hugo"], "🔥":["marco"]}
+const MURO_EMOJIS = ['👍', '🔥', '🤟🏽', '😂', '❤️'];
+
+// Canciones principales de la banda (para las menciones #). Solo id+título.
+let _muroSongs = [];
+async function _muroLoadSongs() {
+  if (!BAND.id) return;
+  const { data, error } = await bandFilter(
+    _sb.from('Canciones').select('id,titulo,artista').is('parent_id', null)
+  ).order('titulo');
+  if (!error && data) _muroSongs = data;
+}
+
+function _muroReaxRow(m) {
+  const row = document.createElement('div');
+  row.className = 'muro-reax';
+  const me = currentUserName();
+  const reax = m.reacciones || {};
+  // Emojis que ya tienen algún voto
+  Object.keys(reax).forEach(emo => {
+    const quien = reax[emo] || [];
+    if (!quien.length) return;
+    const b = document.createElement('button');
+    const mine = quien.some(x => _cfgNorm(x) === _cfgNorm(me));
+    b.className = 'muro-reax-btn' + (mine ? ' mine' : '');
+    b.innerHTML = `<span>${emo}</span><span class="n">${quien.length}</span>`;
+    b.title = quien.join(', ');
+    b.onclick = () => muroReact(m, emo);
+    row.appendChild(b);
+  });
+  // Botón + (abre el selector)
+  const add = document.createElement('button');
+  add.className = 'muro-reax-add';
+  add.textContent = '☺+';
+  add.title = 'Reaccionar';
+  add.onclick = () => _muroReaxPicker(m, row, add);
+  row.appendChild(add);
+  return row;
+}
+
+function _muroReaxPicker(m, row, addBtn) {
+  const old = row.querySelector('.muro-reax-picker');
+  if (old) { old.remove(); addBtn.style.display = ''; return; }
+  const p = document.createElement('div');
+  p.className = 'muro-reax-picker';
+  MURO_EMOJIS.forEach(emo => {
+    const b = document.createElement('button');
+    b.textContent = emo;
+    b.onclick = () => { p.remove(); addBtn.style.display = ''; muroReact(m, emo); };
+    p.appendChild(b);
+  });
+  addBtn.style.display = 'none';
+  row.appendChild(p);
+}
+
+async function muroReact(m, emo) {
+  const me = currentUserName();
+  const reax = JSON.parse(JSON.stringify(m.reacciones || {}));
+  const lista = reax[emo] || [];
+  const i = lista.findIndex(x => _cfgNorm(x) === _cfgNorm(me));
+  if (i >= 0) lista.splice(i, 1); else lista.push(me);   // toggle
+  if (lista.length) reax[emo] = lista; else delete reax[emo];
+  const { data, error } = await _sb.from('banda_muro')
+    .update({ reacciones: reax }).eq('id', m.id).select('id, reacciones');
+  if (error || !data || !data.length) { alert('No se pudo reaccionar.'); return; }
+  m.reacciones = data[0].reacciones || reax;
+  muroLoad();   // re-pintar
+}
+
+// ── MENCIONES @ (Fase 4) ─────────────────────────────────────
+// Sin BBDD nueva: se detectan leyendo el texto del mensaje.
+let _mentionSel = 0, _mentionOpts = [];
+
+let _mentionKind = '@';   // '@' personas · '#' canciones
+
+function _muroMentionCheck() {
+  const ta = document.getElementById('muroInput');
+  const menu = document.getElementById('muroMentionMenu');
+  const pos = ta.selectionStart;
+  const antes = ta.value.slice(0, pos);
+  // ¿Estamos escribiendo una @persona o una #canción justo aquí?
+  const mAt = antes.match(/@([\wáéíóúñ]*)$/i);
+  const mHa = antes.match(/#([\wáéíóúñ ]*)$/i);
+  if (mAt) {
+    _mentionKind = '@';
+    const q = _cfgNorm(mAt[1] || '');
+    _mentionOpts = (BAND.members || [])
+      .filter(x => !q || _cfgNorm(x.key).startsWith(q) || _cfgNorm(x.name).startsWith(q))
+      .map(x => ({ kind:'@', key:x.key, label:x.name, ico:(x.role||'').split(' ')[0] || '🎵', sub:'@'+x.key }));
+  } else if (mHa) {
+    _mentionKind = '#';
+    const q = _cfgNorm(mHa[1] || '');
+    // Solo canciones PRINCIPALES (sin padre). Ampliable a ideas/versiones.
+    _mentionOpts = (_muroSongs || [])
+      .filter(x => !q || _cfgNorm(x.titulo).includes(q))
+      .slice(0, 30)
+      .map(x => ({ kind:'#', key:String(x.id), label:x.titulo, ico:'🎵', sub:x.artista || '' }));
+  } else { menu.classList.remove('open'); return; }
+  if (!_mentionOpts.length) { menu.classList.remove('open'); return; }
+  _mentionSel = 0;
+  _muroMentionRender();
+  menu.classList.add('open');
+}
+
+function _muroMentionRender() {
+  const menu = document.getElementById('muroMentionMenu');
+  menu.innerHTML = '';
+  _mentionOpts.forEach((op, i) => {
+    const o = document.createElement('div');
+    o.className = 'muro-mention-opt' + (i === _mentionSel ? ' sel' : '');
+    o.innerHTML = `<span>${op.ico}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(op.label)}</span><span class="k">${esc(op.sub)}</span>`;
+    o.onclick = () => _muroMentionPick(i);
+    menu.appendChild(o);
+  });
+}
+
+function _muroMentionKey(e) {
+  const menu = document.getElementById('muroMentionMenu');
+  if (!menu.classList.contains('open')) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); _mentionSel = (_mentionSel + 1) % _mentionOpts.length; _muroMentionRender(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _mentionSel = (_mentionSel - 1 + _mentionOpts.length) % _mentionOpts.length; _muroMentionRender(); }
+  else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); _muroMentionPick(_mentionSel); }
+  else if (e.key === 'Escape') { menu.classList.remove('open'); }
+}
+
+function _muroMentionPick(i) {
+  const op = _mentionOpts[i];
+  if (!op) return;
+  const ta = document.getElementById('muroInput');
+  const pos = ta.selectionStart;
+  let antes;
+  if (op.kind === '@') {
+    antes = ta.value.slice(0, pos).replace(/@([\wáéíóúñ]*)$/i, '@' + op.key + ' ');
+  } else {
+    // #Título de la canción# → cerrado con # para admitir espacios
+    antes = ta.value.slice(0, pos).replace(/#([\wáéíóúñ ]*)$/i, '#' + op.label + '# ');
+  }
+  ta.value = antes + ta.value.slice(pos);
+  document.getElementById('muroMentionMenu').classList.remove('open');
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = antes.length;
+}
+
+// ¿A quién menciona este texto? → array de keys
+function _muroMentionsOf(texto) {
+  const keys = (BAND.members || []).map(m => m.key);
+  const out = [];
+  (texto.match(/@([\wáéíóúñ]+)/gi) || []).forEach(t => {
+    const k = _cfgNorm(t.slice(1));
+    const hit = keys.find(x => _cfgNorm(x) === k);
+    if (hit && !out.includes(hit)) out.push(hit);
+  });
+  return out;
+}
+
+// Pinta @menciones (la tuya destacada) y #canciones# (tocables)
+function _muroHighlight(texto) {
+  const me = currentUserName();
+  const keys = (BAND.members || []).map(m => m.key);
+  let out = esc(texto).replace(/@([\wáéíóúñ]+)/gi, (full, name) => {
+    const hit = keys.find(x => _cfgNorm(x) === _cfgNorm(name));
+    if (!hit) return full;
+    const mine = _cfgNorm(hit) === _cfgNorm(me) ? ' me' : '';
+    return `<span class="muro-at${mine}">@${esc(hit)}</span>`;
+  });
+  // #Título de la canción# → enlace si existe en la banda
+  out = out.replace(/#([^#\n]{1,80})#/g, (full, titulo) => {
+    const song = (_muroSongs || []).find(x => _cfgNorm(x.titulo) === _cfgNorm(titulo));
+    if (!song) return full;
+    return `<span class="muro-song" onclick="muroOpenSong('${song.id}')">🎵 ${esc(song.titulo)}</span>`;
+  });
+  return out;
+}
+
+// Abrir la canción mencionada (Modo Tocar). El Router deja volver al muro.
+function muroOpenSong(id) { openSong(id, true); }
+
+async function muroPost() {
+  const inp = document.getElementById('muroInput');
+  const texto = inp.value.trim();
+  if (!texto) { inp.focus(); return; }
+  if (!BAND.id) { alert('No hay banda activa.'); return; }
+  const { error } = await _sb.from('banda_muro').insert({
+    banda_id: BAND.id, autor: currentUserName(), texto
+  });
+  if (error) { alert('No se pudo publicar.'); return; }
+  inp.value = '';
+  muroLoad();
+}
+
+async function muroDelete(id) {
+  if (!confirm('¿Borrar tu mensaje?')) return;
+  const { error } = await _sb.from('banda_muro').delete().eq('id', id);
+  if (error) { alert('No se pudo borrar.'); return; }
+  muroLoad();
+}
+
 function showCalendar() {
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom  && window._immersiveResetZoom();
