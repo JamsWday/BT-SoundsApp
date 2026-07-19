@@ -11783,15 +11783,31 @@ function renderDrumPreview(container, row) {
   const _pvLineReps = Math.max(1, parseInt(row.repeats) || 1);
   const PV_CELL_W = 17;
   const PV_MIN_TUPLET_CELL_W = 16;
-  let maxCellsPerBeat = stepsPerBeat;
-  dp.bars.forEach(bar => {
-    const tps = (bar && bar.tuplets) || {};
+  // ANCHO COMPARTIDO GLOBAL (19/07 v2 — análisis de sergito): por patrón
+  // no bastaba, porque partitura y canción mezclan LÍNEAS distintas y cada
+  // una calculaba su ancho → desalineadas entre sí. Lo correcto es su
+  // propuesta: PASADA DE MEDIDA sobre TODOS los compases de batería de la
+  // canción, y luego renderizar. (El nº de pulsos sigue por compás — 5/4 ok.)
+  let _shBase = stepsPerBeat, _shMax = stepsPerBeat;
+  const _scanBars = [];
+  const _secs = (typeof songData !== 'undefined' && songData && songData.sections) || [];
+  _secs.forEach(sec => (sec.rows || []).forEach(r => {
+    if (r.instrument === 'bat' && r.drumPattern && r.drumPattern.bars)
+      r.drumPattern.bars.forEach(b0 => _scanBars.push([b0, r.drumPattern]));
+  }));
+  if (!_scanBars.length) dp.bars.forEach(b0 => _scanBars.push([b0, dp]));
+  _scanBars.forEach(pair => {
+    const b0 = pair[0], hold = pair[1];
+    const bc = deBaseStepsPerBeat(deBarSdiv(b0, hold));
+    if (bc > _shBase) _shBase = bc;
+    if (bc > _shMax)  _shMax  = bc;
+    const tps = (b0 && b0.tuplets) || {};
     Object.keys(tps).forEach(k => {
       const d = tps[k] && tps[k].div;
-      if (d && d > maxCellsPerBeat) maxCellsPerBeat = d;
+      if (d && d > _shMax) _shMax = d;
     });
   });
-  const PV_BEAT_W = Math.max(stepsPerBeat * PV_CELL_W, maxCellsPerBeat * PV_MIN_TUPLET_CELL_W);
+  const PV_BEAT_W = Math.max(_shBase * PV_CELL_W, _shMax * PV_MIN_TUPLET_CELL_W);
 
   const wrap = document.createElement('div');
   wrap.className = 'drum-preview-wrap';
@@ -11829,13 +11845,7 @@ function renderDrumPreview(container, row) {
 
     // ── Geometría de ESTE compás (F2: clave/división propias) ──
     const beatsThis = layout.length ? (Math.max(...layout.map(sl => sl.beat)) + 1) : beatsPerBar;
-    const _baseCells = deBaseStepsPerBeat(deBarSdiv(bar, dp));
-    let _cellsMax = _baseCells;
-    for (let b = 0; b < beatsThis; b++) {
-      const n = layout.filter(sl => sl.beat === b).length;
-      if (n > _cellsMax) _cellsMax = n;
-    }
-    const BW = Math.max(_baseCells * PV_CELL_W, _cellsMax * PV_MIN_TUPLET_CELL_W);
+    const BW = PV_BEAT_W;   // ancho COMPARTIDO → alineación entre compases
 
     // Beat header — grouped per beat (tuplet-aware)
     const beatHdr = document.createElement('div');
