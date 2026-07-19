@@ -1509,6 +1509,8 @@ body.readonly .title-input,
 body.readonly .artist-input,
 body.readonly .meta-input { pointer-events: none; border-color: transparent !important; }
 body.readonly #songKeyBar { pointer-events: none; }
+body.readonly #songBpmBar { background: transparent; border-color: transparent; padding-left: 0; }
+body.readonly #songBpmPill { font-size: 0.85rem; letter-spacing: 0.08em; border-color: transparent; background: transparent; }
 body.readonly #songKeyBar > div { background: transparent; border-color: transparent; padding-left: 0; }
 body.readonly #songKeyPill { pointer-events: none; font-size: 0.85rem; letter-spacing: 0.08em; border-color: transparent; background: transparent; }
 /* Eagle button and toggles must stay clickable in readonly */
@@ -2574,6 +2576,10 @@ body.readonly .drum-add-btn  { display: none !important; }
   overflow-y: auto;
   overflow-x: auto;
   padding: 10px 14px;
+  /* Frontera clara: aquí acaba el header y empieza el área de trabajo */
+  border-top: 2px solid var(--accent);
+  /* El scroll en ambos ejes sigue; el pellizco lo reclamamos nosotros */
+  touch-action: pan-x pan-y;
   scrollbar-width: thin;
   scrollbar-color: var(--dim) transparent;
 }
@@ -4349,6 +4355,16 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
              min-width:80px;display:inline-block;text-align:center;">—</span>
   </div>
 
+  <!-- BPM de la canción: por fin una UI que lo ESCRIBE (antes siempre 90) -->
+  <div id="songBpmBar" style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
+    <label style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0;">♩ BPM</label>
+    <span id="songBpmPill" onclick="songBpmEdit()" title="Editar BPM de la canción"
+      style="font-family:'Space Mono',monospace;font-size:0.82rem;font-weight:700;
+             padding:4px 10px;border-radius:5px;cursor:pointer;transition:all 0.15s;
+             border:1px solid var(--border);background:var(--bg);color:var(--accent);
+             min-width:52px;display:inline-block;text-align:center;">—</span>
+  </div>
+
   <!-- Botón Eagle -->
   <button id="btnEagle" onclick="toggleEagleMode()" title="Modo Águila — vista compacta"
     style="font-family:'Space Mono',monospace;font-size:0.8rem;padding:7px 11px;border-radius:8px;
@@ -5989,6 +6005,7 @@ function syncHeaderInputs() {
   document.getElementById("songTitle").value  = songData.title || "";
   document.getElementById("songArtist").value = songData.artist || "";
   _syncKeyPill();
+  _syncBpmPill();
 }
 
 // Keyboard shortcuts
@@ -6501,12 +6518,13 @@ function render(scrollTargetId) {
         repIn.type = "number";
         repIn.min = 1; repIn.max = 32;
         repIn.className = "repeat-input";
-        repIn.value = row.repeats !== null ? row.repeats : "";
+        repIn.value = (row.repeats ?? 1);   // 1 por defecto (antes quedaba en "×")
         repIn.placeholder = "–";
         repIn.title = inst === "bat" ? "Número de repeticiones del patrón" : "Número de repeticiones";
         repIn.addEventListener("change", () => {
           const v = parseInt(repIn.value);
-          row.repeats = isNaN(v) ? null : v;
+          row.repeats = (isNaN(v) || v < 1) ? 1 : v;
+          render();   // renumerar los previews de batería (las líneas siguientes cambian)
         });
         right.appendChild(xl);
         right.appendChild(repIn);
@@ -6849,6 +6867,38 @@ const _KEY_NAMES = [
 ];
 
 // Sincroniza el pill visual con songData.key
+function _syncBpmPill() {
+  const pill = document.getElementById("songBpmPill");
+  if (!pill) return;
+  const b = parseInt(songData?.bpm) || 0;
+  pill.textContent = b || "—";
+  pill.style.color = b ? "var(--accent)" : "var(--dim)";
+  pill.style.borderColor = b ? "var(--accent)" : "var(--border)";
+}
+
+function songBpmEdit() {
+  const pill = document.getElementById("songBpmPill");
+  if (!pill || document.getElementById("songBpmInput")) return;
+  const inp = document.createElement("input");
+  inp.id = "songBpmInput";
+  inp.type = "number"; inp.min = 40; inp.max = 240;
+  inp.value = parseInt(songData?.bpm) || "";
+  inp.placeholder = "90";
+  inp.style.cssText = "width:64px;background:var(--bg);border:1px solid var(--accent);border-radius:5px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.82rem;font-weight:700;padding:4px 6px;text-align:center;outline:none;";
+  const save = () => {
+    const v = parseInt(inp.value);
+    saveUndo();
+    if (!isNaN(v)) songData.bpm = Math.min(240, Math.max(40, v));
+    else delete songData.bpm;   // vacío = sin BPM definido
+    inp.replaceWith(pill);
+    _syncBpmPill();
+  };
+  inp.addEventListener("blur", save);
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") inp.blur(); });
+  pill.replaceWith(inp);
+  inp.focus(); inp.select();
+}
+
 function _syncKeyPill() {
   const pill = document.getElementById("songKeyPill");
   if (!pill) return;
@@ -10727,7 +10777,82 @@ function deStepLabel(beatNumber, posInBeat, stepsInBeat) {
 //
 // This is THE single source of truth for iterating a bar. Render, preview
 // and audio all use it, so tuplets only need to be understood here.
+// ── MODELO v1 · F0 (17/07) — cimientos invisibles ────────────────
+// Identidad única del compás (los ids posicionales bar_N podían duplicarse
+// tras borrar+añadir; nadie los referenciaba, así que el cambio es seguro).
+function deNewBarId() {
+  return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+// Migración perezosa: garantiza id único a cada compás del patrón.
+function deBarsEnsureIds(dp) {
+  if (!dp || !dp.bars) return;
+  const seen = new Set();
+  dp.bars.forEach(b => {
+    if (!b.id || seen.has(b.id)) b.id = deNewBarId();
+    seen.add(b.id);
+  });
+}
+// Numeración AUTOMÁTICA de compases (modelo v1): derivada, se calcula al
+// pintar. Devuelve el nº del primer compás de esta línea dentro de la
+// canción (recorriendo las líneas de batería anteriores). Convención de
+// partitura real: se numeran los compases ESCRITOS (los ×N no duplican).
+// CONVENCIÓN (review 18/07): se cuentan compases TOCADOS — un ×3 ocupa
+// 3 números (C5–C7) y el siguiente empieza en C8. El ×N de LÍNEA también
+// multiplica para las líneas siguientes.
+function drumBarSpan(bar) { return Math.max(1, parseInt(bar && bar.repeat) || 1); }
+function drumRowSpanBars(r) {
+  const bars = (r.drumPattern && r.drumPattern.bars) || [];
+  const per = bars.reduce((a, b) => a + drumBarSpan(b), 0);
+  return per * Math.max(1, parseInt(r.repeats) || 1);
+}
+// Etiqueta de numeración con ×N de LÍNEA (opción B, 18/07): cada pasada
+// separada por / — hasta 3 pasadas completas; más, comprimido con …
+//   línea ×3, compás simple:  C1/C3/C5
+//   línea ×6, compás ×2:      C1–C2/C7–C8/…/C31–C32
+function drumBarNumLabel(startNum, span, perLine, lineReps) {
+  const seg = k => {
+    const s0 = startNum + k * perLine;
+    return span > 1 ? ('C' + s0 + '–C' + (s0 + span - 1)) : ('C' + s0);
+  };
+  if (lineReps <= 1) return seg(0);
+  if (lineReps <= 3) return Array.from({ length: lineReps }, (_, k) => seg(k)).join('/');
+  return seg(0) + '/' + seg(1) + '/…/' + seg(lineReps - 1);
+}
+
+function drumBarNumStart(targetRow) {
+  let n = 0;
+  const secs = (typeof songData !== 'undefined' && songData && songData.sections) || [];
+  for (const sec of secs) {
+    for (const r of (sec.rows || [])) {
+      if (r.instrument !== 'bat' || !r.drumPattern || !r.drumPattern.bars) continue;
+      if (r === targetRow) return n;
+      n += drumRowSpanBars(r);
+    }
+  }
+  return 0;
+}
+
+// Herencia compás → patrón (fuente única para clave y división).
+function deBarTS(bar, dp)   { return (bar && bar.timeSignature) || (dp && dp.timeSignature) || '4/4'; }
+function deBarSdiv(bar, dp) { return (bar && bar.subdivision)   || (dp && dp.subdivision)   || '8th'; }
+// Poda notas y tuplets que ya no caben tras cambiar clave/división del compás.
+function deBarPrune(bar, dp) {
+  const layout = deBarLayout(bar, deBarTS(bar, dp), deBarSdiv(bar, dp));
+  const max = layout.length;
+  DE_VOICES.forEach(v => {
+    bar.voices[v.id] = (bar.voices[v.id] || []).filter(n => n.step < max);
+  });
+  const beats = parseInt(deBarTS(bar, dp).split('/')[0]) || 4;
+  if (bar.tuplets) Object.keys(bar.tuplets).forEach(k => {
+    if (parseInt(k) >= beats) delete bar.tuplets[k];
+  });
+}
+
 function deBarLayout(bar, timeSig, subdiv) {
+  // Modelo v1: si el compás define SU clave/división, mandan (herencia).
+  // Inocuo hoy: ningún compás las define aún — F2 estrenará los chips.
+  if (bar && bar.timeSignature) timeSig = bar.timeSignature;
+  if (bar && bar.subdivision)   subdiv  = bar.subdivision;
   const beats = parseInt(timeSig.split('/')[0]) || 4;
   const base = deBaseStepsPerBeat(subdiv);
   const tuplets = (bar && bar.tuplets) || {};
@@ -10766,7 +10891,7 @@ function deEmptyBars(count, timeSig, subdiv) {
   for (let b = 0; b < count; b++) {
     const voices = {};
     DE_VOICES.forEach(v => { voices[v.id] = []; });
-    bars.push({ id: 'bar_' + (b+1), voices });
+    bars.push({ id: deNewBarId(), voices });
   }
   return bars;
 }
@@ -10785,6 +10910,10 @@ function openDrumEditor(row, sec) {
   _de.pattern = row.drumPattern
     ? JSON.parse(JSON.stringify(row.drumPattern))
     : { timeSignature: '4/4', subdivision: '8th', bars: deEmptyBars(2, '4/4', '8th') };
+  deBarsEnsureIds(_de.pattern);   // F0: ids únicos (migración perezosa, se guarda al guardar)
+  _de.barNumStart = drumBarNumStart(row);   // F1: numeración automática de canción
+  _deApplyZoom(_userSettings.drumEditZoom || 1);   // zoom recordado del área de trabajo
+  _deZoomSetup();
 
   // Reset toolbar UI
   _de.modifier = null;
@@ -11086,11 +11215,9 @@ function deChangeTimeSig() {
   _de.pattern.timeSignature = ts;
   // Rebuild bars with correct step count, preserving notes that fit
   const sdiv = _de.pattern.subdivision || '8th';
-  const newSteps = deStepsPerBar(ts, sdiv);
   _de.pattern.bars.forEach(bar => {
-    DE_VOICES.forEach(v => {
-      bar.voices[v.id] = (bar.voices[v.id] || []).filter(n => n.step < newSteps);
-    });
+    delete bar.timeSignature;   // el global manda: fuera excepciones
+    deBarPrune(bar, _de.pattern);
   });
   document.getElementById('deSubtitle').textContent =
     _de.pattern.bars.length + ' compás/compases · ' + ts;
@@ -11106,12 +11233,137 @@ function deChangeSubdiv(sdiv) {
   if (sel) sel.value = sdiv;
   // Filter notes that exceed new step count
   const ts = _de.pattern.timeSignature || '4/4';
-  const newSteps = deStepsPerBar(ts, sdiv);
   _de.pattern.bars.forEach(bar => {
-    DE_VOICES.forEach(v => {
-      bar.voices[v.id] = (bar.voices[v.id] || []).filter(n => n.step < newSteps);
-    });
+    delete bar.subdivision;   // el global manda: fuera excepciones
+    deBarPrune(bar, _de.pattern);
   });
+  deRenderGrid();
+}
+
+// ── ZOOM del área de trabajo (18/07): pellizco como en Editar/Tocar,
+// pero RECORDADO por usuario (_userSettings.drumEditZoom). Blindado
+// frente al zoom de página (preventDefault en gesto de 2 dedos).
+function _deApplyZoom(z) {
+  z = Math.min(2, Math.max(0.5, z));
+  const gw = document.getElementById('deGridWrap');
+  if (gw) gw.style.zoom = (z === 1 ? '' : z);
+  _userSettings.drumEditZoom = z;
+  return z;
+}
+let _deZoomBound = false;
+function _deZoomSetup() {
+  if (_deZoomBound) return; _deZoomBound = true;
+  const gw = document.getElementById('deGridWrap');
+  if (!gw) return;
+  let d0 = null, z0 = 1;
+  gw.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      d0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      z0 = _userSettings.drumEditZoom || 1;
+    }
+  }, { passive: true });
+  gw.addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && d0) {
+      e.preventDefault();
+      const d1 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      _deApplyZoom(z0 * (d1 / d0));
+    }
+  }, { passive: false });
+  gw.addEventListener('touchend', () => { if (d0) { d0 = null; saveUserSettings(); } });
+}
+
+// Arrastre de tarjetas (misma filosofía que secciones en Editar canción)
+let _deDrag = null;
+
+function _deClearDropMarks() {
+  document.querySelectorAll('#deGridWrap .drop-target')
+    .forEach(c => c.classList.remove('drop-target'));
+}
+
+// Con el dedo: calcular destino, marcarlo y auto-scrollear cerca de bordes
+function _deTouchDragOver(y) {
+  const gw = document.getElementById('deGridWrap');
+  const gr = gw.getBoundingClientRect();
+  if (y < gr.top + 70)    gw.scrollTop -= 14;
+  if (y > gr.bottom - 70) gw.scrollTop += 14;
+  _deClearDropMarks();
+  const cards = gw.querySelectorAll('.de-bar-card');
+  let to = null;
+  cards.forEach(c => {
+    const r = c.getBoundingClientRect();
+    if (y < r.top || y > r.bottom) return;
+    const bi = parseInt(c.dataset.deBar);
+    to = (y > r.top + r.height / 2) ? bi + 1 : bi;
+  });
+  if (to !== null && _deDrag) {
+    _deDrag.to = to;
+    // Iluminar el ＋ del hueco donde caería
+    const btn = gw.querySelector('[data-ins-at="' + to + '"]');
+    if (btn) btn.classList.add('drop-target');
+  }
+}
+
+function _deTouchDrop(cancel) {
+  _deClearDropMarks();
+  if (!_deDrag) return;
+  const { fromIdx, to } = _deDrag;
+  _deDrag = null;
+  if (cancel || to === null) { deRenderGrid(); return; }
+  let t = to;
+  if (fromIdx < t) t--;
+  if (t !== fromIdx) {
+    const [b] = _de.pattern.bars.splice(fromIdx, 1);
+    _de.pattern.bars.splice(t, 0, b);
+  }
+  deRenderGrid();
+}
+
+// Insertar un compás VACÍO en una posición (hereda del compás de arriba)
+function deInsertBarAt(idx) {
+  const prev = _de.pattern.bars[idx - 1];
+  const voices = {};
+  DE_VOICES.forEach(v => { voices[v.id] = []; });
+  const nb = { id: deNewBarId(), voices };
+  if (prev) {
+    if (prev.timeSignature) nb.timeSignature = prev.timeSignature;
+    if (prev.subdivision)   nb.subdivision   = prev.subdivision;
+  }
+  _de.pattern.bars.splice(idx, 0, nb);
+  deRenderGrid();
+}
+
+// Añadir compás al PRINCIPIO (hereda clave/división del que era primero)
+function deAddBarTop() {
+  const first = _de.pattern.bars[0];
+  const voices = {};
+  DE_VOICES.forEach(v => { voices[v.id] = []; });
+  const nb = { id: deNewBarId(), voices };
+  if (first) {
+    if (first.timeSignature) nb.timeSignature = first.timeSignature;
+    if (first.subdivision)   nb.subdivision   = first.subdivision;
+  }
+  _de.pattern.bars.unshift(nb);
+  deRenderGrid();
+}
+
+// Duplicar un compás COMPLETO (notas, tresillos, clave, división, ×N,
+// comentario) — la copia se inserta justo debajo, con id propio.
+// Mover un compás una posición (↑ dir=-1 · ↓ dir=+1); renumera solo.
+function deMoveBar(bi, dir) {
+  const bars = _de.pattern.bars;
+  const j = bi + dir;
+  if (j < 0 || j >= bars.length) return;
+  const [b] = bars.splice(bi, 1);
+  bars.splice(j, 0, b);
+  deRenderGrid();
+}
+
+function deDupBar(bi) {
+  const src = _de.pattern.bars[bi];
+  if (!src) return;
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = deNewBarId();
+  _de.pattern.bars.splice(bi + 1, 0, copy);
   deRenderGrid();
 }
 
@@ -11119,7 +11371,13 @@ function deAddBar() {
   const { timeSignature, subdivision } = _de.pattern;
   const voices = {};
   DE_VOICES.forEach(v => { voices[v.id] = []; });
-  _de.pattern.bars.push({ id: 'bar_' + (_de.pattern.bars.length + 1), voices });
+  const prevBar = _de.pattern.bars[_de.pattern.bars.length - 1];
+  const nb = { id: deNewBarId(), voices };
+  if (prevBar) {   // F2: el nuevo hereda la clave/división explícita del anterior
+    if (prevBar.timeSignature) nb.timeSignature = prevBar.timeSignature;
+    if (prevBar.subdivision)   nb.subdivision   = prevBar.subdivision;
+  }
+  _de.pattern.bars.push(nb);
   document.getElementById('deSubtitle').textContent =
     _de.pattern.bars.length + ' compás/compases · ' + timeSignature;
   deRenderGrid();
@@ -11134,100 +11392,170 @@ function deRemoveBar() {
 }
 
 function deRenderGrid() {
+  // ── F1 REFORMA (18/07): TARJETAS APILADAS ─────────────────────
+  // Cada compás es su propia tarjeta: número automático, comentario,
+  // SU leyenda (tocable → tresillos de ESE compás), sus filas de voz
+  // y SU ancho (scroll horizontal por tarjeta si hace falta).
+  // Clave/división siguen globales en el header (llegan en F2).
+  // Señas conservadas para el resto de la app (play/metrónomo):
+  // .de-voice-row + dataset.barIdx + .de-cell en orden de slots.
   if (_dau.playing) deStop();
   const wrap = document.getElementById('deGridWrap');
   wrap.innerHTML = '';
 
-
   const ts   = _de.pattern.timeSignature || '4/4';
   const sdiv = _de.pattern.subdivision  || '8th';
-  const steps = deStepsPerBar(ts, sdiv);
-  const beatsPerBar = parseInt(ts.split('/')[0]) || 4;
-  const stepsPerBeat = deBaseStepsPerBeat(sdiv);
-  const CELL_W = 26;                       // base cell width
-  const MIN_TUPLET_CELL_W = 22;            // min comfortable width per cell in a tuplet
+  const CELL_W = 26;
+  const MIN_TUPLET_CELL_W = 22;
+  // Añadir compás también ARRIBA (petición de uso real, 19/07)
+  const addTopBtn = document.createElement('button');
+  addTopBtn.className = 'de-add-bar-inline';
+  addTopBtn.style.marginBottom = '12px';
+  addTopBtn.dataset.insAt = '0';
+  addTopBtn.innerHTML = '＋ &nbsp;Añadir compás arriba';
+  addTopBtn.addEventListener('click', deAddBarTop);
+  wrap.appendChild(addTopBtn);
 
-  // Beat width must fit the DENSEST subdivision used in any beat of any bar,
-  // so a sextuplet (6) never overflows even when the base is quarters/eighths.
-  // We scan all bars' tuplets to find the max cells-per-beat needed.
-  let maxCellsPerBeat = stepsPerBeat;
-  _de.pattern.bars.forEach(bar => {
-    const tps = (bar && bar.tuplets) || {};
-    Object.keys(tps).forEach(k => {
-      const d = tps[k] && tps[k].div;
-      if (d && d > maxCellsPerBeat) maxCellsPerBeat = d;
-    });
-  });
-  // width: enough for base cells at CELL_W, but also enough so the densest
-  // tuplet's cells are at least MIN_TUPLET_CELL_W wide.
-  const BEAT_W = Math.max(stepsPerBeat * CELL_W, maxCellsPerBeat * MIN_TUPLET_CELL_W);
-
-  // Use the first bar's layout for the shared header (header reflects bar 1).
-  // Per-bar tuplets still render correctly in each bar's own rows below.
-  const hdrLayout = deBarLayout(_de.pattern.bars[0], ts, sdiv);
-
-  // Beat header (shared, shown once) — grouped per beat, clickable for tuplets
-  const hdr = document.createElement('div');
-  hdr.className = 'de-beat-header';
-  for (let b = 0; b < beatsPerBar; b++) {
-    const beatSlots = hdrLayout.filter(s => s.beat === b);
-    const group = document.createElement('div');
-    group.className = 'de-beat-group de-beat-head-clickable';
-    group.style.width = BEAT_W + 'px';
-    group.title = 'Toca para subdividir (tresillo, quintillo…)';
-    if (beatSlots[0] && beatSlots[0].isTuplet) group.classList.add('is-tuplet');
-    beatSlots.forEach(slot => {
-      const lbl = document.createElement('div');
-      const info = deStepLabel(b + 1, slot.posInBeat, slot.stepsInBeat);
-      lbl.className = 'de-beat-lbl ' + info.cls;
-      lbl.style.flex = '1 1 0';
-      lbl.style.width = 'auto';
-      lbl.textContent = info.text;
-      group.appendChild(lbl);
-    });
-    // open tuplet menu — applies to ALL bars (grooves usually repeat)
-    group.addEventListener('click', () => deOpenTupletMenuAllBars(group, b));
-    hdr.appendChild(group);
-  }
-  wrap.appendChild(hdr);
+  const numStart = _de.barNumStart || 0;
+  let _numCursor = numStart + 1;
+  const _perLine  = _de.pattern.bars.reduce((a, b) => a + drumBarSpan(b), 0);
+  const _lineReps = Math.max(1, parseInt(_de.row && _de.row.repeats) || 1);
 
   _de.pattern.bars.forEach((bar, bi) => {
-    // Bar label with repeat + delete
+    const card = document.createElement('div');
+    card.className = 'de-bar-card';
+    card.dataset.deBar = bi;
+    card.addEventListener('dragover', e => {
+      if (!_deDrag) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    card.addEventListener('drop', e => {
+      if (!_deDrag) return;
+      e.preventDefault();
+      const from = _deDrag.fromIdx;
+      const r = card.getBoundingClientRect();
+      let to = (e.clientY > r.top + r.height / 2) ? bi + 1 : bi;
+      if (from < to) to--;
+      _deDrag = null;
+      if (to !== from) {
+        const [b] = _de.pattern.bars.splice(from, 1);
+        _de.pattern.bars.splice(to, 0, b);
+        deRenderGrid();
+      }
+    });
+
+    // ── Cabecera de la tarjeta: nº automático · comentario · ×N · ✕ ──
     const barLbl = document.createElement('div');
     barLbl.className = 'de-bar-lbl';
 
-    const barTitle = document.createElement('span');
-    barTitle.textContent = bar.label ? bar.label : ('Compás ' + (bi + 1));
-    barTitle.title = 'Toca para renombrar el compás (numeración de la composición)';
-    barTitle.style.cursor = 'pointer';
-    if (bar.label) barTitle.style.color = 'var(--accent)';
-    barTitle.addEventListener('click', () => {
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.title = 'Arrastrar para reordenar el compás';
+    handle.draggable = true;
+    handle.addEventListener('click', e => e.stopPropagation());
+    handle.addEventListener('dragstart', e => {
+      _deDrag = { fromIdx: bi };
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => card.classList.add('dragging'), 0);
+    });
+    handle.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      _deDrag = null;
+    });
+    // Táctil: el HTML5 drag no existe en móvil → gesto propio con
+    // indicador de destino y auto-scroll en los bordes.
+    handle.addEventListener('touchstart', e => {
+      e.preventDefault();
+      _deDrag = { fromIdx: bi, to: null };
+      card.classList.add('dragging');
+    }, { passive: false });
+    handle.addEventListener('touchmove', e => {
+      if (!_deDrag) return;
+      e.preventDefault();
+      _deTouchDragOver(e.touches[0].clientY);
+    }, { passive: false });
+    handle.addEventListener('touchend', () => _deTouchDrop());
+    handle.addEventListener('touchcancel', () => _deTouchDrop(true));
+    barLbl.appendChild(handle);
+
+    const _span = drumBarSpan(bar);
+    const _numTxt = drumBarNumLabel(_numCursor, _span, _perLine, _lineReps);
+    _numCursor += _span;
+    const numEl = document.createElement('span');
+    numEl.className = 'de-bar-num';
+    numEl.textContent = _numTxt;
+    numEl.title = 'Número de compás en la canción (automático)';
+    barLbl.appendChild(numEl);
+
+    // Comentario del compás (el antiguo label, reinterpretado — modelo v1)
+    const comEl = document.createElement('span');
+    comEl.className = 'de-bar-comment' + (bar.label ? ' has-text' : '');
+    comEl.textContent = bar.label || '· nota…';
+    comEl.title = 'Comentario del compás (toca para editar)';
+    comEl.addEventListener('click', () => {
       const inp = document.createElement('input');
       inp.type = 'text';
-      inp.maxLength = 8;
+      inp.maxLength = 24;
       inp.value = bar.label || '';
-      inp.placeholder = 'C' + (bi + 1);
-      inp.style.cssText = 'width:72px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;color:var(--text);font-family:\'Space Mono\',monospace;font-size:0.7rem;padding:2px 6px;outline:none;';
+      inp.placeholder = 'con escobillas…';
+      inp.style.cssText = 'width:130px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;color:var(--text);font-family:\'Space Mono\',monospace;font-size:0.66rem;padding:2px 6px;outline:none;';
       const save = () => {
         const v = inp.value.trim();
         if (v) bar.label = v; else delete bar.label;
-        barTitle.textContent = bar.label ? bar.label : ('Compás ' + (bi + 1));
-        barTitle.style.color = bar.label ? 'var(--accent)' : '';
-        inp.replaceWith(barTitle);
+        comEl.textContent = bar.label || '· nota…';
+        comEl.classList.toggle('has-text', !!bar.label);
+        inp.replaceWith(comEl);
       };
       inp.addEventListener('blur', save);
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
-      barTitle.replaceWith(inp);
+      comEl.replaceWith(inp);
       inp.focus(); inp.select();
     });
-    barLbl.appendChild(barTitle);
+    barLbl.appendChild(comEl);
 
-    // Expanding line
+    // ── F2: chips de CLAVE y DIVISIÓN de ESTE compás ──
+    // Opciones leídas de los selects globales (catálogo único de la app).
+    // Acento = el compás tiene la suya propia; gris = hereda del patrón.
+    // Ciclar hasta el valor por defecto = volver a heredar (se limpia solo).
+    const SD_TXT = { '4th': '1/4', '8th': '1/8', '16th': '1/16' };
+    const mkChip = (txt, own, title, onTap) => {
+      const c = document.createElement('span');
+      c.textContent = txt;
+      c.title = title;
+      c.style.cssText = "font-family:'Space Mono',monospace;font-size:0.6rem;padding:1px 7px;border-radius:8px;cursor:pointer;flex-shrink:0;border:1px solid " +
+        (own ? 'var(--accent);color:var(--accent);' : 'var(--border);color:var(--muted);');
+      c.addEventListener('click', e => { e.stopPropagation(); onTap(); });
+      return c;
+    };
+    const tsOpts = Array.from((document.getElementById('deTimeSig') || {}).options || []).map(o => o.value);
+    const sdOpts = Array.from((document.getElementById('deSubDivSel') || {}).options || []).map(o => o.value);
+    const tsEff = deBarTS(bar, _de.pattern);
+    const sdEff = deBarSdiv(bar, _de.pattern);
+    barLbl.appendChild(mkChip(tsEff, !!bar.timeSignature,
+      'Clave de ESTE compás (toca para cambiar; herencia: ' + (_de.pattern.timeSignature || '4/4') + ')',
+      () => {
+        const next = tsOpts[(tsOpts.indexOf(tsEff) + 1) % tsOpts.length];
+        if (next === (_de.pattern.timeSignature || '4/4')) delete bar.timeSignature;
+        else bar.timeSignature = next;
+        deBarPrune(bar, _de.pattern);
+        deRenderGrid();
+      }));
+    barLbl.appendChild(mkChip(SD_TXT[sdEff] || sdEff, !!bar.subdivision,
+      'División de ESTE compás (toca para cambiar; herencia: ' + (SD_TXT[_de.pattern.subdivision || '8th']) + ')',
+      () => {
+        const next = sdOpts[(sdOpts.indexOf(sdEff) + 1) % sdOpts.length];
+        if (next === (_de.pattern.subdivision || '8th')) delete bar.subdivision;
+        else bar.subdivision = next;
+        deBarPrune(bar, _de.pattern);
+        deRenderGrid();
+      }));
+
     const barLine = document.createElement('span');
     barLine.className = 'de-bar-line';
     barLbl.appendChild(barLine);
 
-    // Repeat badge (x + input)
     const repeatBadge = document.createElement('span');
     repeatBadge.className = 'de-bar-repeat';
     const xl = document.createElement('span');
@@ -11242,28 +11570,74 @@ function deRenderGrid() {
     repIn.addEventListener('change', () => {
       bar.repeat = Math.max(1, parseInt(repIn.value) || 1);
       repIn.value = bar.repeat;
+      deRenderGrid();   // renumerar (C5–C7…) al cambiar el ×N
     });
     repeatBadge.appendChild(xl);
     repeatBadge.appendChild(repIn);
     barLbl.appendChild(repeatBadge);
 
-    // Delete button — far right
+    const dupBtn = document.createElement('button');
+    dupBtn.className = 'de-bar-del';
+    dupBtn.textContent = '⧉';
+    dupBtn.title = 'Duplicar este compás (la copia se inserta debajo)';
+    dupBtn.style.color = 'var(--accent)';
+    dupBtn.addEventListener('click', () => deDupBar(bi));
+    barLbl.appendChild(dupBtn);
+
     if (_de.pattern.bars.length > 1) {
       const delBtn = document.createElement('button');
       delBtn.className = 'de-bar-del';
       delBtn.textContent = '✕';
       delBtn.title = 'Eliminar este compás';
       delBtn.addEventListener('click', () => {
-        const _lbl = bar.label ? '"' + bar.label + '"' : ('Compás ' + (bi + 1));
-        if (!confirm('¿Eliminar el ' + _lbl + '?')) return;
+        if (!confirm('¿Eliminar el compás ' + _numTxt + '?')) return;
         _de.pattern.bars.splice(bi, 1);
         deRenderGrid();
       });
       barLbl.appendChild(delBtn);
     }
-    wrap.appendChild(barLbl);
+    card.appendChild(barLbl);
 
-    // Voice rows
+    // ── Cuerpo con SU ancho: leyenda + filas de voz (scroll propio) ──
+    const layout = deBarLayout(bar, ts, sdiv);
+    const beatsThis = Math.max(...layout.map(sl => sl.beat)) + 1;
+    // Ancho de beat DE ESTA tarjeta: su subdivisión y sus tuplets
+    let maxCellsPerBeat = 1;
+    for (let b = 0; b < beatsThis; b++) {
+      const n = layout.filter(sl => sl.beat === b).length;
+      if (n > maxCellsPerBeat) maxCellsPerBeat = n;
+    }
+    const baseCells = deBaseStepsPerBeat(deBarSdiv(bar, _de.pattern));
+    const BEAT_W = Math.max(baseCells * CELL_W, maxCellsPerBeat * MIN_TUPLET_CELL_W);
+
+    const scroll = document.createElement('div');
+    scroll.className = 'de-bar-scroll';
+
+    // Leyenda de ESTE compás (tocable → tresillos por tiempo, del compás)
+    const hdr = document.createElement('div');
+    hdr.className = 'de-beat-header';
+    for (let b = 0; b < beatsThis; b++) {
+      const beatSlots = layout.filter(sl => sl.beat === b);
+      const group = document.createElement('div');
+      group.className = 'de-beat-group de-beat-head-clickable';
+      group.style.width = BEAT_W + 'px';
+      group.title = 'Toca para subdividir (tresillo, quintillo…)';
+      if (beatSlots[0] && beatSlots[0].isTuplet) group.classList.add('is-tuplet');
+      beatSlots.forEach(slot => {
+        const lbl = document.createElement('div');
+        const info = deStepLabel(b + 1, slot.posInBeat, slot.stepsInBeat);
+        lbl.className = 'de-beat-lbl ' + info.cls;
+        lbl.style.flex = '1 1 0';
+        lbl.style.width = 'auto';
+        lbl.textContent = info.text;
+        group.appendChild(lbl);
+      });
+      group.addEventListener('click', () => deOpenTupletMenu(group, bi, b));
+      hdr.appendChild(group);
+    }
+    scroll.appendChild(hdr);
+
+    // Filas de voz (lógica de celdas intacta)
     DE_VOICES.forEach(voice => {
       const notes = bar.voices[voice.id] || [];
 
@@ -11276,8 +11650,7 @@ function deRenderGrid() {
       lbl.textContent = voice.label;
       row.appendChild(lbl);
 
-      const layout = deBarLayout(bar, ts, sdiv);
-      for (let b = 0; b < beatsPerBar; b++) {
+      for (let b = 0; b < beatsThis; b++) {
         const beatSlots = layout.filter(sl => sl.beat === b);
         const group = document.createElement('div');
         group.className = 'de-beat-group';
@@ -11285,8 +11658,6 @@ function deRenderGrid() {
         const beatIsTuplet = beatSlots[0] && beatSlots[0].isTuplet;
         if (beatIsTuplet) {
           group.classList.add('is-tuplet');
-          // badge only on the first voice row of the beat would be ideal,
-          // but per-row keeps it simple and always visible
           const badge = document.createElement('div');
           badge.className = 'de-tuplet-badge';
           badge.textContent = beatSlots[0].tupletDiv;
@@ -11315,7 +11686,6 @@ function deRenderGrid() {
           }
           cell.appendChild(inner);
 
-          // Click — unified modifier logic
           cell.addEventListener('click', () => {
             const mod = _de.modifier;
             const idx = notes.findIndex(n => n.step === s);
@@ -11361,13 +11731,27 @@ function deRenderGrid() {
         });
         row.appendChild(group);
       }
-      wrap.appendChild(row);
+      scroll.appendChild(row);
     });
+
+    card.appendChild(scroll);
+    wrap.appendChild(card);
+
+    // ＋ fino entre compases (filosofía "+ SECCIÓN AQUÍ")
+    if (bi < _de.pattern.bars.length - 1) {
+      const ins = document.createElement('button');
+      ins.className = 'de-bar-insert';
+      ins.dataset.insAt = String(bi + 1);
+      ins.textContent = '＋';
+      ins.title = 'Insertar un compás aquí';
+      ins.addEventListener('click', () => deInsertBarAt(bi + 1));
+      wrap.appendChild(ins);
+    }
   });
 
-  // Botón "＋ Añadir compás" al final del grid
   const addBarBtn = document.createElement('button');
   addBarBtn.className = 'de-add-bar-inline';
+  addBarBtn.dataset.insAt = String(_de.pattern.bars.length);
   addBarBtn.innerHTML = '＋ &nbsp;Añadir compás';
   addBarBtn.addEventListener('click', deAddBar);
   wrap.appendChild(addBarBtn);
@@ -11394,6 +11778,9 @@ function renderDrumPreview(container, row) {
   // (la filosofía de toda la app: leyendas + solo voces con toques).
 
   // Preview cell width (compact). Beat width fits densest tuplet across bars.
+  let _pvNum = drumBarNumStart(row) + 1;   // numeración de canción, también aquí
+  const _pvPerLine  = dp.bars.reduce((a, b) => a + drumBarSpan(b), 0);
+  const _pvLineReps = Math.max(1, parseInt(row.repeats) || 1);
   const PV_CELL_W = 17;
   const PV_MIN_TUPLET_CELL_W = 16;
   let maxCellsPerBeat = stepsPerBeat;
@@ -11418,10 +11805,20 @@ function renderDrumPreview(container, row) {
 
     const barLbl = document.createElement('div');
     barLbl.className = 'drum-preview-bar-label';
+    const _pvSpan = drumBarSpan(bar);
+    const _pvTxt = drumBarNumLabel(_pvNum, _pvSpan, _pvPerLine, _pvLineReps);
+    _pvNum += _pvSpan;
+    // Cn resaltado como el ×N (el gris --muted no se veía en tema oscuro)
     const barLblTxt = document.createElement('span');
-    barLblTxt.textContent = bar.label ? bar.label : ('C' + (bi + 1));
-    if (bar.label) barLblTxt.style.color = 'var(--accent)';
+    barLblTxt.textContent = _pvTxt;
+    barLblTxt.style.cssText = 'color:var(--accent);font-weight:700;';
     barLbl.appendChild(barLblTxt);
+    if (bar.label) {
+      const comTxt = document.createElement('span');
+      comTxt.textContent = '· ' + bar.label;
+      comTxt.style.cssText = 'color:var(--text);margin-left:4px;';
+      barLbl.appendChild(comTxt);
+    }
     const barRepSpan = document.createElement('span');
     barRepSpan.className = 'drum-preview-bar-repeat';
     barRepSpan.textContent = '×' + (bar.repeat || 1);
@@ -11430,14 +11827,24 @@ function renderDrumPreview(container, row) {
 
     const layout = deBarLayout(bar, ts, sdiv);
 
+    // ── Geometría de ESTE compás (F2: clave/división propias) ──
+    const beatsThis = layout.length ? (Math.max(...layout.map(sl => sl.beat)) + 1) : beatsPerBar;
+    const _baseCells = deBaseStepsPerBeat(deBarSdiv(bar, dp));
+    let _cellsMax = _baseCells;
+    for (let b = 0; b < beatsThis; b++) {
+      const n = layout.filter(sl => sl.beat === b).length;
+      if (n > _cellsMax) _cellsMax = n;
+    }
+    const BW = Math.max(_baseCells * PV_CELL_W, _cellsMax * PV_MIN_TUPLET_CELL_W);
+
     // Beat header — grouped per beat (tuplet-aware)
     const beatHdr = document.createElement('div');
     beatHdr.className = 'drum-preview-beat-hdr';
-    for (let b = 0; b < beatsPerBar; b++) {
+    for (let b = 0; b < beatsThis; b++) {
       const beatSlots = layout.filter(s => s.beat === b);
       const group = document.createElement('div');
       group.className = 'drum-preview-beat-group';
-      group.style.width = PV_BEAT_W + 'px';
+      group.style.width = BW + 'px';
       if (beatSlots[0] && beatSlots[0].isTuplet) {
         group.classList.add('is-tuplet');
         const badge = document.createElement('div');
@@ -11469,11 +11876,11 @@ function renderDrumPreview(container, row) {
       vLbl.textContent = voice.label;
       vRow.appendChild(vLbl);
 
-      for (let b = 0; b < beatsPerBar; b++) {
+      for (let b = 0; b < beatsThis; b++) {
         const beatSlots = layout.filter(s => s.beat === b);
         const group = document.createElement('div');
         group.className = 'drum-preview-beat-group';
-        group.style.width = PV_BEAT_W + 'px';
+        group.style.width = BW + 'px';
         if (beatSlots[0] && beatSlots[0].isTuplet) group.classList.add('is-tuplet');
         beatSlots.forEach(slot => {
           const note = notes.find(n => n.step === slot.globalStep);
@@ -12411,7 +12818,7 @@ function _dspBuild() {
     const sdiv = dp.subdivision  || '8th';
     // Elementos de compás en el DOM (hijos directos del flujo de compases)
     const barEls = el.querySelectorAll('.drum-preview-bars > div');
-    const rowReps = row.repeat || 1;
+    const rowReps = row.repeats || 1;   // BUG cazado (review 18/07): leía row.repeat, campo inexistente → los ×N de línea no sonaban
     for (let rr = 0; rr < rowReps; rr++) {
       dp.bars.forEach((bar, bi) => {
         const layout = deBarLayout(bar, ts, sdiv);
@@ -13983,6 +14390,55 @@ document.addEventListener('DOMContentLoaded', function() {
   overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 #muroScreen.open { display: flex; }
+
+/* ── F1 REFORMA: el compás como TARJETA (editor de batería) ── */
+.de-bar-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  margin: 0 0 14px;
+}
+.de-bar-card .de-bar-lbl { margin: 0 0 6px; }
+.de-bar-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem; font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.de-bar-comment {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.66rem;
+  color: var(--muted);
+  cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 42%;
+}
+.de-bar-comment.has-text { color: var(--text); }
+.de-bar-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+.de-bar-card.dragging { opacity: 0.4; }
+.de-bar-card .drag-handle { font-size: 1.05rem; padding: 0 8px 0 0; color: var(--accent); }
+/* Indicador de destino al arrastrar: se ilumina el ＋ del hueco */
+.de-add-bar-inline.drop-target, .de-bar-insert.drop-target {
+  border-color: var(--accent) !important;
+  border-style: solid !important;
+  color: var(--accent) !important;
+  background: rgba(0, 224, 198, 0.14) !important;
+  box-shadow: 0 0 10px rgba(0, 224, 198, 0.35);
+}
+.de-bar-insert {
+  display: block; width: 100%;
+  margin: -6px 0 8px;
+  padding: 2px 0;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--dim);
+  font-size: 0.8rem; line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.de-bar-insert:hover { border-color: var(--accent); color: var(--accent); }
 /* Menú de menciones (@) */
 #muroMentionWrap { position: relative; height: 0; }
 #muroMentionMenu {
