@@ -1510,6 +1510,7 @@ body.readonly .artist-input,
 body.readonly .meta-input { pointer-events: none; border-color: transparent !important; }
 body.readonly #songKeyBar { pointer-events: none; }
 body.readonly #songBpmBar { background: transparent; border-color: transparent; padding-left: 0; }
+body.readonly .drum-send-btn { display: none; }   /* fusionar: solo en edición */
 body.readonly #songBpmPill { font-size: 0.85rem; letter-spacing: 0.08em; border-color: transparent; background: transparent; }
 body.readonly #songKeyBar > div { background: transparent; border-color: transparent; padding-left: 0; }
 body.readonly #songKeyPill { pointer-events: none; font-size: 0.85rem; letter-spacing: 0.08em; border-color: transparent; background: transparent; }
@@ -6530,6 +6531,16 @@ function render(scrollTargetId) {
         right.appendChild(repIn);
       }
 
+      if (inst === "bat" && row.drumPattern && row.drumPattern.bars && row.drumPattern.bars.length) {
+        const sendBtn = document.createElement("button");
+        sendBtn.textContent = "📥";
+        sendBtn.title = "Enviar/copiar estos compases a otra línea de batería…";
+        sendBtn.className = "drum-send-btn";
+        sendBtn.style.cssText = "background:transparent;border:none;color:var(--accent);cursor:pointer;font-size:0.95rem;padding:0 6px;";
+        sendBtn.addEventListener("click", e => { e.stopPropagation(); drumSendMenu(row); });
+        right.appendChild(sendBtn);
+      }
+
       // 3. Duplicar  4. Eliminar
       const dupRow = document.createElement("button");
       dupRow.className = "btn-icon";
@@ -10832,6 +10843,84 @@ function drumBarNumStart(targetRow) {
   return 0;
 }
 
+// ── ENVIAR/COPIAR compases entre líneas (19/07, diseño con sergito) ──
+function _drumAllRows() {
+  const out = [];
+  ((songData && songData.sections) || []).forEach((sec, si) =>
+    (sec.rows || []).forEach((r, ri) => {
+      if (r.instrument === 'bat' && r.drumPattern && r.drumPattern.bars) out.push({ sec, si, ri, row: r });
+    }));
+  return out;
+}
+
+function drumMergeInto(srcRow, dstRow, mode) {
+  saveUndo();
+  const sp = srcRow.drumPattern, dp2 = dstRow.drumPattern;
+  const reps = Math.max(1, parseInt(srcRow.repeats) || 1);   // ×N de línea → MATERIALIZAR
+  const sTS = sp.timeSignature || '4/4', sSD = sp.subdivision || '8th';
+  const dTS = dp2.timeSignature || '4/4', dSD = dp2.subdivision || '8th';
+  for (let k = 0; k < reps; k++) {
+    sp.bars.forEach(b0 => {
+      const c = JSON.parse(JSON.stringify(b0));
+      c.id = deNewBarId();
+      // Materializar la herencia si difiere del destino (suenan IGUAL tras viajar)
+      if (!c.timeSignature && sTS !== dTS) c.timeSignature = sTS;
+      if (!c.subdivision  && sSD !== dSD) c.subdivision  = sSD;
+      dp2.bars.push(c);
+    });
+  }
+  if (mode === 'move') {
+    ((songData && songData.sections) || []).forEach(sec => {
+      const i = (sec.rows || []).indexOf(srcRow);
+      if (i >= 0) sec.rows.splice(i, 1);
+    });
+  }
+  render();
+}
+
+function drumSendMenu(srcRow) {
+  if (document.body.classList.contains('readonly')) return;   // solo en edición
+  const olds = document.getElementById('drumSendPop'); if (olds) olds.remove();
+  const targets = _drumAllRows().filter(t => t.row !== srcRow);
+  if (!targets.length) { alert('No hay otra línea de batería en la canción.'); return; }
+  const nBars = srcRow.drumPattern.bars.length * Math.max(1, parseInt(srcRow.repeats) || 1);
+  const pop = document.createElement('div');
+  pop.id = 'drumSendPop';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;padding:20px;';
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:16px;max-width:340px;width:100%;max-height:70vh;overflow-y:auto;overscroll-behavior:contain;';
+  const title = () => '<div style="font-family:\'Space Mono\',monospace;font-size:0.78rem;font-weight:700;color:var(--accent);">📥 FUSIONAR EN PATRÓN</div>' +
+    '<div style="font-family:\'Space Mono\',monospace;font-size:0.62rem;color:var(--muted);margin:4px 0 12px;">Selecciona destino · ' + nBars + ' compases viajarán</div>';
+  card.innerHTML = title();
+  targets.forEach(t => {
+    const b = document.createElement('button');
+    b.textContent = (t.sec.name || 'Sección ' + (t.si + 1)) + ' · línea ' + (t.ri + 1) + ' · ' + t.row.drumPattern.bars.length + ' compases';
+    b.style.cssText = 'display:block;width:100%;text-align:left;margin:6px 0;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem;cursor:pointer;';
+    b.onclick = () => {
+      card.innerHTML = title();
+      const mk = (txt, fn, accent) => {
+        const x = document.createElement('button');
+        x.textContent = txt;
+        x.style.cssText = 'display:block;width:100%;margin:6px 0;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:' + (accent ? 'var(--accent)' : 'var(--surface2)') + ';color:' + (accent ? '#14141e' : 'var(--text)') + ';';
+        x.onclick = fn;
+        card.appendChild(x);
+      };
+      mk('Mover (la línea origen desaparece)', () => { pop.remove(); drumMergeInto(srcRow, t.row, 'move'); }, true);
+      mk('Copiar (el origen se queda)', () => { pop.remove(); drumMergeInto(srcRow, t.row, 'copy'); });
+      mk('Cancelar', () => pop.remove());
+    };
+    card.appendChild(b);
+  });
+  const cancel = document.createElement('button');
+  cancel.textContent = 'Cancelar';
+  cancel.style.cssText = 'display:block;width:100%;margin-top:10px;padding:9px;background:transparent;border:1px dashed var(--border);border-radius:8px;color:var(--muted);cursor:pointer;';
+  cancel.onclick = () => pop.remove();
+  card.appendChild(cancel);
+  pop.appendChild(card);
+  pop.addEventListener('click', e => { if (e.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
+}
+
 // Herencia compás → patrón (fuente única para clave y división).
 function deBarTS(bar, dp)   { return (bar && bar.timeSignature) || (dp && dp.timeSignature) || '4/4'; }
 function deBarSdiv(bar, dp) { return (bar && bar.subdivision)   || (dp && dp.subdivision)   || '8th'; }
@@ -11244,7 +11333,7 @@ function deChangeSubdiv(sdiv) {
 // pero RECORDADO por usuario (_userSettings.drumEditZoom). Blindado
 // frente al zoom de página (preventDefault en gesto de 2 dedos).
 function _deApplyZoom(z) {
-  z = Math.min(2, Math.max(0.5, z));
+  z = Math.min(2, Math.max(0.4, z));    // límite inferior 40% (petición 19/07)
   const gw = document.getElementById('deGridWrap');
   if (gw) gw.style.zoom = (z === 1 ? '' : z);
   _userSettings.drumEditZoom = z;
@@ -11420,6 +11509,22 @@ function deRenderGrid() {
   let _numCursor = numStart + 1;
   const _perLine  = _de.pattern.bars.reduce((a, b) => a + drumBarSpan(b), 0);
   const _lineReps = Math.max(1, parseInt(_de.row && _de.row.repeats) || 1);
+
+  // ANCHO COMPARTIDO entre tarjetas (19/07 🤟🏽): pasada de medida sobre
+  // todos los compases del patrón → pulsos alineados también en el editor.
+  // (El nº de pulsos sigue siendo por compás: el 5/4 pinta sus 5.)
+  let _edBase = deBaseStepsPerBeat(sdiv), _edMax = _edBase;
+  _de.pattern.bars.forEach(b0 => {
+    const bc = deBaseStepsPerBeat(deBarSdiv(b0, _de.pattern));
+    if (bc > _edBase) _edBase = bc;
+    if (bc > _edMax)  _edMax  = bc;
+    const tps = (b0 && b0.tuplets) || {};
+    Object.keys(tps).forEach(k => {
+      const d = tps[k] && tps[k].div;
+      if (d && d > _edMax) _edMax = d;
+    });
+  });
+  const BEAT_W_SHARED = Math.max(_edBase * CELL_W, _edMax * MIN_TUPLET_CELL_W);
 
   _de.pattern.bars.forEach((bar, bi) => {
     const card = document.createElement('div');
@@ -11601,14 +11706,7 @@ function deRenderGrid() {
     // ── Cuerpo con SU ancho: leyenda + filas de voz (scroll propio) ──
     const layout = deBarLayout(bar, ts, sdiv);
     const beatsThis = Math.max(...layout.map(sl => sl.beat)) + 1;
-    // Ancho de beat DE ESTA tarjeta: su subdivisión y sus tuplets
-    let maxCellsPerBeat = 1;
-    for (let b = 0; b < beatsThis; b++) {
-      const n = layout.filter(sl => sl.beat === b).length;
-      if (n > maxCellsPerBeat) maxCellsPerBeat = n;
-    }
-    const baseCells = deBaseStepsPerBeat(deBarSdiv(bar, _de.pattern));
-    const BEAT_W = Math.max(baseCells * CELL_W, maxCellsPerBeat * MIN_TUPLET_CELL_W);
+    const BEAT_W = BEAT_W_SHARED;   // compartido → tarjetas alineadas 🤟🏽
 
     const scroll = document.createElement('div');
     scroll.className = 'de-bar-scroll';
@@ -11760,6 +11858,35 @@ function deRenderGrid() {
 // ═══════════════════════════════════════════════
 // DRUM MINI-PREVIEW (rendered inside the row)
 // ═══════════════════════════════════════════════
+// ── VOCES POR FILA VISUAL (19/07, idea de sergito) ─────────────
+// En móvil caben ~2 compases por renglón: la unión de TODA la línea
+// obligaba a 7 compases a cargar con las voces que solo usa el 8º.
+// Tras pintar, se agrupan los compases por su renglón REAL (offsetTop)
+// y cada grupo muestra la unión de SUS voces (el que más usa, manda).
+// Si el preview no está medible aún → un solo grupo = unión de línea
+// (el comportamiento de siempre, como red).
+function _pvRegroupVoices(wrap) {
+  if (!wrap || !wrap.isConnected) return;
+  const bars = Array.from(wrap.querySelectorAll('.drum-preview-bar'));
+  if (!bars.length) return;
+  const groups = {};
+  bars.forEach(b => {
+    const k = Math.round(b.offsetTop / 5);
+    (groups[k] = groups[k] || []).push(b);
+  });
+  Object.values(groups).forEach(g => {
+    const used = new Set();
+    g.forEach(b => (b.dataset.pvUsed || '').split(',').filter(Boolean).forEach(v => used.add(v)));
+    g.forEach(b => b.querySelectorAll('[data-pv-voice]').forEach(r => {
+      r.style.display = used.has(r.dataset.pvVoice) ? '' : 'none';
+    }));
+  });
+}
+function _pvRegroupAll() {
+  document.querySelectorAll('.drum-preview-wrap').forEach(w => _pvRegroupVoices(w));
+}
+let _pvRegroupBound = false;
+
 function renderDrumPreview(container, row) {
   const dp = row.drumPattern;
   if (!dp || !dp.bars || !dp.bars.length) return;
@@ -11811,6 +11938,12 @@ function renderDrumPreview(container, row) {
 
   const wrap = document.createElement('div');
   wrap.className = 'drum-preview-wrap';
+  if (!_pvRegroupBound) {
+    _pvRegroupBound = true;
+    let _t = null;
+    window.addEventListener('resize', () => { clearTimeout(_t); _t = setTimeout(_pvRegroupAll, 150); });
+  }
+  requestAnimationFrame(() => _pvRegroupVoices(wrap));
 
   const barsWrap = document.createElement('div');
   barsWrap.className = 'drum-preview-bars';
@@ -11818,6 +11951,7 @@ function renderDrumPreview(container, row) {
   dp.bars.forEach((bar, bi) => {
     const barDiv = document.createElement('div');
     barDiv.className = 'drum-preview-bar';
+    barDiv.dataset.pvUsed = usedVoices.filter(v => (bar.voices[v.id] || []).length).map(v => v.id).join(',');
 
     const barLbl = document.createElement('div');
     barLbl.className = 'drum-preview-bar-label';
@@ -11879,6 +12013,7 @@ function renderDrumPreview(container, row) {
       const notes = bar.voices[voice.id] || [];
       const vRow = document.createElement('div');
       vRow.className = 'drum-preview-voice';
+      vRow.dataset.pvVoice = voice.id;
 
       const vLbl = document.createElement('div');
       vLbl.className = 'drum-preview-voice-lbl';
@@ -12767,7 +12902,7 @@ function drumScoreClose() {
 }
 
 function _dsApplyZoom(z) {
-  z = Math.min(2.2, Math.max(0.5, z));
+  z = Math.min(2.2, Math.max(0.4, z));  // límite inferior 40% (petición 19/07)
   const body = document.getElementById('drumScoreBody');
   body.style.zoom = z;
   document.getElementById('drumScoreZoomLbl').textContent = Math.round(z * 100) + '%';
