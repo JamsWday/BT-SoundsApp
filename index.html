@@ -7488,6 +7488,9 @@ function toggleReadonly() {
   } else {
     btn.textContent = "👁 Tocar";
     btn.title = "Vista solo lectura para tocar";
+    // Re-pintar al entrar en edición: si se abrió en Tocar (versiones),
+    // los botones de editar patrón nunca llegaron a crearse (bug 20/07).
+    render();
     stopScroll();
     stopAllSectionAudio();
     stopSongAudio();
@@ -11088,6 +11091,11 @@ function deSavePattern() {
   _de.row.drumPattern = JSON.parse(JSON.stringify(_de.pattern));
   closeDrumEditor();
   render();
+  if (window._deFromScore) {           // F2b: venías de la partitura →
+    window._deFromScore = false;       // marcar cambios y VOLVER a ella
+    window._dsScoreDirty = true;
+    drumScoreOpen();
+  }
 }
 
 function deClearPattern() {
@@ -12892,13 +12900,50 @@ function drumScoreOpen() {
   document.body.style.overflow = 'hidden';
   _dsPinchSetup();
   Router.go('drumscore');
+  // F1 (20/07): construir el timeline YA — el tap en un compás funciona
+  // a la primera, sin pulsar ▶ antes (el etiquetado data-ds-bar de los
+  // compases ocurre dentro de _dspBuild).
+  _dspBuild();
 }
 
-function drumScoreClose() {
+function _dsCloseReal() {
   _dspStop();
   document.body.style.overflow = '';
   if (Router.current() === 'drumscore') Router.back();
   else document.getElementById('drumScoreOverlay').classList.remove('open');
+}
+
+function drumScoreClose() {
+  if (window._dsScoreDirty) { _dsAskSave(); return; }   // F2b: hay cambios sin persistir
+  _dsCloseReal();
+}
+
+// Diálogo F2b: Guardar en la nube / Descartar (restaurar la foto) / seguir
+function _dsAskSave() {
+  const old = document.getElementById('dsSavePop'); if (old) old.remove();
+  const pop = document.createElement('div');
+  pop.id = 'dsSavePop';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;padding:20px;';
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:18px;max-width:320px;width:100%;';
+  card.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.78rem;font-weight:700;color:var(--accent);margin-bottom:4px;">🥁 CAMBIOS SIN GUARDAR</div>' +
+    '<div style="font-family:\'Space Mono\',monospace;font-size:0.62rem;color:var(--muted);margin-bottom:12px;">Editaste compases desde la partitura.</div>';
+  const done = () => { window._dsScoreDirty = false; window._dsSnapshot = null; pop.remove(); _dsCloseReal(); };
+  const mk = (txt, fn, accent) => {
+    const b = document.createElement('button');
+    b.textContent = txt;
+    b.style.cssText = 'display:block;width:100%;margin:6px 0;padding:11px;border-radius:8px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:' + (accent ? 'var(--accent)' : 'var(--surface2)') + ';color:' + (accent ? '#14141e' : 'var(--text)') + ';';
+    b.onclick = fn;
+    card.appendChild(b);
+  };
+  mk('💾 Guardar en la canción', async () => { await saveSongCloud(); done(); }, true);
+  mk('🗑 Descartar (volver atrás)', () => {
+    if (window._dsSnapshot) { songData = JSON.parse(window._dsSnapshot); render(); }
+    done();
+  });
+  mk('Seguir en la partitura', () => pop.remove());
+  pop.appendChild(card);
+  document.body.appendChild(pop);
 }
 
 function _dsApplyZoom(z) {
@@ -12934,14 +12979,55 @@ function _dsPinchSetup() {
   }, { passive: false });
   el.addEventListener('touchend', () => { if (d0) { d0 = null; saveUserSettings(); } });
   // Tap en un compás → reproducir desde ahí (salta si ya sonaba)
-  el.addEventListener('click', e => {
-    const b = e.target.closest('[data-ds-bar]');
-    if (!b) return;
+  const _dsDoTap = (target) => {
+    const b = target.closest('[data-ds-bar]');
+    if (!b) return false;
     _dspStop();
     _dspBuild();
     const bar = _dsp.bars[parseInt(b.dataset.dsBar)];
     if (bar) _dspPlayFrom(bar.t0);
-  });
+    return true;
+  };
+  el.addEventListener('click', e => { _dsDoTap(e.target); });   // ratón
+  // Táctil: reaccionar en touchend (el click sintético llega con retraso).
+  // Umbrales: si hubo desplazamiento o duró mucho, era scroll/larga → nada.
+  let _dsTapInfo = null;
+  let _dsLpTimer = null;
+  el.addEventListener('touchstart', e => {
+    _dsTapInfo = (e.touches.length === 1)
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() } : null;
+    clearTimeout(_dsLpTimer);
+    const b = e.touches.length === 1 && e.target.closest('[data-ds-bar]');
+    if (b) _dsLpTimer = setTimeout(() => {
+      // F2a (20/07): pulsación larga 2s → editor de la línea de este compás.
+      const bar = _dsp.bars[parseInt(b.dataset.dsBar)];
+      if (!bar || !bar.row) return;
+      if (!window._dsSnapshot) window._dsSnapshot = JSON.stringify(songData);  // foto para F2b (Descartar)
+      if (navigator.vibrate) navigator.vibrate(60);
+      _dsTapInfo = null;
+      window._deFromScore = true;
+      _dsCloseReal();
+      openDrumEditor(bar.row, null);
+    }, 2000);
+  }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    if (_dsTapInfo && e.touches.length === 1) {
+      const dx = Math.abs(e.touches[0].clientX - _dsTapInfo.x);
+      const dy = Math.abs(e.touches[0].clientY - _dsTapInfo.y);
+      if (dx > 12 || dy > 12) clearTimeout(_dsLpTimer);
+    } else clearTimeout(_dsLpTimer);
+  }, { passive: true });
+  el.addEventListener('touchcancel', () => clearTimeout(_dsLpTimer), { passive: true });
+  el.addEventListener('touchend', e => {
+    clearTimeout(_dsLpTimer);
+    if (!_dsTapInfo) return;
+    const dx = Math.abs(e.changedTouches[0].clientX - _dsTapInfo.x);
+    const dy = Math.abs(e.changedTouches[0].clientY - _dsTapInfo.y);
+    const dt = Date.now() - _dsTapInfo.t;
+    _dsTapInfo = null;
+    if (dx > 12 || dy > 12 || dt > 450) return;
+    if (_dsDoTap(e.target)) e.preventDefault();   // evita el click duplicado
+  }, { passive: false });
 }
 
 // ── FASE 2: PLAY de la canción con cursor ─────────────────────
@@ -12992,7 +13078,7 @@ function _dspBuild() {
             t += stepDur;
           });
         }
-        _dsp.bars.push({ el: barEl, t0: barT0, t1: t });
+        _dsp.bars.push({ el: barEl, t0: barT0, t1: t, row: row });
       });
     }
   });
@@ -13018,10 +13104,11 @@ function _dspPlayFrom(startT) {
   _dsp.playing = true; _dsp.curBar = -1;
   _dsp.evIdx = _dsp.events.findIndex(ev => ev.t >= startT - 0.001);
   if (_dsp.evIdx === -1) _dsp.evIdx = _dsp.events.length;
-  _dsp.t0 = _dau.ctx.currentTime + 0.12 - startT;
+  _dsp.t0 = _dau.ctx.currentTime + 0.06 - startT;   // 60ms (antes 120): salto más inmediato
   document.getElementById('drumScorePlayBtn').textContent = '⏹';
-  // Planificador con lookahead
-  _dsp.timer = setInterval(() => {
+  // Planificador con lookahead — con pasada INMEDIATA (antes, el primer
+  // sonido esperaba al primer tic del intervalo: retardo audible al saltar)
+  const _tick = () => {
     if (!_dsp.playing) return;
     const horizon = _dau.ctx.currentTime + 0.15;
     while (_dsp.evIdx < _dsp.events.length && _dsp.t0 + _dsp.events[_dsp.evIdx].t < horizon) {
@@ -13029,11 +13116,15 @@ function _dspPlayFrom(startT) {
       dauSynth(ev.v, _dau.ctx, _dsp.t0 + ev.t, false, ev.vel);
     }
     if (_dsp.evIdx >= _dsp.events.length && _dau.ctx.currentTime > _dsp.t0 + _dsp.total + 0.4) _dspStop();
-  }, 30);
+  };
+  _tick();   // pasada inmediata: suena al instante
+  _dsp.timer = setInterval(_tick, 30);
   // Cursor por compás
   _dsp.curTimer = setInterval(() => {
     if (!_dsp.playing) return;
-    const now = _dau.ctx.currentTime - _dsp.t0;
+    // Adelanto visual (+80ms): el repaso periódico + el scroll hacían
+    // que el compás se iluminara DESPUÉS de oírse. Ajustable si hiciera falta.
+    const now = _dau.ctx.currentTime - _dsp.t0 + 0.08;
     let idx = _dsp.bars.findIndex(b => now >= b.t0 && now < b.t1);
     if (idx !== -1 && idx !== _dsp.curBar) {
       _dsp.curBar = idx;
@@ -13044,7 +13135,7 @@ function _dspPlayFrom(startT) {
         b.el.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
     }
-  }, 60);
+  }, 30);
 }
 
 function drumScoreBpmEdit() {
