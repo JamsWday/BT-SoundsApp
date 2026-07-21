@@ -2889,6 +2889,8 @@ body.readonly .drum-add-btn  { display: none !important; }
   opacity:0.95; line-height:1; z-index:2;
 }
 /* Accent + Flam or Roll: > shifts right of the symbol, same height */
+.de-cell.active.ghost .de-cell-inner { transform: scale(0.55); opacity: 0.5; }
+.drum-preview-cell.active.ghost { transform: scale(0.6); opacity: 0.5; }
 .de-cell.active.accent.note-flam::after,
 .de-cell.active.accent.note-roll::after {
   bottom:calc(100% - 6px); left:calc(50% + 8px); transform:none;
@@ -5197,6 +5199,32 @@ Accesible desde la canción y desde Modo Concierto (compite con el cifrado).
 Tresillos(3)/quintillos(5)/sextillos(6) por beat. bar.tuplets =
 { "<beat>": {div:N} } — solo se guardan excepciones. Lógica centralizada
 en deBarLayout()/deBaseStepsPerBeat()/deStepLabel() (grid, preview, audio).
+
+## Reforma "compás como tarjeta" (modelo v1)
+Cada compás es autónomo: id (deNewBarId, migración perezosa deBarsEnsureIds),
+timeSignature/subdivision propias con HERENCIA del patrón (deBarTS/deBarSdiv;
+deBarLayout las honra), tuplets, voices, repeat, y label REINTERPRETADO como
+comentario. Campos opcionales = compás ausente hereda → cero migraciones.
+- NUMERACIÓN derivada, nunca guardada: drumBarNumStart (recorre líneas de la
+  canción) + drumBarNumLabel (formato "compases tocados": ×N de compás da
+  rangos C5–C7, ×N de línea multiplica y separa por pasadas C1/C3/…; >3 se
+  comprime C1/C4/…/C16). Fuente única para editor, preview y partitura.
+- ANCHO de pulso: PASADA DE MEDIDA global (renderDrumPreview mide TODOS los
+  compases de batería de la canción → PV_BEAT_W único) para que los pulsos
+  caigan ALINEADOS entre líneas; el nº de pulsos sí es por compás (5/4 ok).
+  El editor comparte ancho a nivel patrón (BEAT_W_SHARED).
+- VOCES POR FILA VISUAL: tras pintar, _pvRegroupVoices agrupa por offsetTop
+  (renglón real en móvil) y muestra la unión de voces de ESE renglón.
+
+## Dinámica de toques: acento / ghost / normal
+Cada nota lleva accent (bool) o ghost (bool), EXCLUYENTES entre sí. El
+volumen viaja como 'velOverride' del gain en dauSynth (sirve para sample
+real y para sinte). Niveles: ghost≈0.28 · normal≈0.72 · accent≈1.6 (margen
+amplio porque el kit real está normalizado y un rango estrecho no se oía).
+Definidos en las 3 rutas de audio: dePlay (editor), _dsp.events (partitura)
+y renderDrumPreview. Visual: .ghost = círculo al 55-60% y opacidad 0.5;
+.accent = realce. Al añadir una nueva propiedad de toque, tocar SIEMPRE las
+tres rutas de sonido + editor + preview (no una sola).
 
 ## Deshacer / rehacer
 _history se resetea al cargar cada canción (resetHistory()).
@@ -11070,6 +11098,10 @@ function closeDrumEditor() {
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom && window._immersiveResetZoom();
   setTimeout(() => window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility(), 50);
+  if (window._deFromScore) {   // viniste de la partitura → vuelve a ella (guardaras o no)
+    window._deFromScore = false;
+    drumScoreOpen();
+  }
 }
 
 function deToggleHelp(e) {
@@ -11089,13 +11121,9 @@ function deSavePattern() {
   if (!_de.row) return;
   saveUndo();
   _de.row.drumPattern = JSON.parse(JSON.stringify(_de.pattern));
+  if (window._deFromScore) window._dsScoreDirty = true;   // F2b: hubo guardado real
   closeDrumEditor();
   render();
-  if (window._deFromScore) {           // F2b: venías de la partitura →
-    window._deFromScore = false;       // marcar cambios y VOLVER a ella
-    window._dsScoreDirty = true;
-    drumScoreOpen();
-  }
 }
 
 function deClearPattern() {
@@ -11788,6 +11816,7 @@ function deRenderGrid() {
             if (note.type === 'flam')        cell.classList.add('note-flam');
             if (note.type === 'roll')        cell.classList.add('note-roll');
             if (note.accent)                 cell.classList.add('accent');
+            if (note.ghost)                  cell.classList.add('ghost');
             if (voice.id === 'HH' && note.hhOpen) cell.classList.add('hh-open');
           }
           cell.appendChild(inner);
@@ -11815,6 +11844,16 @@ function deRenderGrid() {
                 notes.push(n);
               } else {
                 notes[idx].accent = !notes[idx].accent;
+                if (notes[idx].accent) delete notes[idx].ghost;   // opuestos
+              }
+            } else if (mod === 'ghost') {
+              if (idx < 0) {
+                const n = { step: s, type: 'normal', ghost: true };
+                if (voice.id === 'HH') n.hhOpen = false;
+                notes.push(n);
+              } else {
+                notes[idx].ghost = !notes[idx].ghost;
+                if (notes[idx].ghost) delete notes[idx].accent;   // opuestos
               }
             } else {
               if (idx < 0) {
@@ -12048,6 +12087,7 @@ function renderDrumPreview(container, row) {
           if (note && note.type === 'flam')  cell.classList.add('note-flam');
           if (note && note.type === 'roll')  cell.classList.add('note-roll');
           if (note && note.accent)           cell.classList.add('accent');
+          if (note && note.ghost)            cell.classList.add('ghost');
           cellSlot.appendChild(cell);
           group.appendChild(cellSlot);
         });
@@ -12116,7 +12156,7 @@ function dauSynth(voice, audioCtx, when, accent, velOverride) {
   const _buf = _dauBuffers[voice];
   if (_buf) {
     const g0 = audioCtx.createGain();
-    const mv = velOverride !== undefined ? velOverride : (accent ? 1.35 : 0.62);
+    const mv = velOverride !== undefined ? velOverride : (accent ? 1.6 : 0.72);
     g0.gain.setValueAtTime(mv, when);
     g0.connect(audioCtx.destination);
     const src = audioCtx.createBufferSource();
@@ -12127,7 +12167,7 @@ function dauSynth(voice, audioCtx, when, accent, velOverride) {
   }
   const g = audioCtx.createGain();
   // Master gain: acento sube claramente, ghost baja
-  const masterVel = velOverride !== undefined ? velOverride : (accent ? 1.35 : 0.62);
+  const masterVel = velOverride !== undefined ? velOverride : (accent ? 1.6 : 0.72);
   g.gain.setValueAtTime(masterVel, when);
   g.connect(audioCtx.destination);
   const vel = 1.0; // volumen interno normalizado; master lo controla
@@ -12364,15 +12404,15 @@ function dauSchedule() {
 
       if (note.type === 'flam') {
         dauSynth(voiceId, _dau.ctx, when,           false, 0.22);
-        dauSynth(voiceId, _dau.ctx, when + 0.030,   false, note.accent ? 1.35 : 0.62);
+        dauSynth(voiceId, _dau.ctx, when + 0.030,   false, note.ghost ? 0.28 : note.accent ? 1.6 : 0.72);
 
       } else if (note.type === 'roll') {
         const halfStep = secondsPerStep / 2;
-        dauSynth(voiceId, _dau.ctx, when,           false, note.accent ? 1.35 : 0.62);
-        dauSynth(voiceId, _dau.ctx, when + halfStep, false, note.accent ? 1.10 : 0.50);
+        dauSynth(voiceId, _dau.ctx, when,           false, note.ghost ? 0.28 : note.accent ? 1.6 : 0.72);
+        dauSynth(voiceId, _dau.ctx, when + halfStep, false, note.ghost ? 0.24 : note.accent ? 1.3 : 0.58);
 
       } else {
-        dauSynth(voiceId, _dau.ctx, when, note.accent);
+        dauSynth(voiceId, _dau.ctx, when, note.accent, note.ghost ? 0.28 : undefined);
       }
     });
 
@@ -13067,12 +13107,12 @@ function _dspBuild() {
               const vid = (voice.id === 'HH' && note.hhOpen) ? 'HH_OPEN' : voice.id;
               if (note.type === 'flam') {
                 _dsp.events.push({ t: t,          v: vid, vel: 0.22 });
-                _dsp.events.push({ t: t + 0.030,  v: vid, vel: note.accent ? 1.35 : 0.62 });
+                _dsp.events.push({ t: t + 0.030,  v: vid, vel: note.ghost ? 0.28 : note.accent ? 1.6 : 0.72 });
               } else if (note.type === 'roll') {
-                _dsp.events.push({ t: t,              v: vid, vel: note.accent ? 1.35 : 0.62 });
-                _dsp.events.push({ t: t + stepDur/2,  v: vid, vel: note.accent ? 1.10 : 0.50 });
+                _dsp.events.push({ t: t,              v: vid, vel: note.ghost ? 0.28 : note.accent ? 1.6 : 0.72 });
+                _dsp.events.push({ t: t + stepDur/2,  v: vid, vel: note.ghost ? 0.24 : note.accent ? 1.3 : 0.58 });
               } else {
-                _dsp.events.push({ t: t, v: vid, vel: note.accent ? 1.35 : 0.62 });
+                _dsp.events.push({ t: t, v: vid, vel: note.ghost ? 0.28 : note.accent ? 1.6 : 0.72 });
               }
             });
             t += stepDur;
@@ -13828,6 +13868,7 @@ function drumPatternToHTML(dp, colorClass) {
         <div class="de-help-row">⁻♩ <span><strong>Flam</strong> — activa y clica · punto arriba</span></div>
         <div class="de-help-row">〰 <span><strong>Roll</strong> — activa y clica · onda arriba</span></div>
         <div class="de-help-row">&gt; <span><strong>Acento</strong> — activa y clica · símbolo arriba</span></div>
+        <div class="de-help-row">◦ <span><strong>Ghost</strong> — toque muy flojo · círculo pequeño y tenue</span></div>
         <div class="de-help-row">4ª 8ª 16ª <span><strong>Subdivisión</strong> del grid</span></div>
       </div>
       <button class="de-close" onclick="closeDrumEditor()">✕</button>
@@ -13836,6 +13877,7 @@ function drumPatternToHTML(dp, colorClass) {
       <button class="de-note-btn active" id="deNoteF"  onclick="deSelectNote('flam',this)"><span class="de-note-sym" style="font-size:0.85rem">⁻♩</span><span>Flam</span></button>
       <button class="de-note-btn"        id="deNoteR"  onclick="deSelectNote('roll',this)"><span class="de-note-sym" style="font-size:0.85rem">〰</span><span>Roll</span></button>
       <button class="de-note-btn"        id="deNoteA"  onclick="deSelectNote('accent',this)"><span class="de-note-sym" style="font-size:0.85rem">></span><span>Acento</span></button>
+      <button class="de-note-btn"        id="deNoteG"  onclick="deSelectNote('ghost',this)"><span class="de-note-sym" style="font-size:0.85rem">◦</span><span>Ghost</span></button>
       <div class="de-toolbar-sep"></div>
       <select class="de-sel" id="deTimeSig" onchange="deChangeTimeSig()">
         <option value="4/4">4/4</option><option value="3/4">3/4</option>
