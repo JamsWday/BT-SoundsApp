@@ -5215,6 +5215,14 @@ comentario. Campos opcionales = compás ausente hereda → cero migraciones.
   El editor comparte ancho a nivel patrón (BEAT_W_SHARED).
 - VOCES POR FILA VISUAL: tras pintar, _pvRegroupVoices agrupa por offsetTop
   (renglón real en móvil) y muestra la unión de voces de ESE renglón.
+- BPM POR COMPÁS (bar.bpm, opcional, hereda songData.bpm) para fades de
+  tempo. Helper deBarBpm(bar). El "seconds per beat" se recalcula POR COMPÁS
+  en las DOS rutas de audio: partitura (_dspBuild) y editor (dauSchedule,
+  usa el barIdx que ya llevaba cada step). En ambas, si el control de BPM de
+  práctica (♩−/♩+ partitura · slider editor) difiere del de la canción, ese
+  MANDA (ensayar lento); si no, cada compás usa su bpm. Chip ♩ en la tarjeta
+  (gris=hereda, acento=propio; vacío o =canción → hereda). Marca visual
+  ♩=N dorada sobre el compás en preview/partitura cuando difiere.
 
 ## Dinámica de toques: acento / ghost / normal
 Cada nota lleva accent (bool) o ghost (bool), EXCLUYENTES entre sí. El
@@ -10955,6 +10963,10 @@ function drumSendMenu(srcRow) {
 // Herencia compás → patrón (fuente única para clave y división).
 function deBarTS(bar, dp)   { return (bar && bar.timeSignature) || (dp && dp.timeSignature) || '4/4'; }
 function deBarSdiv(bar, dp) { return (bar && bar.subdivision)   || (dp && dp.subdivision)   || '8th'; }
+// BPM del compás: propio → canción → 90 (para fades de tempo por compás)
+function deBarBpm(bar) {
+  return parseInt(bar && bar.bpm) || parseInt(typeof songData !== 'undefined' && songData && songData.bpm) || 90;
+}
 // Poda notas y tuplets que ya no caben tras cambiar clave/división del compás.
 function deBarPrune(bar, dp) {
   const layout = deBarLayout(bar, deBarTS(bar, dp), deBarSdiv(bar, dp));
@@ -11692,6 +11704,30 @@ function deRenderGrid() {
         deBarPrune(bar, _de.pattern);
         deRenderGrid();
       }));
+    // Chip ♩bpm del compás (para fades de tempo). Gris = hereda el de canción.
+    const songBpmNow = parseInt(songData?.bpm) || 90;
+    const bpmChip = mkChip('♩' + deBarBpm(bar), !!bar.bpm,
+      'BPM de ESTE compás (toca para cambiar; herencia: ' + songBpmNow + '). Útil para fade-out.',
+      () => {});
+    bpmChip.addEventListener('click', e => {
+      e.stopPropagation();
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.min = 40; inp.max = 240;
+      inp.value = bar.bpm || '';
+      inp.placeholder = String(songBpmNow);
+      inp.style.cssText = "width:56px;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.6rem;padding:1px 5px;outline:none;";
+      const save = () => {
+        const v = parseInt(inp.value);
+        if (!isNaN(v) && v >= 40 && v <= 240 && v !== songBpmNow) bar.bpm = v;
+        else delete bar.bpm;   // vacío o = canción → hereda
+        deRenderGrid();
+      };
+      inp.addEventListener('blur', save);
+      inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') inp.blur(); });
+      bpmChip.replaceWith(inp);
+      inp.focus(); inp.select();
+    });
+    barLbl.appendChild(bpmChip);
 
     const barLine = document.createElement('span');
     barLine.className = 'de-bar-line';
@@ -12015,6 +12051,13 @@ function renderDrumPreview(container, row) {
       comTxt.textContent = '· ' + bar.label;
       comTxt.style.cssText = 'color:var(--text);margin-left:4px;';
       barLbl.appendChild(comTxt);
+    }
+    // Marca de tempo cuando el compás define su propio bpm (fade-out)
+    if (bar.bpm) {
+      const bpmMark = document.createElement('span');
+      bpmMark.textContent = '♩=' + bar.bpm;
+      bpmMark.style.cssText = 'color:#f1c40f;font-weight:700;margin-left:6px;font-family:\'Space Mono\',monospace;';
+      barLbl.appendChild(bpmMark);
     }
     const barRepSpan = document.createElement('span');
     barRepSpan.className = 'drum-preview-bar-repeat';
@@ -12381,17 +12424,21 @@ function dauHighlightStep(globalStep) {
 function dauSchedule() {
   const stepList = _dau.barSteps;
   if (!stepList.length) return;
-  const secondsPerBeat = 60 / _dau.bpm;
+  // BPM por compás también en el editor (fade-out): si el slider difiere del
+  // de la canción, manda el slider (práctica); si no, cada compás usa su bpm.
+  const _songBpm = parseInt(songData?.bpm) || 90;
+  const _bpmOverride = (_dau.bpm && _dau.bpm !== _songBpm) ? _dau.bpm : null;
 
   while (_dau.nextNoteTime < _dau.ctx.currentTime + _dau.scheduleAheadTime) {
     const globalStep = _dau.currentStep % stepList.length;
     const entry = stepList[globalStep];
     const { barIdx, stepIdx } = entry;
+    const bar = _de.pattern.bars[barIdx];
+    const secondsPerBeat = 60 / (_bpmOverride || deBarBpm(bar));
     // per-step duration (tuplet-aware); fall back to base if missing
     const secondsPerStep = secondsPerBeat * (entry.beatFraction != null
       ? entry.beatFraction
       : 1 / dauStepsPerBeat());
-    const bar = _de.pattern.bars[barIdx];
     const when = _dau.nextNoteTime;
 
     // Fire each voice that has a note at this step
@@ -13079,8 +13126,12 @@ const _dsp = { playing:false, events:[], bars:[], evIdx:0, t0:0, timer:null, cur
 
 function _dspBuild() {
   _dsp.events = []; _dsp.bars = [];
-  const bpm = _dsp.bpm || parseInt(songData?.bpm) || 90;
-  const spb = 60 / bpm;
+  // spb se recalcula POR COMPÁS: cada bar puede tener su bpm (fade-out).
+  // _dsp.bpm actúa como "override global de práctica" (♩−/♩+): si el
+  // usuario lo cambió respecto al de la canción, manda; si no, cada compás
+  // usa el suyo. Así el fade se oye tal cual, pero se puede ensayar lento.
+  const songBpm = parseInt(songData?.bpm) || 90;
+  const bpmOverride = (_dsp.bpm && _dsp.bpm !== songBpm) ? _dsp.bpm : null;
   let t = 0;
   _dsRows.forEach(({ row, el }) => {
     const dp = row.drumPattern;
@@ -13094,6 +13145,7 @@ function _dspBuild() {
       dp.bars.forEach((bar, bi) => {
         const layout = deBarLayout(bar, ts, sdiv);
         const reps = bar.repeat || 1;
+        const spb = 60 / (bpmOverride || deBarBpm(bar));
         const barEl = (barEls.length === dp.bars.length) ? barEls[bi] : null;
         if (barEl && barEl.dataset.dsBar === undefined) barEl.dataset.dsBar = _dsp.bars.length;
         const barT0 = t;
