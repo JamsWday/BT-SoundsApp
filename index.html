@@ -5224,6 +5224,30 @@ comentario. Campos opcionales = compás ausente hereda → cero migraciones.
   (gris=hereda, acento=propio; vacío o =canción → hereda). Marca visual
   ♩=N dorada sobre el compás en preview/partitura cuando difiere.
 
+## Muro — HILOS (respuestas)
+banda_muro.respuestas (jsonb): [{id, autor, texto, created_at, reacciones}].
+Sin tabla nueva: nadie referencia una respuesta suelta y siempre se leen con
+su publicación (misma regla que las reacciones). La política muro_update_auth
+ya existía. "Leído" por hilo y por usuario en _userSettings.muroThreadSeen
+{ "<id_msg>": "<fecha_ultima_respuesta>" } — se marca al PINTAR el hilo (si
+lo estás mirando, está leído; antes solo al salir y tu propia respuesta se
+contaba como nueva). Pantalla #muroThreadScreen: raíz arriba, respuestas
+cronológicas, scroll centrado en la primera no leída; el atrás del móvil
+cierra el hilo. Menciones @ y #canción# reutilizan la maquinaria del muro vía
+_muroMentionUse(taId, menuId) — el menú del hilo se despliega hacia ARRIBA y
+va POSICIONADO FUERA del flex del pie (si entra en la fila, roba ancho al
+textarea). Contador/popup del Home suman respuestas nuevas desglosadas
+("2 mensajes · 1 respuesta sin leer") y usan frases de mención si responden
+a algo TUYO.
+
+### Filosofía del muro (sergito, 22/07)
+El muro es TABLÓN DE NOTICIAS, no chat. Las reacciones cubren la respuesta
+rápida; el hilo es para lo puntual, con un clic de fricción a propósito
+("si es importante se hace ese mini esfuerzo"). Si un tema tiene chicha de
+verdad, NO pertenece al muro: la conversación debe ir al punto concreto donde
+vive (evento, canción, repertorio) con la coherencia de datos que toque ahí.
+Por eso el muro NUNCA crece: la tarjeta solo gana un pie.
+
 ## Dinámica de toques: acento / ghost / normal
 Cada nota lleva accent (bool) o ghost (bool), EXCLUYENTES entre sí. El
 volumen viaja como 'velOverride' del gain en dauSynth (sirve para sample
@@ -14720,6 +14744,41 @@ document.addEventListener('DOMContentLoaded', function() {
   overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 #muroScreen.open { display: flex; }
+/* Pantalla de HILO (respuestas) */
+#muroThreadScreen {
+  display: none; position: fixed; inset: 0; z-index: 9300;
+  background: var(--bg); flex-direction: column;
+}
+#muroThreadScreen.open { display: flex; }
+.muro-thread-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-bottom: 2px solid var(--accent);
+  font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--accent); font-weight: 700;
+}
+.muro-thread-head button {
+  background: none; border: none; color: var(--text);
+  font-size: 1.2rem; cursor: pointer; padding: 0 4px;
+}
+#muroThreadBody {
+  flex: 1; overflow-y: auto; overscroll-behavior: contain;
+  padding: 14px 16px;
+}
+.muro-thread-foot {
+  display: flex; gap: 8px; align-items: flex-end;
+  padding: 10px 14px 14px; border-top: 1px solid var(--border);
+  position: relative;   /* ancla del menú de menciones, que va fuera del flujo */
+}
+.muro-thread-foot textarea {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 11px; color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.88rem;
+  outline: none; resize: none;
+}
+.muro-thread-foot button {
+  background: var(--accent); color: #14141e; border: none;
+  border-radius: 8px; padding: 10px 15px; font-weight: 700;
+  font-family: 'Space Mono', monospace; font-size: 0.75rem; cursor: pointer;
+}
 
 /* ── F1 REFORMA: el compás como TARJETA (editor de batería) ── */
 .de-bar-card {
@@ -14787,6 +14846,17 @@ document.addEventListener('DOMContentLoaded', function() {
   max-width: 100%;
 }
 #muroMentionMenu.open { display: block; }
+/* Menú de menciones del HILO: se despliega hacia ARRIBA (campo abajo) */
+#muroReplyMentionWrap { position: absolute; left: 14px; right: 14px; bottom: 100%; height: 0; }
+#muroReplyMentionMenu {
+  display: none;
+  position: absolute; bottom: 4px; left: 0; right: 0; z-index: 20;
+  max-height: 210px; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 8px; box-shadow: 0 -6px 20px rgba(0,0,0,0.4);
+  min-width: 180px; max-width: 100%;
+}
+#muroReplyMentionMenu.open { display: block; }
 .muro-mention-opt {
   padding: 9px 13px; cursor: pointer;
   font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem;
@@ -15709,6 +15779,22 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- ══ MURO DE LA BANDA (Fase 1) ══ -->
+<div id="muroThreadScreen">
+  <div class="muro-thread-head">
+    <button onclick="muroThreadClose()" title="Volver al muro">←</button>
+    <span>💬 Hilo</span>
+  </div>
+  <div id="muroThreadBody"></div>
+  <div class="muro-thread-foot">
+    <textarea id="muroReplyInput" rows="2" maxlength="500" placeholder="Escribe tu respuesta… (@ para alguien · # para una canción)"
+      autocomplete="off" autocorrect="off"
+      oninput="_muroMentionUse('muroReplyInput','muroReplyMentionMenu');_muroMentionCheck()"
+      onkeydown="_muroMentionKey(event)"></textarea>
+    <div id="muroReplyMentionWrap"><div id="muroReplyMentionMenu"></div></div>
+    <button onclick="muroReplyPost()">Enviar</button>
+  </div>
+</div>
+
 <div id="muroScreen">
   <div class="cal-header">
     <button class="btn hdr-icon-btn" onclick="showHome()" title="Inicio" style="font-size:1.1rem;">⌂</button>
@@ -15721,7 +15807,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
       <textarea id="muroInput" rows="2" maxlength="500" placeholder="Cuenta algo a la banda… (@ para alguien · # para una canción)"
         autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="true"
-        oninput="_muroMentionCheck()" onkeydown="_muroMentionKey(event)"
+        oninput="_muroMentionUse('muroInput','muroMentionMenu');_muroMentionCheck()" onkeydown="_muroMentionKey(event)"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;outline:none;resize:vertical;"></textarea>
       <div id="muroMentionWrap"><div id="muroMentionMenu"></div></div>
       <div style="display:flex;justify-content:flex-end;">
@@ -15969,14 +16055,27 @@ async function muroCheckNews() {
     // ¿Alguno me menciona? → aviso especial y contador dorado
     const meCitan = nuevos.filter(m => _muroMentionsOf(m.texto || '')
       .some(k => _cfgNorm(k) === _cfgNorm(me))).length;
-    _muroSetBadge(nuevos.length, meCitan > 0);
-    if (!nuevos.length) return;
-    if (nuevos.length <= _newsPopDismissedAt) return;   // ya lo cerraste y no hay más
-    const frases = meCitan ? _muroFrasesMencion() : _muroFrases();
+    // Respuestas nuevas en hilos (por usuario) + si contestan a MIS mensajes
+    const seenMap = _userSettings.muroThreadSeen || {};
+    let nResp = 0, respAMi = 0;
+    (data || []).forEach(m => {
+      const seen = seenMap[m.id];
+      const reps = Array.isArray(m.respuestas) ? m.respuestas : [];
+      const n = reps.filter(r => r.autor !== me && (!seen || r.created_at > seen)).length;
+      nResp += n;
+      if (n && m.autor === me) respAMi += n;   // responden a lo TUYO
+    });
+    const total = nuevos.length + nResp;
+    _muroSetBadge(total, meCitan > 0 || respAMi > 0);
+    if (!total) return;
+    if (total <= _newsPopDismissedAt) return;   // ya lo cerraste y no hay más
+    // Frases de mención si la novedad va CONTIGO (te citan o responden a lo tuyo)
+    const frases = (meCitan || respAMi) ? _muroFrasesMencion() : _muroFrases();
     document.getElementById('newsPopTitle').textContent = frases[Math.floor(Math.random() * frases.length)];
-    document.getElementById('newsPopSub').textContent = meCitan
-      ? (meCitan === 1 ? '1 mensaje te menciona' : meCitan + ' mensajes te mencionan')
-      : (nuevos.length === 1 ? '1 mensaje sin leer' : nuevos.length + ' mensajes sin leer');
+    const partes = [];
+    if (nuevos.length) partes.push(nuevos.length + (nuevos.length === 1 ? ' mensaje' : ' mensajes'));
+    if (nResp)         partes.push(nResp + (nResp === 1 ? ' respuesta' : ' respuestas'));
+    document.getElementById('newsPopSub').textContent = partes.join(' · ') + ' sin leer';
     document.getElementById('newsPop').dataset.count = nuevos.length;
     document.getElementById('newsPop').classList.add('open');
   } catch (e) { /* silencioso: nunca bloquear el Home */ }
@@ -16005,8 +16104,11 @@ async function muroLoad() {
     .select('*').eq('banda_id', BAND.id)
     .order('created_at', { ascending: false }).limit(100);
   if (error) { list.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;">No se pudo cargar el muro.</div>'; return; }
-  _muroRender(data || []);
+  _muroMsgs = data || [];
+  _muroRender(_muroMsgs);
 }
+
+let _muroMsgs = [];
 
 function _muroRender(msgs) {
   const list = document.getElementById('muroList');
@@ -16031,7 +16133,12 @@ function _muroRender(msgs) {
         ${m.autor === me ? `<button onclick="muroDelete('${m.id}')" title="Borrar" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;">✕</button>` : ''}
       </div>
       <div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;color:var(--text);white-space:pre-wrap;word-break:break-word;">${_muroHighlight(m.texto)}</div>`;
+    if (_muroThreadUnread(m)) {   // hay respuestas sin leer → tarjeta sombreada
+      card.style.background = 'rgba(0,224,198,0.07)';
+      card.style.borderColor = 'var(--accent)';
+    }
     card.appendChild(_muroReaxRow(m));
+    card.appendChild(_muroThreadFoot(m));
     list.appendChild(card);
   });
 }
@@ -16124,9 +16231,13 @@ let _mentionSel = 0, _mentionOpts = [];
 
 let _mentionKind = '@';   // '@' personas · '#' canciones
 
+// Campo activo: el del muro o el del hilo (las menciones sirven en ambos)
+let _mentionTaId = 'muroInput', _mentionMenuId = 'muroMentionMenu';
+function _muroMentionUse(taId, menuId) { _mentionTaId = taId; _mentionMenuId = menuId; }
+
 function _muroMentionCheck() {
-  const ta = document.getElementById('muroInput');
-  const menu = document.getElementById('muroMentionMenu');
+  const ta = document.getElementById(_mentionTaId);
+  const menu = document.getElementById(_mentionMenuId);
   const pos = ta.selectionStart;
   const antes = ta.value.slice(0, pos);
   // ¿Estamos escribiendo una @persona o una #canción justo aquí?
@@ -16154,7 +16265,7 @@ function _muroMentionCheck() {
 }
 
 function _muroMentionRender() {
-  const menu = document.getElementById('muroMentionMenu');
+  const menu = document.getElementById(_mentionMenuId);
   menu.innerHTML = '';
   _mentionOpts.forEach((op, i) => {
     const o = document.createElement('div');
@@ -16166,7 +16277,7 @@ function _muroMentionRender() {
 }
 
 function _muroMentionKey(e) {
-  const menu = document.getElementById('muroMentionMenu');
+  const menu = document.getElementById(_mentionMenuId);
   if (!menu.classList.contains('open')) return;
   if (e.key === 'ArrowDown') { e.preventDefault(); _mentionSel = (_mentionSel + 1) % _mentionOpts.length; _muroMentionRender(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); _mentionSel = (_mentionSel - 1 + _mentionOpts.length) % _mentionOpts.length; _muroMentionRender(); }
@@ -16177,7 +16288,7 @@ function _muroMentionKey(e) {
 function _muroMentionPick(i) {
   const op = _mentionOpts[i];
   if (!op) return;
-  const ta = document.getElementById('muroInput');
+  const ta = document.getElementById(_mentionTaId);
   const pos = ta.selectionStart;
   let antes;
   if (op.kind === '@') {
@@ -16187,7 +16298,7 @@ function _muroMentionPick(i) {
     antes = ta.value.slice(0, pos).replace(/#([\wáéíóúñ ]*)$/i, '#' + op.label + '# ');
   }
   ta.value = antes + ta.value.slice(pos);
-  document.getElementById('muroMentionMenu').classList.remove('open');
+  document.getElementById(_mentionMenuId).classList.remove('open');
   ta.focus();
   ta.selectionStart = ta.selectionEnd = antes.length;
 }
@@ -16239,8 +16350,228 @@ async function muroPost() {
   muroLoad();
 }
 
+// ══════ HILOS (respuestas por publicación) ══════
+// Filosofía (sergito): el muro es TABLÓN, no chat. Las reacciones cubren la
+// respuesta rápida; si algo merece más, se abre el hilo — un clic de fricción
+// que invita a tomárselo con calma. El muro NUNCA crece: la tarjeta solo
+// gana un pie.
+let _muroThread = null;   // mensaje abierto ahora mismo
+
+function _muroReplies(m) { return Array.isArray(m.respuestas) ? m.respuestas : []; }
+
+// No leídas de ESTE hilo (por usuario, en _userSettings — sin tocar BBDD)
+function _muroThreadUnread(m) {
+  const seen = (_userSettings.muroThreadSeen || {})[m.id];
+  const me = currentUserName();
+  return _muroReplies(m).filter(r =>
+    r.autor !== me && (!seen || r.created_at > seen)).length;
+}
+
+function _muroThreadFoot(m) {
+  const foot = document.createElement('div');
+  const n = _muroReplies(m).length;
+  const nuevas = _muroThreadUnread(m);
+  foot.style.cssText = 'margin-top:8px;padding-top:7px;border-top:1px solid var(--border);cursor:pointer;font-family:\'IBM Plex Sans\',sans-serif;font-size:0.85rem;display:flex;align-items:center;gap:6px;';
+  if (!n) {
+    foot.innerHTML = '<span style="color:var(--text);">💬 Responder</span>';
+  } else {
+    const txt = '💬 ' + n + (n === 1 ? ' Respuesta' : ' Respuestas');
+    foot.innerHTML = nuevas
+      ? '<span style="color:var(--accent);font-weight:700;">' + txt + ' · ' + nuevas + ' nueva' + (nuevas > 1 ? 's' : '') + '</span>'
+      : '<span style="color:var(--text);">' + txt + '</span>';
+  }
+  foot.addEventListener('click', () => muroThreadOpen(m));
+  return foot;
+}
+
+function muroThreadOpen(m) {
+  _muroThread = m;
+  document.getElementById('muroThreadScreen').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // El atrás del móvil cierra el hilo (no sale del muro)
+  history.pushState({ muroThread: 1 }, '');
+  window.addEventListener('popstate', _muroThreadPop);
+  _muroThreadRender();
+}
+
+function _muroThreadPop() {
+  if (_muroThread) muroThreadClose(true);
+}
+
+function muroThreadClose(fromBack) {
+  // Marcar leído hasta la última respuesta (personal)
+  if (_muroThread) {
+    const reps = _muroReplies(_muroThread);
+    if (reps.length) {
+      _userSettings.muroThreadSeen = _userSettings.muroThreadSeen || {};
+      _userSettings.muroThreadSeen[_muroThread.id] = reps[reps.length - 1].created_at;
+      saveUserSettings();
+    }
+  }
+  _muroThread = null;
+  window.removeEventListener('popstate', _muroThreadPop);
+  if (!fromBack && history.state && history.state.muroThread) history.back();
+  document.getElementById('muroThreadScreen').classList.remove('open');
+  document.body.style.overflow = '';
+  _muroRender(_muroMsgs);   // refrescar pies sin recargar (mantiene el scroll)
+}
+
+function _muroThreadRender() {
+  const m = _muroThread; if (!m) return;
+  const me = currentUserName();
+  const box = document.getElementById('muroThreadBody');
+  const seen = (_userSettings.muroThreadSeen || {})[m.id];
+  // Estás mirando el hilo → marcar leído hasta la última respuesta.
+  // (Antes solo se hacía al salir: tu propia respuesta recién escrita
+  //  quedaba contada como "nueva".)
+  const _reps0 = _muroReplies(m);
+  if (_reps0.length) {
+    _userSettings.muroThreadSeen = _userSettings.muroThreadSeen || {};
+    const last = _reps0[_reps0.length - 1].created_at;
+    if (_userSettings.muroThreadSeen[m.id] !== last) {
+      _userSettings.muroThreadSeen[m.id] = last;
+      saveUserSettings();
+    }
+  }
+  box.innerHTML = '';
+
+  // Mensaje raíz
+  const mem = (BAND.members || []).find(x => x.key === m.autor);
+  const icon = (mem && mem.role) ? (mem.role.split(' ')[0] || '🎵') : '🎵';
+  const root = document.createElement('div');
+  root.style.cssText = 'background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:12px 13px;margin-bottom:14px;';
+  root.innerHTML = `
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+      <span style="font-size:0.95rem;">${icon}</span>
+      <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--accent);font-weight:700;">${esc(m.autor)}</span>
+      <span style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);">${_muroWhen(m.created_at)}</span>
+    </div>
+    <div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.92rem;color:var(--text);white-space:pre-wrap;word-break:break-word;">${_muroHighlight(m.texto)}</div>`;
+  box.appendChild(root);
+
+  const reps = _muroReplies(m);
+  if (!reps.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = "color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:0.82rem;text-align:center;padding:18px 10px;opacity:0.75;";
+    empty.textContent = 'Sin respuestas todavía. Abre tú la conversación.';
+    box.appendChild(empty);
+  }
+
+  let firstUnread = null;
+  reps.forEach((r, i) => {
+    const rmem = (BAND.members || []).find(x => x.key === r.autor);
+    const ricon = (rmem && rmem.role) ? (rmem.role.split(' ')[0] || '🎵') : '🎵';
+    const esNueva = r.autor !== me && (!seen || r.created_at > seen);
+    const el = document.createElement('div');
+    el.style.cssText = 'background:' + (esNueva ? 'rgba(0,224,198,0.10)' : 'var(--surface2)') + ';border:1px solid ' + (esNueva ? 'var(--accent)' : 'var(--border)') + ';border-radius:9px;padding:9px 11px;margin-bottom:9px;';
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-size:0.85rem;">${ricon}</span>
+        <span style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--accent);font-weight:700;">${esc(r.autor)}</span>
+        <span style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);">${_muroWhen(r.created_at)}</span>
+        <span style="flex:1;"></span>
+        ${r.autor === me ? `<button onclick="muroReplyDelete('${r.id}')" title="Borrar" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:2px 4px;">✕</button>` : ''}
+      </div>
+      <div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.88rem;color:var(--text);white-space:pre-wrap;word-break:break-word;">${_muroHighlight(r.texto)}</div>`;
+    el.appendChild(_muroReplyReaxRow(m, r));
+    box.appendChild(el);
+    if (esNueva && !firstUnread) firstUnread = el;
+  });
+
+  // Scroll: centrado en la primera NO leída; si no hay, al final
+  requestAnimationFrame(() => {
+    if (firstUnread) firstUnread.scrollIntoView({ block: 'center' });
+    else box.scrollTop = box.scrollHeight;
+  });
+}
+
+async function _muroThreadSave(reps) {
+  const m = _muroThread; if (!m) return false;
+  const { data, error } = await _sb.from('banda_muro')
+    .update({ respuestas: reps }).eq('id', m.id).select('id, respuestas');
+  if (error || !data || !data.length) { alert('No se pudo guardar la respuesta.'); return false; }
+  m.respuestas = data[0].respuestas || reps;
+  _muroThreadRender();
+  return true;
+}
+
+async function muroReplyPost() {
+  const inp = document.getElementById('muroReplyInput');
+  const txt = inp.value.trim();
+  if (!txt || !_muroThread) return;
+  const reps = [..._muroReplies(_muroThread)];
+  reps.push({
+    id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    autor: currentUserName(), texto: txt,
+    created_at: new Date().toISOString(), reacciones: {}
+  });
+  if (await _muroThreadSave(reps)) inp.value = '';
+}
+
+async function muroReplyDelete(rid) {
+  if (!confirm('¿Borrar tu respuesta?')) return;
+  const reps = _muroReplies(_muroThread).filter(r => r.id !== rid);
+  await _muroThreadSave(reps);
+}
+
+// Reacciones DENTRO del hilo (mismos emojis)
+function _muroReplyReaxRow(m, r) {
+  const row = document.createElement('div');
+  row.className = 'muro-reax';
+  const me = currentUserName();
+  const reax = r.reacciones || {};
+  Object.keys(reax).forEach(emo => {
+    const quien = reax[emo] || [];
+    if (!quien.length) return;
+    const b = document.createElement('button');
+    const mine = quien.some(x => _cfgNorm(x) === _cfgNorm(me));
+    b.className = 'muro-reax-btn' + (mine ? ' mine' : '');
+    b.innerHTML = `<span>${emo}</span><span class="n">${quien.length}</span>`;
+    b.title = quien.join(', ');
+    b.onclick = () => muroReplyReact(r, emo);
+    row.appendChild(b);
+  });
+  const add = document.createElement('button');
+  add.className = 'muro-reax-add';
+  add.textContent = '☺+';
+  add.onclick = () => {
+    const old = row.querySelector('.muro-reax-picker');
+    if (old) { old.remove(); add.style.display = ''; return; }
+    const p = document.createElement('div');
+    p.className = 'muro-reax-picker';
+    MURO_EMOJIS.forEach(emo => {
+      const b = document.createElement('button');
+      b.textContent = emo;
+      b.onclick = () => { p.remove(); add.style.display = ''; muroReplyReact(r, emo); };
+      p.appendChild(b);
+    });
+    add.style.display = 'none';
+    row.appendChild(p);
+  };
+  row.appendChild(add);
+  return row;
+}
+
+async function muroReplyReact(r, emo) {
+  const me = currentUserName();
+  const reps = JSON.parse(JSON.stringify(_muroReplies(_muroThread)));
+  const target = reps.find(x => x.id === r.id);
+  if (!target) return;
+  target.reacciones = target.reacciones || {};
+  const lista = target.reacciones[emo] || [];
+  const i = lista.findIndex(x => _cfgNorm(x) === _cfgNorm(me));
+  if (i >= 0) lista.splice(i, 1); else lista.push(me);
+  if (lista.length) target.reacciones[emo] = lista; else delete target.reacciones[emo];
+  await _muroThreadSave(reps);
+}
+
 async function muroDelete(id) {
-  if (!confirm('¿Borrar tu mensaje?')) return;
+  const m = _muroMsgs.find(x => x.id === id);
+  const n = m ? _muroReplies(m).length : 0;
+  const aviso = n
+    ? '¿Borrar tu mensaje?\n\nEsto borrará también ' + n + (n === 1 ? ' respuesta.' : ' respuestas.')
+    : '¿Borrar tu mensaje?';
+  if (!confirm(aviso)) return;
   const { error } = await _sb.from('banda_muro').delete().eq('id', id);
   if (error) { alert('No se pudo borrar.'); return; }
   muroLoad();
