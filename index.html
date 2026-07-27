@@ -15539,11 +15539,16 @@ document.addEventListener('DOMContentLoaded', function() {
   font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700;
   white-space: nowrap;
 }
-.ev-guest-row {
+.ev-block-guests {
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-  padding-bottom: 8px; margin-bottom: 8px;
-  border-bottom: 1px dashed var(--border);
+  border-color: rgba(241,196,15,0.30);
 }
+.ev-guest-del {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 0.62rem;
+  padding: 0 0 0 5px; line-height: 1;
+}
+.ev-guest-del:hover { color: #e84040; }
 .ev-guest-lbl {
   font-family: 'Space Mono', monospace; font-size: 0.6rem;
   color: var(--muted); letter-spacing: 0.06em;
@@ -16688,6 +16693,18 @@ async function _calLoadData() {
           .push({ key: r.member_key, name: r.member_name || 'Invitado', status: r.status });
       }
     });
+
+    // Invitaciones ENVIADAS aunque aún no hayan contestado: que quede
+    // constancia de a quién invitaste (salen en gris con "—").
+    const { data: _gt } = await _sb.from('rsvp_tokens')
+      .select('event_id, member_key, guest_name')
+      .in('event_id', _evIds)
+      .not('guest_name', 'is', null);
+    (_gt || []).forEach(t => {
+      const arr = (_calEvGuests[t.event_id] = _calEvGuests[t.event_id] || []);
+      if (arr.some(g => g.key === t.member_key || _cfgNorm(g.name) === _cfgNorm(t.guest_name))) return;
+      arr.push({ key: t.member_key, name: t.guest_name, status: null, pending: true });
+    });
   }
 
   // Build avail map: { 'YYYY-MM-DD': { member_key: 'yes'|'no' } }
@@ -16907,18 +16924,23 @@ function _calRenderPanelBody(dateStr) {
       // Invitados (solo si hay): fila propia ANTES de la banda
       const _guests = _calEvGuests[ev.id] || [];
       const guestHtml = _guests.length ? `
-        <div class="ev-guest-row">
+        <div class="ev-block ev-block-guests">
           <span class="ev-guest-lbl">🎟 Invitados</span>
           ${_guests.map(g => {
             const cls  = g.status === 'yes' ? 'yes' : g.status === 'no' ? 'no' : 'none';
             const mark = g.status === 'yes' ? '✓'   : g.status === 'no' ? '✗'  : '—';
-            return `<span class="ev-att ${cls}">${esc(g.name)} ${mark}</span>`;
+            const tip  = g.status === 'yes' ? g.name + ' viene'
+                       : g.status === 'no'  ? g.name + ' no viene'
+                       : g.name + ': invitación enviada, sin responder';
+            return `<span class="ev-att ${cls}" title="${esc(tip)}">${esc(g.name)} ${mark}` +
+                   `<button class="ev-guest-del" title="Quitar invitación"` +
+                   ` onclick="calGuestRemove('${ev.id}','${g.key}')">✕</button></span>`;
           }).join('')}
         </div>` : '';
 
       const attHtml = `
-        <div class="ev-block ev-block-att">
         ${guestHtml}
+        <div class="ev-block ev-block-att">
         <div class="ev-att-row">${attRow}</div>
         <div class="ev-att-btns">
           <button class="ev-att-btn yes ${myR==='yes'?'active':''}" onclick="calEvRespond('${ev.id}','yes','${dateStr}')">✓ Voy</button>
@@ -18117,6 +18139,26 @@ async function calShareEvent(eventId, eventTitle, eventDate, eventTime) {
 }
 
 // Genera un enlace para un invitado: clave propia (guest:) + su nombre
+// Quitar a un invitado del evento: borra su enlace y su respuesta.
+async function calGuestRemove(evId, key) {
+  const g = (_calEvGuests[evId] || []).find(x => x.key === key);
+  const nombre = g ? g.name : 'este invitado';
+  if (!confirm(`¿Quitar la invitación de ${nombre}?\n\nSu enlace dejará de funcionar.`)) return;
+
+  // Su respuesta (si la dio)
+  const { error: e1 } = await _sb.from('cal_event_rsvp')
+    .delete().eq('event_id', evId).eq('member_key', key);
+  // Sus enlaces (puede haber más de uno con el mismo nombre)
+  let q = _sb.from('rsvp_tokens').delete().eq('event_id', evId);
+  const { error: e2 } = g && g.name
+    ? await q.eq('guest_name', g.name)
+    : await q.eq('member_key', key);
+
+  if (e1 || e2) { alert('No se pudo quitar la invitación.'); return; }
+  await _calLoadData();
+  if (_calOpenDate) _calRenderPanelBody(_calOpenDate);
+}
+
 async function calShareGuest() {
   const ctx = window._calShareCtx;
   const inp = document.getElementById('calGuestName');
