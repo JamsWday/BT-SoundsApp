@@ -18060,7 +18060,8 @@ function calShareLink(btn) {
     confirmedLine = `${confirmed.join(', ')} ya han confirmado 🤘\n`;
   }
 
-  const msg = `Ey ${name}! 🎸 Eventazo!! ${eventName}\n${dateTimeLine}${confirmedLine}¿Y tú? 👇\n${url}`;
+  // Dos enlaces: responde desde el propio WhatsApp, sin entrar a elegir
+  const msg = `Ey ${name}! 🎸 Eventazo!! ${eventName}\n${dateTimeLine}${confirmedLine}¿Y tú? 👇\n✅ SÍ voy: ${url}&r=yes\n❌ NO puedo: ${url}&r=no`;
 
   if (navigator.share) {
     navigator.share({
@@ -18222,9 +18223,48 @@ function _rsvpShowError(msg) {
 
   // Guardar contexto
   window._rsvpContext = { token, event: ev, member, date: ev.date };
+
+  // ── Enlace CON respuesta (&r=yes|no): se aplica al abrir ──
+  // Cero fricción: el que recibe pulsa "SÍ voy" o "NO puedo" desde el propio
+  // WhatsApp y ya está. Si ya estaba en ese estado, NO gasta uso (los enlaces
+  // se pulsan dos veces con facilidad).
+  const r = params.get('r');
+  if (r === 'yes' || r === 'no') {
+    const { data: cur } = await _sb.from('cal_event_rsvp')
+      .select('status').eq('event_id', ev.id).eq('member_key', member.key);
+    if (cur && cur.length && cur[0].status === r) {
+      document.getElementById('rsvpForm').style.display = 'none';
+      document.getElementById('rsvpDoneIcon').textContent = r === 'yes' ? '✅' : '❌';
+      document.getElementById('rsvpDoneMsg').textContent = r === 'yes'
+        ? 'Ya estabas apuntado 🤘' : 'Ya estaba anotado que no puedes 🙏';
+      document.getElementById('rsvpDone').classList.add('show');
+      _rsvpAddChangeBtn();
+    } else {
+      rsvpRespond(r);
+    }
+  }
   }
   document.addEventListener('DOMContentLoaded', _rsvpInit);
 })();
+
+// Deja volver al formulario tras responder (los tokens dan 3 usos)
+function _rsvpAddChangeBtn() {
+  const done = document.getElementById('rsvpDone');
+  if (!done || document.getElementById('rsvpChangeBtn')) return;
+  const b = document.createElement('button');
+  b.id = 'rsvpChangeBtn';
+  b.textContent = '↩ Cambiar respuesta';
+  b.style.cssText = 'margin-top:16px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:\'Space Mono\',monospace;font-size:0.65rem;padding:8px 14px;cursor:pointer;';
+  b.onclick = () => {
+    b.remove();
+    done.classList.remove('show');
+    const form = document.getElementById('rsvpForm');
+    form.style.display = '';
+    form.style.opacity = '1';
+    form.style.pointerEvents = '';
+  };
+  done.appendChild(b);
+}
 
 async function rsvpRespond(status) {
   const ctx = window._rsvpContext;
@@ -18280,6 +18320,7 @@ async function rsvpRespond(status) {
   document.getElementById('rsvpDoneMsg').textContent  = status === 'yes'
     ? '¡Apuntado! Nos vemos ahí 🤘' : 'Anotado, sin ti esta vez 🙏';
   done.classList.add('show');
+  _rsvpAddChangeBtn();
 }
 
 // ══════════════════════════════════════════════
