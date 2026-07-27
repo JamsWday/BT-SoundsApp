@@ -15507,6 +15507,49 @@ document.addEventListener('DOMContentLoaded', function() {
 .cal-event-card.birra    { border-left-color: #e8a820; box-shadow: 0 2px 10px rgba(232,168,32,0.18); }
 .cal-event-card.birra:hover { box-shadow: 0 4px 18px rgba(232,168,32,0.3); }
 /* ── Asistencia por evento ── */
+/* Tarjeta de evento en DOS BLOQUES (24/07): arriba "quién viene"
+   (invitados + banda + tu respuesta), abajo la gestión del evento.
+   Antes iba todo seguido y el "Voy" pesaba lo mismo que el "Editar". */
+.ev-block {
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+}
+.ev-block-att { border-color: rgba(0,224,198,0.28); }
+.cal-share-guest-box {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.cal-share-guest-title {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem;
+  color: var(--accent); margin-bottom: 8px;
+}
+.cal-share-guest-row { display: flex; gap: 6px; }
+.cal-share-guest-row input {
+  flex: 1; min-width: 0; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 8px 10px; color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 0.82rem; outline: none;
+}
+.cal-share-guest-row button {
+  background: var(--accent); color: #14141e; border: none;
+  border-radius: 7px; padding: 8px 12px; cursor: pointer;
+  font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700;
+  white-space: nowrap;
+}
+.ev-guest-row {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding-bottom: 8px; margin-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+.ev-guest-lbl {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  color: var(--muted); letter-spacing: 0.06em;
+}
+.ev-block-actions { flex-wrap: wrap; }
+.ev-block .ev-att-row:first-child { margin-top: 0; }
 .ev-att-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .ev-att {
   font-family:'Space Mono',monospace; font-size:0.62rem; letter-spacing:0.03em;
@@ -15963,6 +16006,7 @@ let _calMonth = new Date().getMonth(); // 0-based
 let _calEvents = [];       // from cal_events
 let _calAvail  = {};       // { "YYYY-MM-DD": { member_key: 'yes'|'no' } }
 let _calEvRsvp = {};       // { event_id: { member_key: 'yes'|'no' } } — asistencia por evento
+let _calEvGuests = {};     // { event_id: [{key,name,status}] } — gente de FUERA de la banda
 let _calOpenDate = null;   // currently open day panel date string
 
 const _MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -16630,13 +16674,19 @@ async function _calLoadData() {
 
   // Asistencia por evento (cal_event_rsvp) de los eventos cargados
   _calEvRsvp = {};
+  _calEvGuests = {};
   const _evIds = _calEvents.map(e => e.id).filter(Boolean);
   if (_evIds.length) {
     const { data: _rs } = await _sb.from('cal_event_rsvp')
-      .select('event_id, member_key, status').in('event_id', _evIds);
+      .select('event_id, member_key, member_name, status').in('event_id', _evIds);
     (_rs || []).forEach(r => {
       if (!_calEvRsvp[r.event_id]) _calEvRsvp[r.event_id] = {};
       _calEvRsvp[r.event_id][r.member_key] = r.status;
+      // Los que no son de la banda son INVITADOS: van a su propia fila
+      if (!CAL_MEMBERS.some(m => m.key === r.member_key)) {
+        (_calEvGuests[r.event_id] = _calEvGuests[r.event_id] || [])
+          .push({ key: r.member_key, name: r.member_name || 'Invitado', status: r.status });
+      }
     });
   }
 
@@ -16854,11 +16904,26 @@ function _calRenderPanelBody(dateStr) {
         return `<span class="ev-att ${cls}" title="${tip}">${m.initials||m.key} ${mark}</span>`;
       }).join('');
       const myR = evR[myKey] || 'none';
+      // Invitados (solo si hay): fila propia ANTES de la banda
+      const _guests = _calEvGuests[ev.id] || [];
+      const guestHtml = _guests.length ? `
+        <div class="ev-guest-row">
+          <span class="ev-guest-lbl">🎟 Invitados</span>
+          ${_guests.map(g => {
+            const cls  = g.status === 'yes' ? 'yes' : g.status === 'no' ? 'no' : 'none';
+            const mark = g.status === 'yes' ? '✓'   : g.status === 'no' ? '✗'  : '—';
+            return `<span class="ev-att ${cls}">${esc(g.name)} ${mark}</span>`;
+          }).join('')}
+        </div>` : '';
+
       const attHtml = `
+        <div class="ev-block ev-block-att">
+        ${guestHtml}
         <div class="ev-att-row">${attRow}</div>
         <div class="ev-att-btns">
           <button class="ev-att-btn yes ${myR==='yes'?'active':''}" onclick="calEvRespond('${ev.id}','yes','${dateStr}')">✓ Voy</button>
           <button class="ev-att-btn no ${myR==='no'?'active':''}"  onclick="calEvRespond('${ev.id}','no','${dateStr}')">✗ No voy</button>
+        </div>
         </div>`;
 
       // Setlist link
@@ -16879,7 +16944,7 @@ function _calRenderPanelBody(dateStr) {
         ${ev.notes ? `<div class="cal-event-notes" style="white-space:pre-wrap;">${ev.notes}</div>` : ''}
         ${attHtml}
         ${conflictHtml}
-        <div class="cal-event-actions">
+        <div class="cal-event-actions ev-block ev-block-actions">
           <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
           <button class="cal-event-btn danger" onclick="calDeleteEvent('${ev.id}')">🗑</button>
           <button class="cal-event-btn share" onclick="calShareEvent('${ev.id}','${ev.title||''}','${ev.date||''}','${ev.time ? ev.time.slice(0,5) : ''}')">📨 Compartir</button>
@@ -17972,6 +18037,10 @@ async function calShareEvent(eventId, eventTitle, eventDate, eventTime) {
 
   const base      = window.location.href.split('?')[0];
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 días
+  const _evT = (_calEvents || []).find(e => e.id === eventId);
+  const typeLabel = !_evT ? '' : _evT.type === 'ensayo' ? 'Ensayo' : _evT.type === 'concierto' ? 'Concierto'
+                  : _evT.type === 'birra' ? 'Quedada' : 'Otro';
+  window._calShareCtx = { eventId, eventTitle, eventDate, eventTime, base, expiresAt, typeLabel };
 
   // Cargar confirmados (status=yes) para esta fecha
   let confirmedKeys = [];
@@ -18033,6 +18102,58 @@ async function calShareEvent(eventId, eventTitle, eventDate, eventTime) {
     }
     list.appendChild(row);
   });
+
+  // ── 🎟 Invitar a alguien de FUERA de la banda ──
+  const gBox = document.createElement('div');
+  gBox.className = 'cal-share-guest-box';
+  gBox.innerHTML = `
+    <div class="cal-share-guest-title">🎟 Invitar a alguien 🎟</div>
+    <div class="cal-share-guest-row">
+      <input id="calGuestName" type="text" maxlength="40" placeholder="Nombre (ej: Rogus, el Manager)"
+             onkeydown="if(event.key==='Enter')calShareGuest()" />
+      <button onclick="calShareGuest()">➕ Enlace</button>
+    </div>`;
+  list.appendChild(gBox);
+}
+
+// Genera un enlace para un invitado: clave propia (guest:) + su nombre
+async function calShareGuest() {
+  const ctx = window._calShareCtx;
+  const inp = document.getElementById('calGuestName');
+  if (!ctx || !inp) return;
+  const name = inp.value.trim();
+  if (!name) { inp.focus(); return; }
+
+  const token = _rsvpGenToken();
+  const { error } = await _sb.from('rsvp_tokens').insert({
+    token,
+    event_id:   ctx.eventId,
+    member_key: 'guest:' + Math.random().toString(36).slice(2, 10),
+    guest_name: name,
+    expires_at: ctx.expiresAt,
+    uses_left:  3
+  });
+  if (error) { alert('No se pudo generar el enlace del invitado.'); return; }
+
+  const url = `${ctx.base}?token=${token}`;
+  let dateTimeLine = '';
+  if (ctx.eventDate) {
+    const [y, m, d] = ctx.eventDate.split('-');
+    dateTimeLine = `🎯 ${d}/${m}/${y}`;
+    if (ctx.eventTime) dateTimeLine += ` · 🕐 ${ctx.eventTime}`;
+    dateTimeLine += '\n';
+  }
+  const msg = `Ey ${name}! 🎸 Te invitamos: ${ctx.eventTitle}${ctx.typeLabel ? ' (' + ctx.typeLabel + ')' : ''}\n${dateTimeLine}¿Te vienes? 👇\n✅ SÍ voy: ${url}&r=yes\n❌ NO puedo: ${url}&r=no`;
+
+  inp.value = '';
+  if (navigator.share) {
+    navigator.share({ title: `${BAND.appName} — ${ctx.eventTitle}`, text: msg }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(msg).then(
+      () => alert('Enlace del invitado copiado ✅'),
+      () => prompt('Copia el mensaje:', msg)
+    );
+  }
 }
 
 function calShareLink(btn) {
@@ -18189,7 +18310,10 @@ function _rsvpShowError(msg) {
   const tk = { uses_left: info.uses_left, member_key: info.member_key };
   const ev = info.event;
 
-  const member = CAL_MEMBERS.find(m => m.key === tk.member_key);
+  let member = CAL_MEMBERS.find(m => m.key === tk.member_key);
+  if (!member && info.guest_name) {   // invitado de fuera de la banda
+    member = { key: tk.member_key, name: info.guest_name, role: '🎟', initials: 'INV', guest: true };
+  }
   if (!member) { _rsvpShowError('Miembro no reconocido'); return; }
 
   // 3. Renderizar
@@ -18198,6 +18322,9 @@ function _rsvpShowError(msg) {
   document.getElementById('rsvpEventName').textContent = ev.title || '—';
 
   const parts = [];
+  const _tLabel = ev.type === 'ensayo' ? 'Ensayo' : ev.type === 'concierto' ? 'Concierto'
+                : ev.type === 'birra'  ? 'Quedada' : 'Otro';
+  parts.push(`🏷 ${_tLabel}`);
   if (ev.date) {
     const dayNames = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     const dt = new Date(ev.date + 'T12:00:00');
@@ -18275,7 +18402,7 @@ async function rsvpRespond(status) {
   const { data: res, error: rpcErr } = await _sb.rpc('rsvp_answer', {
     p_token:       ctx.token,
     p_status:      status,
-    p_member_name: ctx.member.name + ' (RSVP)'
+    p_member_name: ctx.member.guest ? ctx.member.name : ctx.member.name + ' (RSVP)'
   });
 
   const done = document.getElementById('rsvpDone');
