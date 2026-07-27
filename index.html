@@ -18176,21 +18176,18 @@ function _rsvpShowError(msg) {
     const overlay = document.getElementById('appLoadingOverlay');
     if (overlay) overlay.remove();
 
-  // 1. Validar token
-  console.log('RSVP token:', token);
-  const { data: tk, error: tkErr } = await _sb
-    .from('rsvp_tokens').select('*').eq('token', token).single();
-  console.log('RSVP token data:', tk, 'error:', tkErr);
+  // 1+2. Función portera del servidor: valida el token y devuelve SU evento.
+  // Antes se leían las tablas directamente y eso exigía sesión iniciada —
+  // por eso a quien no era de la banda le salía "Evento no encontrado".
+  const { data: info, error: rpcErr } = await _sb.rpc('rsvp_get', { p_token: token });
+  if (rpcErr || !info)           { _rsvpShowError('No se pudo abrir el enlace'); return; }
+  if (info.error === 'invalid')  { _rsvpShowError('Enlace no válido'); return; }
+  if (info.error === 'no_uses')  { _rsvpShowError('Este enlace ya no tiene usos disponibles'); return; }
+  if (info.error === 'expired')  { _rsvpShowError('Este enlace ha caducado'); return; }
+  if (info.error === 'no_event') { _rsvpShowError('Evento no encontrado'); return; }
 
-  if (tkErr || !tk) { _rsvpShowError('Enlace no válido'); return; }
-  if (tk.uses_left <= 0) { _rsvpShowError('Este enlace ya no tiene usos disponibles'); return; }
-  if (new Date(tk.expires_at) < new Date()) { _rsvpShowError('Este enlace ha caducado'); return; }
-
-  // 2. Cargar evento
-  const { data: ev, error: evErr } = await _sb
-    .from('cal_events').select('*').eq('id', tk.event_id).single();
-
-  if (evErr || !ev) { _rsvpShowError('Evento no encontrado'); return; }
+  const tk = { uses_left: info.uses_left, member_key: info.member_key };
+  const ev = info.event;
 
   const member = CAL_MEMBERS.find(m => m.key === tk.member_key);
   if (!member) { _rsvpShowError('Miembro no reconocido'); return; }
@@ -18230,9 +18227,7 @@ function _rsvpShowError(msg) {
   // se pulsan dos veces con facilidad).
   const r = params.get('r');
   if (r === 'yes' || r === 'no') {
-    const { data: cur } = await _sb.from('cal_event_rsvp')
-      .select('status').eq('event_id', ev.id).eq('member_key', member.key);
-    if (cur && cur.length && cur[0].status === r) {
+    if (info.current_status === r) {
       document.getElementById('rsvpForm').style.display = 'none';
       document.getElementById('rsvpDoneIcon').textContent = r === 'yes' ? '✅' : '❌';
       document.getElementById('rsvpDoneMsg').textContent = r === 'yes'
@@ -18274,42 +18269,27 @@ async function rsvpRespond(status) {
   form.style.opacity = '0.4';
   form.style.pointerEvents = 'none';
 
-  // 1. Decrementar uses_left en el token
-  const { data: tk, error: tkErr } = await _sb
-    .from('rsvp_tokens').select('uses_left').eq('token', ctx.token).single();
-
-  if (tkErr || !tk || tk.uses_left <= 0) {
-    document.getElementById('rsvpDoneIcon').textContent = '⚠️';
-    document.getElementById('rsvpDoneMsg').textContent = 'Este enlace ya no tiene usos disponibles';
-    form.style.display = 'none';
-    document.getElementById('rsvpDone').classList.add('show');
-    return;
-  }
-
-  const { error: updErr } = await _sb
-    .from('rsvp_tokens')
-    .update({ uses_left: tk.uses_left - 1 })
-    .eq('token', ctx.token);
-
-  if (updErr) {
-    form.style.opacity = '1'; form.style.pointerEvents = '';
-    alert('Error al procesar. Inténtalo de nuevo.');
-    return;
-  }
-
-  // 2. Guardar la respuesta AL EVENTO (antes pisaba la disponibilidad del
-  //    día entero — con varios eventos el mismo día era incorrecto).
-  //    La previsión del día (cal_availability) no se toca desde un evento.
-  const { error: avErr } = await _sb.from('cal_event_rsvp').upsert({
-    event_id:    ctx.event.id,
-    member_key:  ctx.member.key,
-    member_name: ctx.member.name + ' (RSVP)',
-    status,
-    updated_at:  new Date().toISOString()
-  }, { onConflict: 'event_id,member_key' });
+  // Una sola llamada: la función del servidor valida el token, descuenta el
+  // uso y guarda la respuesta AL EVENTO (la previsión del día, cal_availability,
+  // no se toca desde aquí). Funciona sin sesión iniciada.
+  const { data: res, error: rpcErr } = await _sb.rpc('rsvp_answer', {
+    p_token:       ctx.token,
+    p_status:      status,
+    p_member_name: ctx.member.name + ' (RSVP)'
+  });
 
   const done = document.getElementById('rsvpDone');
-  if (avErr) {
+
+  if (rpcErr || !res || res.error) {
+    if (res && (res.error === 'no_uses' || res.error === 'expired')) {
+      document.getElementById('rsvpDoneIcon').textContent = '⚠️';
+      document.getElementById('rsvpDoneMsg').textContent = res.error === 'expired'
+        ? 'Este enlace ha caducado'
+        : 'Este enlace ya no tiene usos disponibles';
+      form.style.display = 'none';
+      done.classList.add('show');
+      return;
+    }
     form.style.opacity = '1'; form.style.pointerEvents = '';
     alert('Error al guardar. Inténtalo de nuevo.');
     return;
