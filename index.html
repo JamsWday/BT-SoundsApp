@@ -5224,6 +5224,48 @@ comentario. Campos opcionales = compás ausente hereda → cero migraciones.
   (gris=hereda, acento=propio; vacío o =canción → hereda). Marca visual
   ♩=N dorada sobre el compás en preview/partitura cuando difiere.
 
+## Enviar SECCIÓN a otra canción de la familia (📤)
+Nació de una necesidad real: llevar una sección entera (con su audio) desde
+una idea/versión a la canción principal. Botón 📤 en la cabecera de cada
+sección (solo en edición) → elige destino entre la FAMILIA (raíz = 
+_versionsParentId || _currentSongId; se consultan padre + hermanas con .or) →
+📋 Copiar o 📦 Mover. La copia lleva ids nuevos (uid) para sección y líneas,
+aterriza al final del destino y se guarda directamente en BBDD; al MOVER se
+quita del origen con saveUndo y se guarda la canción para no dejarla a medias.
+SEGURIDAD AUDIO (misma regla que duplicar canción): la copia conserva
+audio.src (suena) pero pierde audio.storagePath, así nunca puede borrar del
+Storage el fichero de la original.
+
+### Lección de diseño (28/07)
+Esta fase llevaba semanas aparcada por "hay que diseñar la previsualización".
+Se resolvió sin escribirla: al elegir ENVIAR DESDE EL ORIGEN en vez de TRAER
+DESDE EL DESTINO, ya estás viendo la sección cuando decides → la vista previa
+sobra. Y limitar el destino a la familia eliminó buscador y paginación. La
+funcionalidad no era grande: estaba escondida detrás de un alcance inflado.
+
+## RSVP por enlace — invitados y "sin login"
+Enlace público con token (tabla rsvp_tokens: token, event_id, member_key,
+guest_name, uses_left, expires_at). PROBLEMA RESUELTO 24/07: todas las tablas
+exigen auth.uid(), así que quien abría el enlace SIN sesión veía "Evento no
+encontrado" (solo funcionaba para quien ya tenía la app abierta).
+SOLUCIÓN: dos funciones SECURITY DEFINER — rsvp_get(token) valida y devuelve
+SOLO ese evento (+ current_status para no gastar usos de más), y
+rsvp_answer(token, status, nombre) valida, descuenta un uso y hace el upsert
+en cal_event_rsvp. El anónimo NO toca ninguna tabla: llama a la puerta con su
+token. Las tablas siguen cerradas igual que antes.
+- ENLACES DE UN TOQUE: el mensaje lleva dos URLs (…&r=yes / &r=no); al abrir
+  se aplica sola la respuesta. Reabrir el mismo enlace NO gasta uso si el
+  estado ya coincide. Botón "↩ Cambiar respuesta" (los tokens dan 3 usos).
+- INVITADOS (gente de fuera): SIN tabla nueva. member_key = "guest:xxx" y el
+  nombre en rsvp_tokens.guest_name. Como el código cruza las claves con
+  CAL_MEMBERS, los invitados se ignoran solos en las pills de la banda y se
+  pintan en su propio bloque (_calEvGuests). Los pendientes (token creado,
+  sin respuesta) salen en gris leyendo rsvp_tokens. La ✕ borra respuesta +
+  enlaces (necesita políticas DELETE, creadas 24/07).
+- TARJETA DE EVENTO en bloques: 🎟 invitados (dorado) · quién viene + Voy/No
+  voy (turquesa) · gestión (neutro). Antes iba todo seguido y el "Voy" pesaba
+  lo mismo que el "Editar".
+
 ## Muro — HILOS (respuestas)
 banda_muro.respuestas (jsonb): [{id, autor, texto, created_at, reacciones}].
 Sin tabla nueva: nadie referencia una respuesta suelta y siempre se leen con
@@ -6011,6 +6053,108 @@ const uid = () => (typeof crypto !== "undefined" && crypto.randomUUID)
   ? crypto.randomUUID()
   : "x" + Date.now() + Math.random().toString(36).slice(2);
 
+// ══════ 📤 ENVIAR SECCIÓN A OTRA CANCIÓN DE LA FAMILIA ══════
+// Nace de una necesidad real: llevar una sección entera (con su audio)
+// desde una idea/versión a la canción principal. Elegimos "enviar desde
+// el origen" en vez de "traer desde el destino" — así ves la sección
+// mientras decides y no hace falta previsualizarla.
+async function secSendMenu(secId) {
+  const sec = (songData.sections || []).find(x => x.id === secId);
+  if (!sec) return;
+  if (!_currentSongId) { alert('Guarda la canción antes de enviar secciones.'); return; }
+
+  // La familia: la canción padre y sus hermanas (o las hijas si esta es la principal)
+  const raizId = _versionsParentId || _currentSongId;
+  const { data: fam, error } = await bandFilter(
+    _sb.from('Canciones').select('id, titulo, parent_id, version_type')
+  ).or(`id.eq.${raizId},parent_id.eq.${raizId}`);
+  if (error) { alert('No se pudo cargar la familia de canciones.'); return; }
+
+  const destinos = (fam || []).filter(c => String(c.id) !== String(_currentSongId));
+  if (!destinos.length) { alert('Esta canción no tiene ideas ni versiones donde enviarla.'); return; }
+
+  const old = document.getElementById('secSendPop'); if (old) old.remove();
+  const pop = document.createElement('div');
+  pop.id = 'secSendPop';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;padding:20px;';
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:16px;max-width:340px;width:100%;max-height:72vh;overflow-y:auto;overscroll-behavior:contain;';
+
+  const nRows = (sec.rows || []).length;
+  const head = '<div style="font-family:\'Space Mono\',monospace;font-size:0.78rem;font-weight:700;color:var(--accent);">📤 ENVIAR SECCIÓN</div>' +
+    '<div style="font-family:\'Space Mono\',monospace;font-size:0.62rem;color:var(--muted);margin:4px 0 12px;">' +
+    esc(sec.name || 'Sin nombre') + ' · ' + nRows + (nRows === 1 ? ' línea' : ' líneas') +
+    (sec.audio ? ' · 🔊 con audio' : '') + '</div>';
+  card.innerHTML = head;
+
+  destinos.forEach(d => {
+    const esPadre = String(d.id) === String(raizId) && !d.parent_id;
+    const tipo = esPadre ? '🎵 principal' : (d.version_type === 'version' ? '💿 versión' : '💡 idea');
+    const b = document.createElement('button');
+    b.textContent = (d.titulo || 'Sin título') + ' · ' + tipo;
+    b.style.cssText = 'display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem;cursor:pointer;';
+    b.onclick = () => {
+      card.innerHTML = head;
+      const mk = (txt, fn, accent) => {
+        const x = document.createElement('button');
+        x.textContent = txt;
+        x.style.cssText = 'display:block;width:100%;margin:6px 0;padding:11px;border-radius:8px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:' + (accent ? 'var(--accent)' : 'var(--surface2)') + ';color:' + (accent ? '#14141e' : 'var(--text)') + ';';
+        x.onclick = fn;
+        card.appendChild(x);
+      };
+      mk('📋 Copiar (se queda aquí también)', () => { pop.remove(); _secSendDo(sec, d, false); }, true);
+      mk('📦 Mover (desaparece de aquí)',      () => { pop.remove(); _secSendDo(sec, d, true); });
+      mk('Cancelar', () => pop.remove());
+    };
+    card.appendChild(b);
+  });
+
+  const cancel = document.createElement('button');
+  cancel.textContent = 'Cancelar';
+  cancel.style.cssText = 'display:block;width:100%;margin-top:10px;padding:9px;background:transparent;border:1px dashed var(--border);border-radius:8px;color:var(--muted);cursor:pointer;';
+  cancel.onclick = () => pop.remove();
+  card.appendChild(cancel);
+  pop.appendChild(card);
+  pop.addEventListener('click', e => { if (e.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
+}
+
+async function _secSendDo(sec, destino, mover) {
+  // 1) Traer los datos actuales del destino
+  const { data: dst, error: e1 } = await _sb.from('Canciones')
+    .select('data').eq('id', destino.id).single();
+  if (e1 || !dst) { alert('No se pudo abrir la canción destino.'); return; }
+
+  const dstData = dst.data || { sections: [] };
+  dstData.sections = dstData.sections || [];
+
+  // 2) Copia con identidades nuevas. SEGURIDAD AUDIO: conserva el src
+  //    (suena igual) pero SIN storagePath, para que la copia no pueda
+  //    borrar del Storage el fichero de la canción original.
+  const copia = JSON.parse(JSON.stringify(sec));
+  copia.id = uid();
+  (copia.rows || []).forEach(r => { r.id = uid(); });
+  if (copia.audio && copia.audio.storagePath) delete copia.audio.storagePath;
+  dstData.sections.push(copia);
+
+  // 3) Guardar el destino
+  const { data: ok, error: e2 } = await _sb.from('Canciones')
+    .update({ data: dstData, updated_at: new Date().toISOString() })
+    .eq('id', destino.id).select('id');
+  if (e2 || !ok || !ok.length) { alert('No se pudo guardar en la canción destino.'); return; }
+
+  // 4) Si es MOVER, quitarla de aquí y guardar (para no dejarla a medias)
+  if (mover) {
+    saveUndo();
+    const i = songData.sections.findIndex(x => x.id === sec.id);
+    if (i >= 0) songData.sections.splice(i, 1);
+    render();
+    await saveSongCloud();
+  }
+
+  alert((mover ? '📦 Sección movida a "' : '📋 Sección copiada en "') + (destino.titulo || 'destino') + '" ✅');
+}
+
 // Deep clone helper
 const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
@@ -6309,6 +6453,19 @@ function render(scrollTargetId) {
       toggleSectionAudio(sec.id, secPlayBtn);
     });
     hdr.appendChild(secPlayBtn);
+
+    // 📤 Enviar esta sección a otra canción de la familia
+    if (!_readonly) {
+      const secSendBtn = document.createElement("button");
+      secSendBtn.className = "btn-icon sec-send-btn";
+      secSendBtn.title = "Enviar esta sección a otra canción de la familia";
+      secSendBtn.textContent = "📤";
+      secSendBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        secSendMenu(sec.id);
+      });
+      hdr.appendChild(secSendBtn);
+    }
 
     hdr.appendChild(dupSec);
     hdr.appendChild(delSec);
