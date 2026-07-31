@@ -644,7 +644,7 @@ body {
 /* ── COMMENT ROW ── */
 .comment-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   padding: 3px 8px 3px 6px;
   background: #11111a;
@@ -680,6 +680,12 @@ body {
 
 .comment-input {
   flex: 1;
+  min-width: 0;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
   background: transparent;
   border: none;
   border-bottom: 1px dashed transparent;
@@ -5224,6 +5230,14 @@ comentario. Campos opcionales = compás ausente hereda → cero migraciones.
   (gris=hereda, acento=propio; vacío o =canción → hereda). Marca visual
   ♩=N dorada sobre el compás en preview/partitura cuando difiere.
 
+## Comentarios de línea — multilínea
+El comentario era un <input> de una sola línea: en Tocar el texto que
+sobraba quedaba inaccesible (allí no hay scroll horizontal). Ahora es un
+<textarea rows=1> que CRECE a lo alto (_commFit con scrollHeight), con
+white-space:pre-wrap y overflow:hidden; Enter no salta línea, confirma y
+sale. Se recalcula también desde resizeAllVozTextareas, que ya corría tras
+render/zoom — así las alturas cuadran al cambiar zoom o girar el móvil.
+
 ## Enviar SECCIÓN a otra canción de la familia (📤)
 Nació de una necesidad real: llevar una sección entera (con su audio) desde
 una idea/versión a la canción principal. Botón 📤 en la cabecera de cada
@@ -6568,14 +6582,23 @@ function render(scrollTargetId) {
       }
 
       // Input comentario con color del instrumento
-      const commIn = document.createElement("input");
-      commIn.type = "text";
+      const commIn = document.createElement("textarea");
+      commIn.rows = 1;
       commIn.className = "comment-input";
       commIn.placeholder = _readonly ? "" : "Nota o comentario...";
       commIn.value = row.comment || "";
       commIn.style.color = instMeta.color;
       commIn.style.setProperty('--comment-caret', instMeta.color);
       commIn.addEventListener("change", () => { row.comment = commIn.value; });
+      // Crece con el texto en vez de hacer scroll horizontal (en Tocar no
+      // se podía leer lo que sobraba). Enter no salta línea: confirma.
+      const _commFit = () => {
+        commIn.style.height = "auto";
+        commIn.style.height = commIn.scrollHeight + "px";
+      };
+      commIn.addEventListener("input", _commFit);
+      commIn.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); commIn.blur(); } });
+      requestAnimationFrame(_commFit);
       if (_readonly) commIn.readOnly = true;
 
       commRow.appendChild(instBtn);
@@ -7683,6 +7706,11 @@ function resizeAllVozTextareas() {
   // luego medimos el scrollHeight real
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
+      // Los comentarios ahora también crecen a lo alto: mismo recálculo
+      document.querySelectorAll(".comment-input").forEach(ta => {
+        ta.style.height = "auto";
+        ta.style.height = ta.scrollHeight + "px";
+      });
       document.querySelectorAll(".voz-text").forEach(ta => {
         ta.style.height = "auto";
         ta.style.height = ta.scrollHeight + "px";
