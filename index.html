@@ -6169,6 +6169,43 @@ async function _secSendDo(sec, destino, mover) {
   alert((mover ? '📦 Sección movida a "' : '📋 Sección copiada en "') + (destino.titulo || 'destino') + '" ✅');
 }
 
+// ══════ ▶ ESCUCHAR UN PATRÓN DESDE EL PREVIEW ══════
+// Reutiliza el motor del editor (dePlay/deStop): heredamos tuplets,
+// ghost/acento/flam/roll y BPM por compás sin duplicar una sola línea de
+// lógica de sonido — que ya vive en tres sitios y no queremos un cuarto.
+let _pvPlayRow = null, _pvPlayBtn = null;
+
+function previewTogglePlay(row, btn) {
+  const yaSonaba = _dau.playing && _pvPlayRow === row;
+  previewStop();
+  if (yaSonaba) return;                 // segundo toque = parar
+  if (!row.drumPattern) return;
+  _de.row = row;
+  _de.pattern = JSON.parse(JSON.stringify(row.drumPattern));
+  // El tempo manda la CANCIÓN: si no, se usaría el del slider del editor
+  // (que sin abrirlo está en su valor por defecto) y además dispararía el
+  // "tempo de práctica", ignorando el BPM propio de cada compás.
+  _dau.bpm = parseInt(songData && songData.bpm) || 90;
+  const _bpmInp = document.getElementById('deBpmSlider');
+  if (_bpmInp) _bpmInp.value = _dau.bpm;
+  _pvPlayRow = row;
+  _pvPlayBtn = btn;
+  dePlay();
+  btn.textContent = "⏹";
+  btn.classList.add("playing");
+}
+
+function _pvResetBtn() {
+  if (_pvPlayBtn) { _pvPlayBtn.textContent = "▶"; _pvPlayBtn.classList.remove("playing"); }
+  _pvPlayBtn = null;
+  _pvPlayRow = null;
+}
+
+function previewStop() {
+  if (typeof _dau !== 'undefined' && _dau.playing) deStop();   // deStop ya repone el botón
+  else _pvResetBtn();
+}
+
 // Deep clone helper
 const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
@@ -6290,6 +6327,7 @@ document.addEventListener("drop", () => {
 // RENDER
 // ═══════════════════════════════════════════════
 function render(scrollTargetId) {
+  if (_pvPlayRow) previewStop();   // el botón se recrea al repintar: sin sonido huérfano
   const chart = document.getElementById("chart");
   // ── Preservar posición de scroll antes de reconstruir el DOM ──
   const _savedScrollY = window.scrollY;
@@ -6769,6 +6807,18 @@ function render(scrollTargetId) {
         });
         right.appendChild(xl);
         right.appendChild(repIn);
+      }
+
+      if (inst === "bat" && row.drumPattern && row.drumPattern.bars && row.drumPattern.bars.length) {
+        const pvPlayBtn = document.createElement("button");
+        pvPlayBtn.className = "pv-play-btn";
+        pvPlayBtn.textContent = "▶";
+        pvPlayBtn.title = "Escuchar este patrón (sin abrir el editor)";
+        pvPlayBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          previewTogglePlay(row, pvPlayBtn);
+        });
+        right.appendChild(pvPlayBtn);
       }
 
       if (inst === "bat" && row.drumPattern && row.drumPattern.bars && row.drumPattern.bars.length) {
@@ -12727,6 +12777,7 @@ function dePlay() {
 }
 
 function deStop() {
+  if (typeof _pvResetBtn === 'function') _pvResetBtn();   // el ▶ del preview vuelve a su sitio
   _dau.playing = false;
   clearInterval(_dau.timerID);
   _dau.timerID = null;
@@ -15703,6 +15754,12 @@ document.addEventListener('DOMContentLoaded', function() {
   border: 1px solid var(--border);
 }
 .ev-block-att { border-color: rgba(0,224,198,0.28); }
+.pv-play-btn {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--accent); font-size: 0.9rem; padding: 0 6px; line-height: 1;
+}
+.pv-play-btn.playing { color: #e84040; }
+
 .cal-share-guest-box {
   margin-top: 14px; padding-top: 12px;
   border-top: 1px dashed var(--border);
