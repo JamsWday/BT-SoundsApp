@@ -1529,6 +1529,21 @@ body.readonly #btnEagleSections,
 body.readonly #btnEagleComments,
 body.readonly #btnVersions,
 body.readonly #btnNotes { pointer-events: all; }
+/* Guiño para que se mire el apartado de Notas: late solo si HAY notas
+   que leer. Suave y lento a propósito — llamar sin marear. 😜 */
+/* 4 latidos y para: llama al entrar, luego se queda quieto y no cansa.
+   El halo usa currentColor para valer en oscuro (turquesa) y claro (dorado). */
+#btnNotes.has-notes {
+  color: var(--accent);
+  animation: pulse-notes 2.4s ease-in-out 4;
+}
+@keyframes pulse-notes {
+  0%, 100% { border-color: var(--border); box-shadow: 0 0 0 0 transparent; }
+  50%      { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #btnNotes.has-notes { animation: none; border-color: var(--accent); }
+}
 body.readonly .section-name-input { pointer-events: none; }
 body.readonly .section-lyric-input { pointer-events: none; border-color: transparent !important; }
 /* En Modo Tocar la letra se lee, así que destaca igual o más que en edición:
@@ -1963,6 +1978,39 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   line-height: 1;
 }
 .sec-play-btn.visible { display: flex; }
+/* Barra de audio de sección (solo visible mientras suena esa sección) */
+.sec-audio-bar {
+  display: none;
+  align-items: center; gap: 8px;
+  max-width: 100%; box-sizing: border-box; overflow: hidden;
+  padding: 6px 12px 8px;
+  background: rgba(57,255,20,0.05);
+  border-bottom: 1px solid var(--border);
+}
+.sec-audio-bar.on { display: flex; }
+.sec-audio-bar .sab-stop {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--accent2); font-size: 0.9rem; line-height: 1; padding: 0 2px;
+}
+.sec-audio-bar .sab-time {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  color: var(--muted); min-width: 30px; text-align: center;
+}
+.sec-audio-bar .sab-track {
+  position: relative;          /* ancla de la línea de fondo */
+  flex: 1; min-width: 0;
+  height: 16px; display: flex; align-items: center; cursor: pointer;
+}
+.sec-audio-bar .sab-track::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 6px; height: 4px;
+  border-radius: 2px; background: var(--border); z-index: 0;
+}
+.sec-audio-bar .sab-fill {
+  position: relative; z-index: 1;
+  height: 4px; border-radius: 2px; background: var(--accent2); width: 0%;
+  box-shadow: 0 0 6px rgba(57,255,20,0.5);
+  pointer-events: none;
+}
 .sec-play-btn:hover { background: rgba(57,255,20,0.12); }
 .sec-play-btn.playing { background: var(--accent2); border-color: var(--accent2); color: #fff; animation: pulse-audio 1s infinite; }
 body.readonly .sec-play-btn.visible { display: flex !important; }
@@ -5230,6 +5278,38 @@ comentario. Campos opcionales = compás ausente hereda → cero migraciones.
   (gris=hereda, acento=propio; vacío o =canción → hereda). Marca visual
   ♩=N dorada sobre el compás en preview/partitura cuando difiere.
 
+## Guiño del botón 📝 Notas
+Late el borde 4 veces al entrar (pulse-notes 2.4s ×4) y para: llama sin
+cansar. Solo si la canción TIENE notas — se engancha a _notesUpdateBadge,
+la misma señal que ya encendía el puntito. El halo usa color-mix sobre
+var(--accent) para valer en ambos temas (turquesa en oscuro, dorado en
+claro); un color fijo no se veía en claro. Respeta prefers-reduced-motion
+(borde encendido sin animar). Temporal por diseño: quitarlo = borrar la
+clase has-notes.
+
+## Audio de sección — barra de reproducción
+La cabecera de sección ya iba cargada de botones, así que la barra vive
+DEBAJO (.sec-audio-bar, insertada en el block tras hdr) y solo se ve
+mientras suena esa sección (_secAudioBarShow / _secAudioBarHide, refresco
+cada 250ms). Lleva ⏹, tiempo actual/duración y carril arrastrable (click y
+touchmove → currentTime). REGLAS: pausa MANTIENE la barra (ves por dónde
+ibas); ⏹ cierra SIEMPRE — y para el audio explícitamente antes de llamar a
+stopAllSectionAudio, porque en pausa el botón de cabecera muestra ▶ y la
+lógica entraba por la rama de "reanudar" en vez de la de parar.
+OJO CSS: la línea de fondo del carril es un ::after absoluto — necesita
+position:relative en .sab-track o se estira a toda la pantalla.
+
+## ▶ Escuchar un patrón desde el preview
+Botón ▶ en los controles de la línea de batería (Editar y Tocar) que
+reutiliza el motor del editor: previewTogglePlay copia el patrón a
+_de.pattern y llama a dePlay(). Así hereda tuplets, ghost/acento/flam/roll
+y BPM por compás sin duplicar lógica de sonido (que ya vive en tres sitios).
+Fija _dau.bpm al de la CANCIÓN antes de sonar: si no, usaría el valor por
+defecto del slider del editor sin abrir y además activaría el "tempo de
+práctica", ignorando el bpm propio de cada compás. deStop() llama a
+_pvResetBtn() porque el patrón NO va en bucle: termina solo y el botón
+debe volver a ▶.
+
 ## Comentarios de línea — multilínea
 El comentario era un <input> de una sola línea: en Tocar el texto que
 sobraba quedaba inaccesible (allí no hay scroll horizontal). Ahora es un
@@ -6524,6 +6604,34 @@ function render(scrollTargetId) {
     hdr.appendChild(arrow);
     hdr.addEventListener("click", () => { if (!_readonly) block.classList.toggle("collapsed"); });
     block.appendChild(hdr);
+    // Barra de reproducción de la sección: vive bajo la cabecera y solo se
+    // ve mientras suena ESTA sección (la cabecera ya va cargada de botones).
+    const secBar = document.createElement("div");
+    secBar.className = "sec-audio-bar";
+    secBar.dataset.secId = sec.id;
+    secBar.innerHTML =
+      '<button class="sab-stop" title="Parar y volver al inicio">⏹</button>' +
+      '<span class="sab-time sab-cur">0:00</span>' +
+      '<div class="sab-track"><div class="sab-fill"></div></div>' +
+      '<span class="sab-time sab-dur">0:00</span>';
+    secBar.querySelector(".sab-stop").addEventListener("click", e => {
+      e.stopPropagation();
+      // Parar de verdad: en pausa el audio sigue cargado y la barra abierta.
+      if (_secAudioEl) { _secAudioEl.pause(); _secAudioEl.currentTime = 0; }
+      stopAllSectionAudio();
+      _secAudioBarHide();
+    });
+    const _secTrack = secBar.querySelector(".sab-track");
+    const _secSeek = e => {
+      if (!_secAudioEl || _secAudioId !== sec.id || !_secAudioEl.duration) return;
+      const r = _secTrack.getBoundingClientRect();
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+      _secAudioEl.currentTime = Math.min(1, Math.max(0, x / r.width)) * _secAudioEl.duration;
+      _secAudioUpdateBar();
+    };
+    _secTrack.addEventListener("click", e => { e.stopPropagation(); _secSeek(e); });
+    _secTrack.addEventListener("touchmove", e => { e.stopPropagation(); e.preventDefault(); _secSeek(e); }, { passive: false });
+    block.appendChild(secBar);
 
     // ── bars area
     const barsArea = document.createElement("div");
@@ -9324,6 +9432,45 @@ function stopRecord() {
 let _secAudioEl = null;
 let _secAudioId = null;
 
+// ── Barra de audio de sección: mostrar, refrescar y ocultar ──
+let _secBarTimer = null;
+
+function _secFmt(t) {
+  if (!isFinite(t)) return '0:00';
+  const m = Math.floor(t / 60), s2 = Math.floor(t % 60);
+  return m + ':' + String(s2).padStart(2, '0');
+}
+
+function _secAudioUpdateBar() {
+  if (!_secAudioEl || !_secAudioId) return;
+  const bar = document.querySelector('.sec-audio-bar[data-sec-id="' + _secAudioId + '"]');
+  if (!bar) return;
+  const d = _secAudioEl.duration || 0;
+  const c = _secAudioEl.currentTime || 0;
+  bar.querySelector('.sab-fill').style.width = (d ? (c / d) * 100 : 0) + '%';
+  bar.querySelector('.sab-cur').textContent = _secFmt(c);
+  bar.querySelector('.sab-dur').textContent = _secFmt(d);
+}
+
+function _secAudioBarShow(secId) {
+  document.querySelectorAll('.sec-audio-bar.on').forEach(b => b.classList.remove('on'));
+  const bar = document.querySelector('.sec-audio-bar[data-sec-id="' + secId + '"]');
+  if (bar) bar.classList.add('on');
+  clearInterval(_secBarTimer);
+  _secBarTimer = setInterval(_secAudioUpdateBar, 250);
+  _secAudioUpdateBar();
+}
+
+function _secAudioBarHide() {
+  clearInterval(_secBarTimer);
+  _secBarTimer = null;
+  document.querySelectorAll('.sec-audio-bar.on').forEach(b => {
+    b.classList.remove('on');
+    b.querySelector('.sab-fill').style.width = '0%';
+    b.querySelector('.sab-cur').textContent = '0:00';
+  });
+}
+
 function toggleSectionAudio(secId, btn) {
   // If same section is already playing → pause/stop
   if (_secAudioId === secId && _secAudioEl) {
@@ -9336,6 +9483,7 @@ function toggleSectionAudio(secId, btn) {
       _secAudioEl.play().catch(() => {});
       btn.textContent = "⏸";
       btn.classList.add("playing");
+      _secAudioBarShow(secId);
       return;
     }
   }
@@ -9353,12 +9501,14 @@ function toggleSectionAudio(secId, btn) {
   _secAudioEl.addEventListener("ended", () => {
     btn.textContent = "▶";
     btn.classList.remove("playing");
+    _secAudioBarHide();
     _secAudioEl = null;
     _secAudioId = null;
   });
   _secAudioEl.play().catch(() => {});
   btn.textContent = "⏸";
   btn.classList.add("playing");
+  _secAudioBarShow(secId);
 }
 
 function stopAllSectionAudio() {
@@ -9368,6 +9518,7 @@ function stopAllSectionAudio() {
     _secAudioEl = null;
   }
   _secAudioId = null;
+  _secAudioBarHide();
   // Reset all play buttons
   document.querySelectorAll(".sec-play-btn").forEach(b => {
     b.textContent = "▶";
@@ -18784,6 +18935,8 @@ async function notesSave() {
 function _notesUpdateBadge(text) {
   const dot = document.getElementById('btnNotesDot');
   if (dot) dot.style.display = text ? 'inline-block' : 'none';
+  const btn = document.getElementById('btnNotes');
+  if (btn) btn.classList.toggle('has-notes', !!text);
 }
 
 // Pulsación larga en móvil — muestra sin editar
