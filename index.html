@@ -5278,6 +5278,20 @@ comentario. Campos opcionales = compás ausente hereda → cero migraciones.
   (gris=hereda, acento=propio; vacío o =canción → hereda). Marca visual
   ♩=N dorada sobre el compás en preview/partitura cuando difiere.
 
+## 📣 Compartir una publicación del muro
+Botón 📣 en la fila de reacciones (el 📤 se veía apagado en móvil; el
+megáfono pega con el 📢 del módulo). Abre el compartir nativo con el
+mensaje montado; sin él, copia al portapapeles.
+TRADUCCIÓN AL SALIR DE LA APP (_muroTextoPlano): fuera de aquí las marcas
+internas no significan nada — @juan choca con las menciones de WhatsApp y
+#Canción# no lo entiende nadie. Se convierten en *Nombre* (negrita) y
+🎵 _Título_ (cursiva); si la persona o la canción ya no existen, se deja el
+texto tal cual sin inventar. El autor también en negrita.
+Se usa el marcado de WhatsApp (*negrita*, _cursiva_) asumiendo que ahí va
+el 95% de lo compartido: pegado en otro sitio se verían los símbolos, y se
+consideró coste asumible frente a tener dos botones casi iguales.
+Sin emojis de instrumento en las menciones: la negrita ya basta.
+
 ## Guiño del botón 📝 Notas
 Late el borde 4 veces al entrar (pulse-notes 2.4s ×4) y para: llama sin
 cansar. Solo si la canción TIENE notas — se engancha a _notesUpdateBadge,
@@ -16635,7 +16649,48 @@ function _muroReaxRow(m) {
   add.title = 'Reaccionar';
   add.onclick = () => _muroReaxPicker(m, row, add);
   row.appendChild(add);
+
+  const sh = document.createElement('button');
+  sh.className = 'muro-reax-add';
+  sh.textContent = '📣';
+  sh.title = 'Compartir esta publicación';
+  sh.onclick = () => muroShare(m);
+  row.appendChild(sh);
   return row;
+}
+
+// ══════ 📤 COMPARTIR UNA PUBLICACIÓN ══════
+// Fuera de la app, las marcas internas no significan nada: @juan choca con
+// las menciones de WhatsApp y #Canción# no lo entiende nadie. Se traducen
+// al lenguaje de la banda: emoji de instrumento + nombre, y 🎵 + título.
+function _muroTextoPlano(texto) {
+  let out = texto || '';
+  out = out.replace(/@([\wáéíóúñ]+)/gi, (full, key) => {
+    const mb = (BAND.members || []).find(x => _cfgNorm(x.key) === _cfgNorm(key));
+    if (!mb) return full;
+    return '*' + mb.name + '*';   // sin emoji de instrumento: basta la negrita
+  });
+  out = out.replace(/#([^#\n]{1,80})#/g, (full, titulo) => {
+    const song = (_muroSongs || []).find(x => _cfgNorm(x.titulo) === _cfgNorm(titulo));
+    return song ? '🎵 _' + song.titulo + '_' : full;
+  });
+  return out;
+}
+
+function muroShare(m) {
+  const mem = (BAND.members || []).find(x => x.key === m.autor);
+  const autor = mem ? mem.name : m.autor;
+  const url = window.location.href.split('?')[0].split('#')[0];
+  const msg = '📢 *' + autor + '* en el muro de ' + BAND.name + ':\n"' +
+    _muroTextoPlano(m.texto) + '"\n👉 ' + url;
+  if (navigator.share) {
+    navigator.share({ title: BAND.appName + ' — Muro', text: msg }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(msg).then(
+      () => alert('Publicación copiada ✅'),
+      () => prompt('Copia el mensaje:', msg)
+    );
+  }
 }
 
 function _muroReaxPicker(m, row, addBtn) {
