@@ -1871,18 +1871,31 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
 
 /* ── LIST MODE: grid override ── */
 #libGrid.list-mode {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);   /* 1fr solo crecía: no recortaba */
   gap: 4px;
   margin-top: 10px;
 }
 #libGrid.list-mode .song-card {
   flex-direction: row;
   align-items: center;
+  min-width: 0;      /* deja que el título se recorte en vez de estirar */
+  overflow: hidden;
   padding: 9px 14px;
   gap: 0;
   border-radius: 6px;
 }
 #libGrid.list-mode .song-card:hover { transform: none; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+/* Móvil vertical: el artista y la fecha son columnas FIJAS que se comían
+   el ancho y empujaban fuera las etiquetas y el menú. Se ocultan para que
+   el título se recorte y los controles siempre estén a mano. */
+@media (max-width: 560px) {
+  #libGrid.list-mode .song-card .card-artist { display: none; }
+  #libGrid.list-mode .song-card .card-meta { flex: 0 0 auto; padding-right: 8px; }
+}
+@media (max-width: 420px) {
+  #libGrid.list-mode .song-card .card-meta { display: none; }
+  #libGrid.list-mode .song-card { padding: 9px 10px; }
+}
 #libGrid.list-mode .song-card .card-title {
   font-size: 0.88rem;
   flex: 1;
@@ -4279,6 +4292,20 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <p class="cfg-desc" style="margin-top:10px;font-size:0.7rem;opacity:0.8;">
         Sin ninguno marcado, las canciones abren mostrando solo la estructura (secciones).
       </p>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+        <p class="cfg-desc">📚 <strong>Mi biblioteca</strong></p>
+        <p class="cfg-desc" style="margin-top:-4px;">Cómo quieres verla al entrar. También se guarda en tu perfil.</p>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="cfg-pill" id="cfgLibViewCards" onclick="cfgSetLibView(false)">⊞ Tarjetas</button>
+          <button class="cfg-pill" id="cfgLibViewList"  onclick="cfgSetLibView(true)">☰ Lista</button>
+        </div>
+        <p class="cfg-desc" style="margin-top:14px;">Etiquetas aplicadas al abrir la biblioteca:</p>
+        <div id="cfgLibTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+        <p class="cfg-desc" style="margin-top:8px;font-size:0.7rem;opacity:0.8;">
+          Si dejas alguna marcada, la biblioteca abrirá filtrada y te lo avisará arriba para que no te despistes. 😉
+        </p>
+      </div>
+
       <div id="bandSwitchRow" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
         <p class="cfg-desc">🎸 <strong>Banda activa:</strong> <span id="bandActiveName">—</span></p>
         <button class="btn" onclick="bandSwitch()">⇄ Cambiar de banda</button>
@@ -5278,6 +5305,26 @@ comentario. Campos opcionales = compás ausente hereda → cero migraciones.
   (gris=hereda, acento=propio; vacío o =canción → hereda). Marca visual
   ♩=N dorada sobre el compás en preview/partitura cuando difiere.
 
+## 📚 Preferencias de biblioteca (por usuario)
+En Configuración → Preferencias, bajo el filtro de instrumentos. Guardan en
+_userSettings (acompañan al usuario en cualquier dispositivo):
+libListMode (lista/tarjetas — también se recuerda si la cambias a mano en la
+biblioteca) y libDefaultTags (etiquetas aplicadas al abrir). Se aplican una
+sola vez por carga con _libPrefsDone desde loadLibrary. Se descartó un aviso
+de "filtro activo": si hace falta, se retoma.
+OJO CSS del modo lista: artista y fecha son columnas de ancho FIJO que en
+móvil vertical empujaban etiquetas y menú fuera → se ocultan por media query
+(≤560px y ≤420px). Y la rejilla necesita minmax(0,1fr) + min-width:0 en la
+tarjeta: con 1fr a secas la columna crece con el contenido y el título no se
+recorta, aparece scroll horizontal.
+
+## 💡 Wake Lock
+La pantalla no se apaga en modo Tocar ni con la partitura abierta (manos
+ocupadas). wakeLockSync() decide según _wakeLockWanted(); se engancha a
+toggleReadonly, drumScoreOpen y _dsCloseReal. El navegador SUELTA el bloqueo
+al minimizar la app, por eso se vuelve a pedir en visibilitychange. Si el
+dispositivo no lo soporta, falla en silencio y no pasa nada.
+
 ## 📣 Compartir una publicación del muro
 Botón 📣 en la fila de reacciones (el 📤 se veía apagado en móvil; el
 megáfono pega con el 📢 del módulo). Abre el compartir nativo con el
@@ -5610,9 +5657,13 @@ async function loadLibrary() {
     const valid = new Set(_bandTags.map(t => t.id));
     _activeTagFilter.forEach(id => { if (!valid.has(id)) _activeTagFilter.delete(id); });
   }
+  // Preferencias del usuario (vista y filtro por defecto), solo la 1ª vez
+  if (!_libPrefsDone) { _libPrefsDone = true; libApplyPrefs(); }
   renderTagFilter();
   renderLibrary(_getFilteredSongs());
 }
+
+let _libPrefsDone = false;
 
 function renderLibrary(songs) {
   const grid = document.getElementById("libGrid");
@@ -5767,6 +5818,56 @@ function filterLibrary() {
 }
 
 let _libListMode = false;
+// ══════ 📚 PREFERENCIAS DE BIBLIOTECA (por usuario) ══════
+// Vista (lista/tarjetas) y etiquetas aplicadas al entrar. Viven en
+// _userSettings, así que acompañan al usuario en cualquier dispositivo.
+function cfgSetLibView(list) {
+  _userSettings.libListMode = !!list;
+  cfgRenderLibPrefs();
+}
+
+function cfgToggleLibTag(id) {
+  const arr = _userSettings.libDefaultTags || [];
+  const i = arr.indexOf(id);
+  if (i >= 0) arr.splice(i, 1); else arr.push(id);
+  _userSettings.libDefaultTags = arr;
+  cfgRenderLibPrefs();
+}
+
+function cfgRenderLibPrefs() {
+  const list = !!_userSettings.libListMode;
+  const bc = document.getElementById('cfgLibViewCards');
+  const bl = document.getElementById('cfgLibViewList');
+  if (bc) bc.classList.toggle('on', !list);
+  if (bl) bl.classList.toggle('on', list);
+
+  const box = document.getElementById('cfgLibTags');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!_bandTags.length) {
+    box.innerHTML = '<span class="cfg-desc" style="font-size:0.68rem;">Esta banda aún no tiene etiquetas.</span>';
+    return;
+  }
+  const sel = _userSettings.libDefaultTags || [];
+  _bandTags.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'cfg-pill' + (sel.includes(t.id) ? ' on' : '');
+    b.textContent = t.nombre || t.name || '—';
+    b.onclick = () => cfgToggleLibTag(t.id);
+    box.appendChild(b);
+  });
+}
+
+// Aplica las preferencias al abrir la biblioteca
+function libApplyPrefs() {
+  if (_userSettings.libListMode && !_libListMode) toggleLibView();
+  const def = _userSettings.libDefaultTags || [];
+  if (def.length) {
+    _activeTagFilter = new Set(def.filter(id => _bandTags.some(t => t.id === id)));
+    renderTagFilter();
+  }
+}
+
 function toggleLibView() {
   _libListMode = !_libListMode;
   const grid = document.getElementById("libGrid");
@@ -5784,6 +5885,10 @@ function toggleLibView() {
   }
   // Re-render para que el botón Borrar aparezca/desaparezca según el modo
   renderLibrary(_getFilteredSongs());
+  if (_userSettings.libListMode !== _libListMode) {
+    _userSettings.libListMode = _libListMode;   // recordar la última vista usada
+    saveUserSettings();
+  }
 }
 
 async function openSong(id, playMode = true) {
@@ -7891,9 +7996,42 @@ function resizeAllVozTextareas() {
   });
 }
 
+// ══════ 💡 WAKE LOCK — que no se apague la pantalla ══════
+// Se activa en modo Tocar y en la partitura: justo cuando tienes las manos
+// ocupadas y no puedes ir despertando el móvil. El navegador lo suelta al
+// minimizar la app, así que se vuelve a pedir al regresar.
+let _wakeLock = null;
+
+async function wakeLockOn() {
+  if (!('wakeLock' in navigator) || _wakeLock) return;
+  try {
+    _wakeLock = await navigator.wakeLock.request('screen');
+    _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+  } catch (e) { _wakeLock = null; }   // sin soporte o sin permiso: da igual
+}
+
+function wakeLockOff() {
+  if (_wakeLock) { try { _wakeLock.release(); } catch (e) {} }
+  _wakeLock = null;
+}
+
+function _wakeLockWanted() {
+  const score = document.getElementById('drumScoreOverlay');
+  return _readonly || (score && score.classList.contains('open'));
+}
+
+function wakeLockSync() {
+  if (_wakeLockWanted()) wakeLockOn(); else wakeLockOff();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && _wakeLockWanted()) wakeLockOn();
+});
+
 function toggleReadonly() {
   _readonly = !_readonly;
   document.body.classList.toggle("readonly", _readonly);
+  wakeLockSync();   // tocando: la pantalla no se apaga
   const btn = document.getElementById("btnReadonly");
   if (_readonly) {
     btn.textContent = "✏ Editar";
@@ -13416,10 +13554,12 @@ function drumScoreOpen() {
   // a la primera, sin pulsar ▶ antes (el etiquetado data-ds-bar de los
   // compases ocurre dentro de _dspBuild).
   _dspBuild();
+  wakeLockSync();
 }
 
 function _dsCloseReal() {
   _dspStop();
+  setTimeout(wakeLockSync, 0);   // al salir: solo sigue si estás en Tocar
   document.body.style.overflow = '';
   if (Router.current() === 'drumscore') Router.back();
   else document.getElementById('drumScoreOverlay').classList.remove('open');
@@ -14029,6 +14169,7 @@ function cfgSwitchTab(id, btn) {
   document.getElementById('cfgPanel-' + id).classList.add('active');
   if (id === 'etiquetas') { cfgRenderTags(); cfgRenderTagPalette(); }
   if (id === 'frases')    { cfgRenderFrases(); cfgRenderFrasesMen(); }
+  if (id === 'preferencias') { cfgRenderLibPrefs(); }
 }
 
 function cfgRenderPalette() {
@@ -15924,6 +16065,14 @@ document.addEventListener('DOMContentLoaded', function() {
   color: var(--accent); font-size: 0.9rem; padding: 0 6px; line-height: 1;
 }
 .pv-play-btn.playing { color: #e84040; }
+
+.cfg-pill {
+  font-family: 'Space Mono', monospace; font-size: 0.68rem;
+  padding: 7px 13px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--muted);
+  transition: all 0.15s;
+}
+.cfg-pill.on { border-color: var(--accent); color: var(--accent); background: rgba(0,224,198,0.10); }
 
 .cal-share-guest-box {
   margin-top: 14px; padding-top: 12px;
