@@ -3594,6 +3594,7 @@ body.readonly #playBar { display: flex !important; }
 #zoneManual { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
 #zoneSync   { display: none; align-items: center; gap: 5px; }
 
+
 /* ── Botones de acción del playBar ──────────────────────────
    Tamaño base unificado: padding 8px 10px · font 0.9rem
    Cuadrados para iconos solos (▶ ✎ 🎯 🐯), levemente
@@ -4383,8 +4384,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 
         <!-- ── ZONA SYNC: ▶scroll + ▶🎵audio — independientes ── -->
         <div id="zoneSync" style="display:none;align-items:center;gap:5px;">
-          <button id="syncPlayBtn"      onclick="syncTogglePlay('scroll')" title="Sync scroll sin música">▶</button>
-          <button id="syncPlayAudioBtn" onclick="syncTogglePlay('audio')"  title="Sync scroll + música">▶🎵</button>
+          <button id="syncPlayBtn" onclick="syncPlayPressed()" title="Empezar / parar">▶</button>
         </div>
 
         <!-- Herramientas fijas a la derecha -->
@@ -5304,6 +5304,24 @@ comentario. Campos opcionales = compás ausente hereda → cero migraciones.
   MANDA (ensayar lento); si no, cada compás usa su bpm. Chip ♩ en la tarjeta
   (gris=hereda, acento=propio; vacío o =canción → hereda). Marca visual
   ♩=N dorada sobre el compás en preview/partitura cuando difiere.
+
+## Sync de letra ligado al audio (F1-F3, 18/08)
+PROBLEMA: había TRES reproductores del mismo audio y el sync se creaba uno
+PROPIO e invisible → siempre empezaba de cero, adelantar no servía y podían
+sonar dos a la vez. El de la barra visible en Tocar es _spb (con velocidad,
+bucle y ±5s); _activeAudioEl es otro que está OCULTO en readonly por CSS.
+- F1: en Sync, UN solo botón ▶/⏹ (los dos de antes hacían lo mismo). Quien
+  no quiera música baja el volumen del móvil.
+- F2: el sync usa _spb.audio y su reloj — _syncElapsed sale de currentTime
+  cuando hay audio, y del cronómetro propio cuando no (ensayo sin música).
+  Al parar se PAUSA, nunca se destruye (borrarle el src cargaría la barra).
+- F3: tocar la cabecera de una sección en Tocar mueve currentTime al segundo
+  calibrado (songData.sectionTimestamps) y coloca la pantalla. En Editar
+  la cabecera sigue plegando.
+- F4 (volver solo tras mover la pantalla, velocidad) ya funcionaba.
+LECCIÓN: se perdió un buen rato arreglando el reproductor equivocado por no
+comprobar CUÁL era la barra que el usuario ve. Identificar el elemento real
+antes de tocar (la misma lección que el bug de la barra vacía en Tocar).
 
 ## 📚 Preferencias de biblioteca (por usuario)
 En Configuración → Preferencias, bajo el filtro de instrumentos. Guardan en
@@ -6721,7 +6739,10 @@ function render(scrollTargetId) {
     hdr.appendChild(dupSec);
     hdr.appendChild(delSec);
     hdr.appendChild(arrow);
-    hdr.addEventListener("click", () => { if (!_readonly) block.classList.toggle("collapsed"); });
+    hdr.addEventListener("click", () => {
+      if (!_readonly) { block.classList.toggle("collapsed"); return; }
+      syncJumpToSection(sec.id);   // F3: en Tocar, saltar a esta sección
+    });
     block.appendChild(hdr);
     // Barra de reproducción de la sección: vive bajo la cabecera y solo se
     // ve mientras suena ESTA sección (la cabecera ya va cargada de botones).
@@ -8539,6 +8560,15 @@ function _hideCountdown() {
   document.getElementById("countdownOverlay").style.display = "none";
 }
 
+// ── F1: UN SOLO PLAY en Sync ──
+// Antes había dos botones (▶ y ▶🎵) para lo mismo: arrancar. Si hay audio
+// suena, y quien no lo quiera baja el volumen del móvil — no hace falta un
+// botón para eso. Por debajo, lo de siempre: syncTogglePlay('scroll'|'audio').
+function syncPlayPressed() {
+  const hasAudio = !!(songData.audio && songData.audio.src);
+  syncTogglePlay(hasAudio ? 'audio' : 'scroll');
+}
+
 function syncTogglePlay(mode) {
   if (_syncPlaying && _syncMode === mode) {
     if (_bandaActive) bandaEmitStop();
@@ -8562,8 +8592,12 @@ function syncPlay(fromBanda) {
     if (!songData.audio || !songData.audio.src) {
       alert("Esta canción no tiene audio asignado."); return;
     }
-    _syncAudioEl = new Audio(songData.audio.src);
-    _syncAudioEl.play().catch(function() {});
+    // F2 (18/08): antes el sync creaba un audio PROPIO e invisible, así que
+    // la barra de abajo ni se enteraba (y si le dabas al play, sonaban los
+    // dos a la vez). Ahora usa EL MISMO audio que la barra: _spb.
+    if (!_spbInit()) { alert("No se pudo cargar el audio."); return; }
+    if (_spb.audio.paused) spbToggle();   // arrancar/reanudar la barra
+    _syncAudioEl = _spb.audio;            // un solo audio, un solo reloj
   }
   _syncPlaying      = true;
   document.body.classList.add("sync-playing");
@@ -8577,13 +8611,9 @@ function syncPlay(fromBanda) {
   var btnAudio  = document.getElementById("syncPlayAudioBtn");
 
   // Cada botón muestra su estado activo de forma independiente
-  if (_syncMode === "scroll") {
-    if (btnScroll) { btnScroll.classList.add("playing");    btnScroll.textContent  = "⏹"; }
-    if (btnAudio)  { btnAudio.classList.remove("playing");  btnAudio.textContent   = "▶🎵"; }
-  } else {
-    if (btnAudio)  { btnAudio.classList.add("playing");     btnAudio.textContent   = "⏹🎵"; }
-    if (btnScroll) { btnScroll.classList.remove("playing"); btnScroll.textContent  = "▶"; }
-  }
+  // Play único: refleja el estado sin importar si suena o no
+  if (btnScroll) { btnScroll.classList.add("playing"); btnScroll.textContent = "⏹"; }
+  if (btnAudio)  { btnAudio.classList.remove("playing"); }
   _syncShowGuideLine(false);
   _syncShowDebug(false);
   window.addEventListener("touchstart", _syncOnUserScroll, { passive: true });
@@ -8596,7 +8626,13 @@ function syncStop() {
   document.body.classList.remove("sync-playing");
   if (_syncRaf) { cancelAnimationFrame(_syncRaf); _syncRaf = null; }
   if (_syncUserScrollTimer) { clearTimeout(_syncUserScrollTimer); _syncUserScrollTimer = null; }
-  if (_syncAudioEl) { _syncAudioEl.pause(); _syncAudioEl.src = ""; _syncAudioEl = null; }
+  // F2: el audio es el de la BARRA de abajo. Al parar el sync se pausa
+  // (sin destruirlo: la barra sigue usable y con su posición).
+  if (_syncAudioEl && !_syncAudioEl.paused) {
+    _syncAudioEl.pause();
+    if (typeof _spbSyncBtns === "function") _spbSyncBtns(false);
+  }
+  _syncAudioEl = null;
   window.removeEventListener("touchstart", _syncOnUserScroll);
   window.removeEventListener("wheel",      _syncOnUserScroll);
   document.querySelectorAll(".section-block.sync-active")
@@ -8616,6 +8652,27 @@ function _syncOnUserScroll() {
   _syncUserScrolled = true;
   if (_syncUserScrollTimer) clearTimeout(_syncUserScrollTimer);
   _syncUserScrollTimer = setTimeout(function() { _syncUserScrolled = false; }, 2500);
+}
+
+// ── F3: saltar a una sección tocando su cabecera ──
+// Mueve el audio (que es quien manda desde la F2) al segundo calibrado de
+// esa sección; la letra va detrás sola. Sin calibrar, no hace nada.
+function syncJumpToSection(secId) {
+  const t = (songData.sectionTimestamps || {})[secId];
+  if (t === undefined || t === null) return;
+
+  if (_syncAudioEl) {
+    _syncAudioEl.currentTime = t;         // manda el audio
+  } else if (_spb && _spb.audio) {
+    _spb.audio.currentTime = t;           // hay barra aunque el sync no vaya
+    if (typeof _spbTick === 'function') _spbTick();
+  }
+
+  _syncElapsed = t;
+  _syncStartTs = performance.now() - t * 1000;      // por si no hay audio
+  // Llevar la pantalla a esa sección de golpe (no arrastrando poco a poco)
+  const y = _syncGetTargetY(secId);
+  if (y !== null) window.scrollTo({ top: y, behavior: 'smooth' });
 }
 
 function _syncGetCalibrated() {
@@ -8641,11 +8698,23 @@ function _syncGetTargetY(secId) {
 }
 
 function _syncStep(now) {
+  // Si hay audio sonando, MANDA ÉL: el tiempo sale de la barra, no de un
+  // cronómetro aparte. Así adelantar, atrasar o pausar mueve la letra.
   if (!_syncPlaying) return;
+
+  const _mandaAudio = !!(_syncAudioEl && _syncMode === "audio");
+  if (_mandaAudio && _syncAudioEl.paused) {   // pausado abajo = pausado aquí
+    _syncRaf = requestAnimationFrame(_syncStep);
+    return;
+  }
 
   const delta  = (now - _syncLastNow) / 1000;
   _syncLastNow = now;
-  _syncElapsed = (now - _syncStartTs) / 1000;
+  // El reloj: el de la barra si hay audio, si no el cronómetro propio
+  // (así el ensayo sin música sigue funcionando igual que siempre).
+  _syncElapsed = _mandaAudio
+    ? _syncAudioEl.currentTime
+    : (now - _syncStartTs) / 1000;
 
   const calibrated = _syncGetCalibrated();
   if (!calibrated.length) { syncStop(); return; }
