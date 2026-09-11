@@ -6362,6 +6362,8 @@ async function _navigateToDeepEvent(eventId) {
 (async function checkSession() {
   // Si es un link RSVP, no inicializar la app normal — _rsvpInit lo gestiona
   if (new URLSearchParams(window.location.search).get('token')) return;
+  // Si es un link compartido (?s=), lo gestiona _checkShareUrl
+  if (new URLSearchParams(window.location.search).get('s')) return;
 
   const deepEventId = _getDeepLinkEventId();
 
@@ -11310,24 +11312,89 @@ function exportSetlistPDF() {
 // ═══════════════════════════════════════════════
 // COMPARTIR LINK — Paso 5
 // ═══════════════════════════════════════════════
-function openShareModal() {
-  if (!_currentSetlist) return;
-  // Codificar el repertorio en la URL
-  const payload = {
-    name:  _currentSetlist.name,
-    date:  _currentSetlist.date,
-    venue: _currentSetlist.venue,
-    songs: _currentSetlist.songs
-  };
-  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-  const url = location.origin + location.pathname + "?setlist=" + encoded;
-  document.getElementById("slShareUrlInput").value = url;
+// ── COMPARTIR · sistema unificado con share_tokens (S2 · 04/09/2026) ──
+// Antes el repertorio entero viajaba dentro de la URL en base64 (~5.300
+// caracteres). Ahora viaja un token corto y el contenido lo sirve el RPC
+// share_get, que es la unica puerta publica. Ventana viva: el enlace
+// muestra el repertorio REAL, asi que refleja los cambios posteriores.
+
+const _SHARE_ALFA = "abcdefghijkmnpqrstuvwxyz23456789";  // sin l/o/0/1
+function _shareNuevoToken() {
+  let t = "";
+  const a = new Uint8Array(10);
+  (crypto && crypto.getRandomValues) ? crypto.getRandomValues(a)
+    : a.forEach((_, i) => a[i] = Math.floor(Math.random() * 256));
+  for (let i = 0; i < 10; i++) t += _SHARE_ALFA[a[i] % _SHARE_ALFA.length];
+  return t;
+}
+
+// Devuelve el token de algo, reutilizando el que ya tuviera.
+// tipo: 'setlist' | 'cancion' | (lo que venga)
+async function shareTokenPara(tipo, refId) {
+  const ref = String(refId);
+  const { data: ya } = await _sb.from("share_tokens")
+    .select("token")
+    .eq("tipo", tipo).eq("ref_id", ref).eq("banda_id", BAND.id)
+    .eq("revocado", false)
+    .limit(1);
+  if (ya && ya.length) return ya[0].token;
+
+  const token = _shareNuevoToken();
+  const { error } = await _sb.from("share_tokens").insert({
+    token, tipo, ref_id: ref, banda_id: BAND.id,
+    creado_por: currentUserName()
+  }).select().single();
+  if (error) { alert("No se pudo crear el enlace: " + error.message); return null; }
+  return token;
+}
+
+function shareUrl(token) {
+  return location.origin + location.pathname + "?s=" + token;
+}
+
+// Puerta unica para compartir cualquier cosa. Usa el menu del movil si
+// existe, y si no cae al modal de copiar de siempre.
+function compartir(opts) {
+  if (navigator.share) {
+    navigator.share({ title: opts.titulo, text: opts.texto + "\n" + opts.url })
+      .catch(() => {});
+    return;
+  }
+  document.getElementById("slShareUrlInput").value = opts.url;
   document.getElementById("slShareStatus").textContent = "";
   document.getElementById("slShareModal").style.display = "flex";
 }
+
+async function openShareModal() {
+  if (!_currentSetlist || !_currentSetlist.id) return;
+  if (_slDirty) {
+    alert("Guarda los cambios antes de compartir.\n\nEl enlace muestra el repertorio guardado, asi que lo que no hayas guardado no se veria.");
+    return;
+  }
+  const token = await shareTokenPara("setlist", _currentSetlist.id);
+  if (!token) return;
+
+  const n = (_currentSetlist.songs || []).length;
+  const partes = [];
+  if (_currentSetlist.date) {
+    const [y, m, d] = String(_currentSetlist.date).split("-");
+    if (d) partes.push("\uD83D\uDCC5 " + d + "/" + m + "/" + y);
+  }
+  if (_currentSetlist.venue) partes.push("\uD83D\uDCCD " + _currentSetlist.venue);
+  partes.push(n + (n === 1 ? " cancion" : " canciones"));
+
+  compartir({
+    titulo: BAND.appName + " \u2014 " + (_currentSetlist.name || "Repertorio"),
+    texto:  "\uD83C\uDFAD " + (_currentSetlist.name || "Repertorio") + "\n" + partes.join(" \u00B7 "),
+    url:    shareUrl(token)
+  });
+}
 function closeShareModal() { document.getElementById("slShareModal").style.display = "none"; }
 
-function copyShareUrl() {
+// Copiar el enlace del REPERTORIO. Antes se llamaba copyShareUrl() igual que
+// la de compartir cancion (L9169): en JS ganaba la ultima, asi que el boton
+// de la cancion ejecutaba esta. Renombrada el 04/09/2026.
+function slCopyShareUrl() {
   const url = document.getElementById("slShareUrlInput").value;
   navigator.clipboard.writeText(url).then(() => {
     document.getElementById("slShareStatus").textContent = "✓ Link copiado al portapapeles";
@@ -11340,43 +11407,69 @@ function copyShareUrl() {
   });
 }
 
-// Leer ?setlist= si viene en la URL — vista readonly pública sin login
-(function _checkSetlistUrl() {
-  const p = new URLSearchParams(location.search).get("setlist");
-  if (!p) return;
-  let data;
-  try { data = JSON.parse(decodeURIComponent(escape(atob(p)))); }
-  catch(e) { try { data = JSON.parse(atob(p)); } catch(e2) { return; } }
-  if (!data?.name) return;
+// Leer ?s= si viene en la URL — vista pública sin login, servida por el RPC share_get
+(async function _checkShareUrl() {
+  const token = new URLSearchParams(location.search).get("s");
+  if (!token) return;
 
-  const statusIcons = ["","🟡","🟢"];
-  const dateStr = data.date
-    ? new Date(data.date + "T00:00:00").toLocaleDateString("es-ES", {day:"2-digit", month:"long", year:"numeric"})
+  const pinta = (html) => { document.body.innerHTML = html; };
+  const aviso = (txt) => pinta(`
+    <div style="max-width:520px;margin:80px auto;padding:24px;text-align:center;
+                font-family:system-ui;background:#fff;color:#333;border-radius:12px;">
+      <div style="font-size:2.4rem;margin-bottom:10px;">\uD83D\uDD17</div>
+      <p style="font-size:1rem;">${esc(txt)}</p>
+    </div>`);
+
+  let res;
+  try {
+    const { data, error } = await _sb.rpc("share_get", { p_token: token });
+    if (error) throw error;
+    res = data;
+  } catch (e) {
+    aviso("No se pudo abrir el enlace. Intentalo de nuevo en un momento.");
+    return;
+  }
+
+  if (!res || !res.ok) {
+    const motivo = res && res.motivo;
+    aviso(motivo === "borrado"
+      ? "Este repertorio ya no existe."
+      : "Este enlace no es valido o se ha desactivado.");
+    return;
+  }
+
+  if (res.tipo !== "setlist") { aviso("Este enlace no se puede abrir en esta version."); return; }
+
+  const d        = res.datos || {};
+  const appName  = (res.banda && res.banda.app_name) || "BT SoundsApp";
+  const statusIcons = ["", "\uD83D\uDFE1", "\uD83D\uDFE2"];
+  const dateStr = d.date
+    ? new Date(d.date + "T00:00:00").toLocaleDateString("es-ES", {day:"2-digit", month:"long", year:"numeric"})
     : "";
 
-  document.body.innerHTML = `
-    <div style="max-width:680px;margin:40px auto;padding:20px 24px;font-family:var(--font-body);background:#fff;color:#111;">
-      <h1 style="font-family:var(--font-display);font-size:2rem;margin:0 0 4px;">${esc(data.name)}</h1>
-      <p style="color:#888;font-size:0.9rem;margin:0 0 28px;">${[dateStr, esc(data.venue)].filter(Boolean).join(" · ")}</p>
+  pinta(`
+    <div style="max-width:680px;margin:40px auto;padding:20px 24px;font-family:system-ui;background:#fff;color:#111;">
+      <h1 style="font-size:2rem;margin:0 0 4px;">${esc(d.name || "Repertorio")}</h1>
+      <p style="color:#888;font-size:0.9rem;margin:0 0 28px;">${[dateStr, esc(d.venue || "")].filter(Boolean).join(" \u00B7 ")}</p>
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="border-bottom:2px solid #eee;">
           <th style="padding:6px 10px;text-align:left;font-size:0.75rem;color:#aaa;width:32px;">#</th>
-          <th style="padding:6px 10px;text-align:left;font-size:0.75rem;color:#aaa;">Canción</th>
+          <th style="padding:6px 10px;text-align:left;font-size:0.75rem;color:#aaa;">Cancion</th>
         </tr></thead>
         <tbody>
-          ${(data.songs||[]).map((s,i) => `
+          ${(d.songs || []).map((s, i) => `
             <tr style="border-bottom:1px solid #f0f0f0;">
-              <td style="padding:10px 10px;color:#999;font-weight:700;">${i+1}</td>
-              <td style="padding:10px 10px;">
-                <div style="font-weight:700;font-size:1rem;">${statusIcons[s.status||0]} ${esc(s.title)||""}</div>
-                <div style="font-size:0.8rem;color:#888;margin-top:2px;">${[esc(s.artist),esc(s.key),s.bpm?esc(s.bpm)+" bpm":"",s.duration?"⏱ "+esc(s.duration)+"m":""].filter(Boolean).join(" · ")}</div>
-                ${s.notes?`<div style="font-size:0.78rem;color:#aaa;font-style:italic;margin-top:2px;">${esc(s.notes)}</div>`:""}
+              <td style="padding:10px;color:#999;font-weight:700;">${i + 1}</td>
+              <td style="padding:10px;">
+                <div style="font-weight:600;">${statusIcons[s.status] || ""} ${esc(s.title || "")}</div>
+                <div style="font-size:0.8rem;color:#888;">${[esc(s.artist || ""), s.key ? esc(s.key) : "", s.bpm ? esc(s.bpm) + " bpm" : "", s.duration ? "\u23F1 " + esc(s.duration) + "m" : ""].filter(Boolean).join(" \u00B7 ")}</div>
+                ${s.notes ? `<div style="font-size:0.78rem;color:#aaa;font-style:italic;margin-top:2px;">${esc(s.notes)}</div>` : ""}
               </td>
             </tr>`).join("")}
         </tbody>
       </table>
-      <p style="margin-top:32px;font-size:0.72rem;color:#ccc;">Compartido con ${BAND.appName}</p>
-    </div>`;
+      <p style="margin-top:32px;font-size:0.72rem;color:#ccc;">Compartido con ${esc(appName)}</p>
+    </div>`);
 })();
 
 // ═══════════════════════════════════════════════
@@ -15178,7 +15271,7 @@ body:not(.readonly) #btnEagleSections { display: none !important; }
     <div style="display:flex;gap:8px;align-items:center;">
       <input id="slShareUrlInput" type="text" readonly
         style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:var(--font-data);font-size:0.68rem;padding:8px 10px;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" />
-      <button class="btn btn-primary" onclick="copyShareUrl()" style="flex-shrink:0;">📋 Copiar</button>
+      <button class="btn btn-primary" onclick="slCopyShareUrl()" style="flex-shrink:0;">📋 Copiar</button>
     </div>
     <div id="slShareStatus" style="font-family:var(--font-data);font-size:0.7rem;color:var(--green);min-height:18px;"></div>
     <button class="btn" onclick="closeShareModal()">Cerrar</button>
