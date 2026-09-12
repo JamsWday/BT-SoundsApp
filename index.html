@@ -4216,6 +4216,15 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     <button class="home-footer-btn" onclick="cycleTheme()">🌙 Tema</button>
     <button class="home-footer-btn" onclick="doLogout()">Salir</button>
   </div>
+
+  <!-- Version, abajo a la izquierda. Vive DENTRO de #homeScreen, asi que
+       no asoma en las demas pantallas. Al tocarla, comprueba si hay nueva. -->
+  <span id="homeVersion" onclick="_verComprobarAhora()"
+        title="Toca para comprobar si hay version nueva"
+        style="position:fixed;left:12px;bottom:10px;z-index:5;
+               font-family:var(--font-data);font-size:0.62rem;
+               color:var(--dim);letter-spacing:0.06em;cursor:pointer;
+               padding:4px 6px;user-select:none;"></span>
 </div>
 
 <!-- LIBRARY SCREEN -->
@@ -6358,6 +6367,134 @@ async function _navigateToDeepEvent(eventId) {
   // Limpiar el hash de la URL sin recargar
   history.replaceState(null, '', window.location.pathname + window.location.search);
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AVISO DE VERSION NUEVA  (04/09/2026)
+//
+//  Dos piezas que se complementan:
+//    · APP_VERSION manda. Si el numero es distinto, hay version nueva.
+//      Lo cambio yo en cada fichero que paso.
+//    · El ETag hace de vigia. Se pregunta con un HEAD (~0,3 KB) en vez de
+//      descargar los ~975 KB del fichero. Solo cuando el ETag cambia se
+//      baja el fichero para leer el numero.
+//
+//  Resultado: cero descargas mientras no subas nada, y cero falsas
+//  alarmas, porque la ultima palabra la tiene el numero.
+//
+//  Si el servidor no manda ETag ni Last-Modified, degrada solo al
+//  sistema de siempre: descargar y comparar.
+// ═══════════════════════════════════════════════════════════════════════
+
+const APP_VERSION = "20260904.1";
+
+let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
+let _verAvisado = false; // para no sacar la banda dos veces
+
+// Limpia el ?v= con el que recargamos, sin tocar los demas parametros
+(function _verLimpiaUrl() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has("v")) return;
+  q.delete("v");
+  const resto = q.toString();
+  history.replaceState(null, "", location.pathname + (resto ? "?" + resto : ""));
+})();
+
+async function _verPedirFicha() {
+  try {
+    const r = await fetch(location.pathname + "?p=" + Date.now(),
+                          { method: "HEAD", cache: "no-store" });
+    return r.headers.get("etag") || r.headers.get("last-modified") || null;
+  } catch (e) { return null; }
+}
+
+async function _verLeerNumero() {
+  try {
+    const r   = await fetch(location.pathname + "?p=" + Date.now(), { cache: "no-store" });
+    const txt = await r.text();
+    const m   = txt.match(/APP_VERSION\s*=\s*"([^"]+)"/);
+    if (m && m[1] !== APP_VERSION) _verMostrarBanda(m[1]);
+  } catch (e) {}
+}
+
+// primera=true -> lee el numero si o si (por si arrancaste desde cache vieja)
+async function _verComprobar(primera) {
+  if (_verAvisado) return;
+  const ficha  = await _verPedirFicha();
+  const cambio = (_verFicha !== null && ficha && ficha !== _verFicha);
+  if (ficha) _verFicha = ficha;
+  // Sin ETag no hay vigia posible: se cae al sistema de siempre
+  if (primera || cambio || !ficha) await _verLeerNumero();
+}
+
+function _verMostrarBanda(nueva) {
+  if (_verAvisado || document.getElementById("verBanda")) return;
+  _verAvisado = true;
+  const d = document.createElement("div");
+  d.id = "verBanda";
+  d.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;" +
+    "background:#f1c40f;color:#1a1a10;padding:12px 14px;display:flex;" +
+    "align-items:center;gap:12px;font-family:system-ui;font-size:0.88rem;" +
+    "box-shadow:0 -2px 14px rgba(0,0,0,0.35);";
+  d.innerHTML =
+    '<span style="flex:1;line-height:1.35;">' +
+      '<b>Hay una version nueva</b><br>' +
+      '<span style="font-size:0.74rem;opacity:0.75;">' + esc(APP_VERSION) +
+      ' \u2192 ' + esc(nueva) + '</span>' +
+    '</span>' +
+    '<button id="verBandaBtn" style="background:#1a1a10;color:#f1c40f;border:0;' +
+      'border-radius:8px;padding:10px 16px;font-weight:700;font-size:0.82rem;' +
+      'cursor:pointer;white-space:nowrap;">Actualizar</button>' +
+    '<button id="verBandaX" style="background:transparent;border:0;color:#1a1a10;' +
+      'font-size:1.1rem;cursor:pointer;padding:4px 6px;opacity:0.6;">\u2715</button>';
+  document.body.appendChild(d);
+  // Recargar contra una URL distinta: un reload normal puede volver a
+  // servirse de cache y no actualizar nada.
+  d.querySelector("#verBandaBtn").onclick = () => {
+    location.replace(location.pathname + "?v=" + Date.now());
+  };
+  d.querySelector("#verBandaX").onclick = () => { d.remove(); };
+}
+
+// Cuando la app vuelve a primer plano: ese es el momento que importa,
+// no cada X minutos con el movil en el bolsillo.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") _verComprobar(false);
+});
+
+// Pinta la version en la pantalla de inicio
+function _verPintarEtiqueta() {
+  const el = document.getElementById("homeVersion");
+  if (el) el.textContent = "v" + APP_VERSION;
+}
+if (document.readyState === "loading")
+  document.addEventListener("DOMContentLoaded", _verPintarEtiqueta);
+else _verPintarEtiqueta();
+
+// Tocar la version = comprobar ahora mismo, con respuesta visible
+async function _verComprobarAhora() {
+  const el = document.getElementById("homeVersion");
+  if (!el) return;
+  const antes = el.textContent;
+  el.textContent = "comprobando...";
+  _verFicha = null;              // fuerza lectura completa
+  await _verComprobar(true);
+  if (!_verAvisado) {
+    el.textContent = "v" + APP_VERSION + " \u00B7 al dia";
+    setTimeout(() => { el.textContent = antes; }, 2500);
+  } else {
+    el.textContent = antes;
+  }
+}
+
+// Primera comprobacion al arrancar, sin estorbar a la carga.
+// No se hace en las vistas publicas (?s= y ?token=): ahi no hay app que actualizar.
+setTimeout(() => {
+  const q = new URLSearchParams(location.search);
+  if (q.get("s") || q.get("token")) return;
+  _verComprobar(true);
+  setInterval(() => _verComprobar(false), 15 * 60 * 1000);  // red de seguridad
+}, 4000);
 
 (async function checkSession() {
   // Si es un link RSVP, no inicializar la app normal — _rsvpInit lo gestiona
@@ -11468,7 +11605,16 @@ function slCopyShareUrl() {
             </tr>`).join("")}
         </tbody>
       </table>
-      <p style="margin-top:32px;font-size:0.72rem;color:#ccc;">Compartido con ${esc(appName)}</p>
+      <div style="margin-top:36px;padding-top:22px;border-top:1px solid #eee;text-align:center;">
+        <a href="${esc(location.pathname)}"
+           style="display:inline-block;background:#111;color:#fff;text-decoration:none;
+                  padding:13px 26px;border-radius:9px;font-weight:700;font-size:0.92rem;">
+          Abrir ${esc(appName)} \u2192
+        </a>
+        <p style="margin:12px 0 0;font-size:0.72rem;color:#bbb;">
+          Compartido con ${esc(appName)} \u00B7 \u00BFEres de la banda? Entra para verlo completo
+        </p>
+      </div>
     </div>`);
 })();
 
