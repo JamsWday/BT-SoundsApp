@@ -4230,6 +4230,15 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     <button class="home-footer-btn" onclick="cycleTheme()">🌙 Tema</button>
     <button class="home-footer-btn" onclick="doLogout()">Salir</button>
   </div>
+
+  <!-- Version, abajo a la izquierda. Vive DENTRO de #homeScreen, asi que
+       no asoma en las demas pantallas. Al tocarla, comprueba si hay nueva. -->
+  <span id="homeVersion" onclick="_verComprobarAhora()"
+        title="Toca para comprobar si hay version nueva"
+        style="position:fixed;left:12px;bottom:10px;z-index:5;
+               font-family:var(--font-data);font-size:0.62rem;
+               color:var(--dim);letter-spacing:0.06em;cursor:pointer;
+               padding:4px 6px;user-select:none;"></span>
 </div>
 
 <!-- LIBRARY SCREEN -->
@@ -6370,7 +6379,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20260904.1";
+const APP_VERSION = "20260912.1";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -6445,6 +6454,31 @@ function _verMostrarBanda(nueva) {
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") _verComprobar(false);
 });
+
+// Pinta la version en la pantalla de inicio
+function _verPintarEtiqueta() {
+  const el = document.getElementById("homeVersion");
+  if (el) el.textContent = "v" + APP_VERSION;
+}
+if (document.readyState === "loading")
+  document.addEventListener("DOMContentLoaded", _verPintarEtiqueta);
+else _verPintarEtiqueta();
+
+// Tocar la version = comprobar ahora mismo, con respuesta visible
+async function _verComprobarAhora() {
+  const el = document.getElementById("homeVersion");
+  if (!el) return;
+  const antes = el.textContent;
+  el.textContent = "comprobando...";
+  _verFicha = null;              // fuerza lectura completa
+  await _verComprobar(true);
+  if (!_verAvisado) {
+    el.textContent = "v" + APP_VERSION + " \u00B7 al dia";
+    setTimeout(() => { el.textContent = antes; }, 2500);
+  } else {
+    el.textContent = antes;
+  }
+}
 
 // Primera comprobacion al arrancar, sin estorbar a la carga.
 // No se hace en las vistas publicas (?s= y ?token=): ahi no hay app que actualizar.
