@@ -6379,7 +6379,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20260912.1";
+const APP_VERSION = "20260912.2";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -17875,7 +17875,7 @@ async function _calLoadData() {
 
   const [evRes, avRes] = await Promise.all([
     bandFilter(_sb.from('cal_events').select('*')).gte('date', from).lte('date', to).order('date'),
-    _sb.from('cal_availability').select('*').gte('date', from).lte('date', to)
+    bandFilter(_sb.from('cal_availability').select('*')).gte('date', from).lte('date', to)
   ]);
 
   _calEvents = evRes.data || [];
@@ -18271,7 +18271,7 @@ async function calSetAvail(dateStr, memberKey, status) {
   const current = (_calAvail[dateStr] || {})[memberKey];
   if (current === status) {
     const { error } = await _sb.from('cal_availability').delete()
-      .match({ date: dateStr, member_key: memberKey });
+      .match({ date: dateStr, member_key: memberKey, banda_id: BAND.id });
     if (error) { console.error('Availability error:', error); return; }
     if (_calAvail[dateStr]) delete _calAvail[dateStr][memberKey];
     _calRenderCell(dateStr);
@@ -18281,13 +18281,14 @@ async function calSetAvail(dateStr, memberKey, status) {
 
   // Upsert
   const { error } = await _sb.from('cal_availability').upsert({
+    banda_id: BAND.id,
     date: dateStr,
     member_key: memberKey,
     member_name: CAL_MEMBERS.find(m=>m.key===memberKey)?.name || memberKey,
     status,
     updated_by: currentUserName(),
     updated_at: new Date().toISOString()
-  }, { onConflict: 'date,member_key' });
+  }, { onConflict: 'date,member_key,banda_id' });
 
   if (error) { console.error('Availability error:', error); return; }
 
@@ -18405,18 +18406,19 @@ async function calTapAvail(dateStr) {
 
   if (next) {
     const { error } = await _sb.from('cal_availability').upsert({
+      banda_id: BAND.id,
       date: dateStr, member_key: myKey,
       member_name: CAL_MEMBERS.find(m=>m.key===myKey)?.name || myKey,
       status: next,
       updated_by: currentUserName(),
       updated_at: new Date().toISOString()
-    }, { onConflict: 'date,member_key' });
+    }, { onConflict: 'date,member_key,banda_id' });
     if (error) { console.error(error); return; }
     if (!_calAvail[dateStr]) _calAvail[dateStr] = {};
     _calAvail[dateStr][myKey] = next;
   } else {
     // Delete row
-    await _sb.from('cal_availability').delete().match({ date: dateStr, member_key: myKey });
+    await _sb.from('cal_availability').delete().match({ date: dateStr, member_key: myKey, banda_id: BAND.id });
     if (_calAvail[dateStr]) delete _calAvail[dateStr][myKey];
   }
 
@@ -19273,6 +19275,7 @@ async function calShareEvent(eventId, eventTitle, eventDate, eventTime) {
     const { data: avail } = await _sb
       .from('cal_availability')
       .select('member_key')
+      .eq('banda_id', BAND.id)
       .eq('date', eventDate)
       .eq('status', 'yes');
     if (avail) confirmedKeys = avail.map(a => a.member_key);
