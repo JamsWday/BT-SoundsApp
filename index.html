@@ -4028,7 +4028,13 @@ body.readonly #btnReadonlyPlay { display: inline-flex !important; }
 /* Sección activa resaltada — visible en todos los temas, especialmente oscuros */
 .section-block.sync-active {
   border-color: var(--accent) !important;
-  border-width: 2px !important;
+  /* NO se engorda el borde al resaltar (antes: border-width 2px).
+     Cambiaba el ancho del contenido 2px, el texto se repartia distinto y
+     las ultimas lineas de la letra se cortaban: el textarea .voz-text
+     tiene la altura calculada al pintarse y no se recalcula al resaltar.
+     El outline da el mismo grosor visual y NO ocupa sitio. (15/09/2026) */
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent),
     0 0 18px color-mix(in srgb, var(--accent) 18%, transparent),
@@ -6479,7 +6485,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20260915.4";
+const APP_VERSION = "20260915.5";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
