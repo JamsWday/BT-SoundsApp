@@ -6485,7 +6485,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20260915.5";
+const APP_VERSION = "20260915.6";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -13922,8 +13922,7 @@ function cfgPreviewFrase() {
   document.getElementById('newsPopTitle').textContent = frases[Math.floor(Math.random() * frases.length)];
   document.getElementById('newsPopSub').textContent = 'vista previa';
   const pop = document.getElementById('newsPop');
-  pop.dataset.count = '0';
-  pop.classList.add('open');
+  pop.classList.add('open');   // vista previa: NO marca el aviso como dado
 }
 
 function cfgRenderFrasesMen() {
@@ -13976,8 +13975,7 @@ function cfgPreviewFraseMen() {
   document.getElementById('newsPopTitle').textContent = frases[Math.floor(Math.random() * frases.length)];
   document.getElementById('newsPopSub').textContent = 'vista previa · mención';
   const pop = document.getElementById('newsPop');
-  pop.dataset.count = '0';
-  pop.classList.add('open');
+  pop.classList.add('open');   // vista previa: NO marca el aviso como dado
 }
 
 async function cfgAddFrase() {
@@ -17359,9 +17357,25 @@ function _muroFrasesMencion() {
 // "Leído" = marca de tiempo de la última visita al muro (por usuario)
 function _muroLastSeen() { return _userSettings.muroLastSeen || '1970-01-01T00:00:00Z'; }
 
-// Si cierras con ✕, no insiste... hasta que llegue algo NUEVO de verdad
-// (guardamos cuántos había al cerrar; si el número sube, vuelve a saltar).
-let _newsPopDismissedAt = -1;
+// ── EL AVISO SALE UNA VEZ POR NOVEDAD (15/09/2026) ──────────────────────
+// Antes se guardaba CUANTOS habia al cerrar con X. Tres fallos:
+//  1) guardaba solo los mensajes pero comparaba contra mensajes+respuestas
+//     -> con una respuesta sin leer, saltaba SIEMPRE aunque lo cerraras
+//  2) solo se registraba al pulsar X: si te ibas a la biblioteca sin
+//     cerrarlo, al volver al inicio salia otra vez
+//  3) contar es mala llave: si lees 3 y llega 1 nuevo, 1<=3 y no avisaba
+// Ahora se guarda la FECHA del elemento mas nuevo del que ya se aviso, y
+// se registra al MOSTRARSE, no al cerrarse. Para lo demas esta el contador.
+// Por banda, para que la Formacion no pise a Balsamo Tigre.
+function _newsPopKey() { return "bt_newsPopAvisado_" + (BAND.id || "x"); }
+function _newsPopYaAvisado() {
+  try { return localStorage.getItem(_newsPopKey()) || ""; } catch (e) { return _newsPopMem || ""; }
+}
+function _newsPopMarcar(fecha) {
+  _newsPopMem = fecha;
+  try { localStorage.setItem(_newsPopKey(), fecha); } catch (e) {}
+}
+let _newsPopMem = "";   // respaldo si el navegador no deja guardar
 
 async function muroCheckNews() {
   if (!BAND.id || !_currentUser) return;
@@ -17383,17 +17397,25 @@ async function muroCheckNews() {
     // Respuestas nuevas en hilos (por usuario) + si contestan a MIS mensajes
     const seenMap = _userSettings.muroThreadSeen || {};
     let nResp = 0, respAMi = 0;
+    // La novedad MAS RECIENTE sin leer (mensaje o respuesta): es la llave
+    // para saber si ya se aviso de ella.
+    let masNueva = "";
+    nuevos.forEach(m => { if (m.created_at > masNueva) masNueva = m.created_at; });
     (data || []).forEach(m => {
       const seen = seenMap[m.id];
       const reps = Array.isArray(m.respuestas) ? m.respuestas : [];
-      const n = reps.filter(r => r.autor !== me && (!seen || r.created_at > seen)).length;
+      const sinLeer = reps.filter(r => r.autor !== me && (!seen || r.created_at > seen));
+      const n = sinLeer.length;
+      sinLeer.forEach(r => { if (r.created_at > masNueva) masNueva = r.created_at; });
       nResp += n;
       if (n && m.autor === me) respAMi += n;   // responden a lo TUYO
     });
     const total = nuevos.length + nResp;
     _muroSetBadge(total, meCitan > 0 || respAMi > 0);
     if (!total) return;
-    if (total <= _newsPopDismissedAt) return;   // ya lo cerraste y no hay más
+    // Ya se aviso de esto (o de algo mas nuevo): no se repite.
+    // El contador del inicio sigue marcando lo que haya sin leer.
+    if (masNueva && masNueva <= _newsPopYaAvisado()) return;
     // Frases de mención si la novedad va CONTIGO (te citan o responden a lo tuyo)
     const frases = (meCitan || respAMi) ? _muroFrasesMencion() : _muroFrases();
     document.getElementById('newsPopTitle').textContent = frases[Math.floor(Math.random() * frases.length)];
@@ -17401,8 +17423,10 @@ async function muroCheckNews() {
     if (nuevos.length) partes.push(nuevos.length + (nuevos.length === 1 ? ' mensaje' : ' mensajes'));
     if (nResp)         partes.push(nResp + (nResp === 1 ? ' respuesta' : ' respuestas'));
     document.getElementById('newsPopSub').textContent = partes.join(' · ') + ' sin leer';
-    document.getElementById('newsPop').dataset.count = nuevos.length;
     document.getElementById('newsPop').classList.add('open');
+    // Se registra al MOSTRARSE, no al cerrarse: si te vas a otra pantalla
+    // sin cerrarlo, tampoco vuelve a salir.
+    _newsPopMarcar(masNueva);
   } catch (e) { /* silencioso: nunca bloquear el Home */ }
 }
 
@@ -17416,9 +17440,8 @@ function _muroSetBadge(n, mention) {
 }
 
 function newsPopClose() {
-  const pop = document.getElementById('newsPop');
-  _newsPopDismissedAt = parseInt(pop.dataset.count || '0');   // recordar hasta cuántos vi
-  pop.classList.remove('open');
+  // Ya no hace falta recordar nada aqui: se registro al mostrarse.
+  document.getElementById('newsPop').classList.remove('open');
 }
 function newsPopGo()    { newsPopClose(); showMuro(); }
 
