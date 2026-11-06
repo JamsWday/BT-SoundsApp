@@ -73,6 +73,49 @@
   --v-t3: #1b9246; --v-rd: #d610f4; --v-c:  #8964f8; --v-hh: #4a9eff;
 }
 
+/* ── Sugerencias de acorde ─────────────────────────────────────────
+   Cada grupo lleva DOS variables, no una (regla 2, octava vez):
+     --sug-X       el tono, del que salen fondo y borde
+     --sug-X-ink   la tinta, MEDIDA para llegar a 4.5:1
+   La tinta no se puede sacar del tono con una formula: cada color
+   necesita oscurecerse un porcentaje distinto para llegar al minimo
+   (el verde un 11%, el ambar un 20%, el morado nada).
+
+   El fallo que arregla esto: los overrides de claro cambiaban fondo
+   y borde y se dejaban la letra, asi que en tema claro seguia puesta
+   la tinta neon del oscuro — verde #39ff14 a 1,20:1 y ambar #ffc800
+   a 1,39:1, practicamente invisibles. Le paso a 6 de los 7 grupos.
+   Ahora el componente es identico en los dos modos y lo unico que
+   cambia son estos valores: ya no hay donde olvidarse la letra. */
+:root {
+  --sug-fill: 10%;   /* cuanto tono lleva el fondo */
+  --sug-edge: 30%;   /* cuanto tono lleva el borde */
+  --sug-key:     var(--accent);  --sug-key-ink:     var(--accent);
+  --sug-fifth:   #39ff14;        --sug-fifth-ink:   #39ff14;
+  --sug-rel:     #ff2d78;        --sug-rel-ink:     #ff2d78;
+  --sug-cadence: #ffc800;        --sug-cadence-ink: #ffc800;
+  --sug-jazz:    #b464ff;        --sug-jazz-ink:    #b464ff;
+  --sug-flam:    #ff641e;        --sug-flam-ink:    #ff641e;
+  --sug-rock:    #ff3c3c;        --sug-rock-ink:    #ff3c3c;
+}
+/* Claro: fondo y borde un punto mas presentes, y tinta oscura medida.
+   Tonalidad y Relativo salen del acento del tema, que cambia entre
+   Claro y Dia, por eso se oscurecen con color-mix en vez de llevar un
+   hex fijo: una sola linea vale para los dos temas.
+   Comprobado: Claro 4,52 · Dia 5,05 (Tonalidad) y 4,52 / 4,90 (Relativo). */
+:root[data-mode="light"] {
+  --sug-fill: 18%;
+  --sug-edge: 50%;
+  --sug-key-ink:     color-mix(in srgb, var(--accent)  88%, black);
+  --sug-rel:         var(--accent2);
+  --sug-rel-ink:     color-mix(in srgb, var(--accent2) 93%, black);
+  --sug-fifth:   #2e8b57;        --sug-fifth-ink:   #277549;
+  --sug-cadence: #b48200;        --sug-cadence-ink: #896300;
+  --sug-jazz:    #783cc8;        --sug-jazz-ink:    #783cc8;
+  --sug-flam:    #c85014;        --sug-flam-ink:    #ac4511;
+  --sug-rock:    #c82828;        --sug-rock-ink:    #bc2626;
+}
+
 /* Tema Neón (oscuro con neones) — default */
 [data-theme="neon"] {
   --placeholder: #7863c9;
@@ -186,12 +229,6 @@
 [data-mode="light"] .ac-item:hover,
 [data-mode="light"] .ac-item.ac-active { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent); }
 [data-mode="light"] .chord-suggestions .sug-header::after { background: var(--border-soft); }
-[data-mode="light"] .sug-chip.type-key { background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
-[data-mode="light"] .sug-chip.type-fifth { background: rgba(46,139,87,0.1);  border-color: rgba(46,139,87,0.35); }
-[data-mode="light"] .sug-chip.type-cadence { background: rgba(180,130,0,0.1);  border-color: rgba(180,130,0,0.35); }
-[data-mode="light"] .sug-chip.type-jazz { background: rgba(120,60,200,0.1); border-color: rgba(120,60,200,0.35); }
-[data-mode="light"] .sug-chip.type-flam { background: rgba(200,80,20,0.1);  border-color: rgba(200,80,20,0.35); }
-[data-mode="light"] .sug-chip.type-rock { background: rgba(200,40,40,0.1);  border-color: rgba(200,40,40,0.35); }
 [data-mode="light"] #helpDetailPanel .hd-label.type-key { color: #007a6a; }
 [data-mode="light"] #helpDetailPanel .hd-label.type-fifth { color: #2e7a2e; }
 [data-mode="light"] #helpDetailPanel .hd-label.type-cadence { color: #7a5800; }
@@ -973,13 +1010,13 @@ body {
   white-space: nowrap;
 }
 .sug-chip:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
-.sug-chip.type-key     { background:color-mix(in srgb, var(--accent) 8%, transparent);  border-color:color-mix(in srgb, var(--accent) 25%, transparent);  color:#00ffe7; }
-.sug-chip.type-fifth   { background:rgba(57,255,20,0.08);  border-color:rgba(57,255,20,0.25);  color:#39ff14; }
-.sug-chip.type-rel     { background:rgba(255,45,120,0.08); border-color:rgba(255,45,120,0.3);  color:#ff2d78; }
-.sug-chip.type-cadence { background:rgba(255,200,0,0.08);  border-color:rgba(255,200,0,0.25);  color:#ffc800; }
-.sug-chip.type-jazz    { background:rgba(180,100,255,0.1); border-color:rgba(180,100,255,0.3); color:#b464ff; }
-.sug-chip.type-flam    { background:rgba(255,100,30,0.1);  border-color:rgba(255,100,30,0.3);  color:#ff641e; }
-.sug-chip.type-rock    { background:rgba(255,60,60,0.1);   border-color:rgba(255,60,60,0.3);   color:#ff3c3c; }
+.sug-chip.type-key     { background:color-mix(in srgb, var(--sug-key) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-key) var(--sug-edge), transparent); color:var(--sug-key-ink); }
+.sug-chip.type-fifth   { background:color-mix(in srgb, var(--sug-fifth) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-fifth) var(--sug-edge), transparent); color:var(--sug-fifth-ink); }
+.sug-chip.type-rel     { background:color-mix(in srgb, var(--sug-rel) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-rel) var(--sug-edge), transparent); color:var(--sug-rel-ink); }
+.sug-chip.type-cadence { background:color-mix(in srgb, var(--sug-cadence) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-cadence) var(--sug-edge), transparent); color:var(--sug-cadence-ink); }
+.sug-chip.type-jazz    { background:color-mix(in srgb, var(--sug-jazz) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-jazz) var(--sug-edge), transparent); color:var(--sug-jazz-ink); }
+.sug-chip.type-flam    { background:color-mix(in srgb, var(--sug-flam) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-flam) var(--sug-edge), transparent); color:var(--sug-flam-ink); }
+.sug-chip.type-rock    { background:color-mix(in srgb, var(--sug-rock) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-rock) var(--sug-edge), transparent); color:var(--sug-rock-ink); }
 .sug-chip-icon { font-size:0.7rem; opacity:0.8; }
 
 [data-mode="light"] .chord-autocomplete { background:var(--surface); border-color:var(--accent); }
@@ -991,7 +1028,6 @@ body {
 
 
 
-[data-mode="light"] .sug-chip.type-rel     { background:rgba(192,64,26,0.1);  border-color:rgba(192,64,26,0.3);  color:var(--accent2); }
 
 
 
@@ -6485,7 +6521,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261106.1";
+const APP_VERSION = "20261106.2";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
