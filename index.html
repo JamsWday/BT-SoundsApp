@@ -6485,7 +6485,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20260915.6";
+const APP_VERSION = "20261106.1";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -17278,6 +17278,11 @@ const CAL_MEMBERS = BAND.members;   // ← fuente única BAND
 let _calYear  = new Date().getFullYear();
 let _calMonth = new Date().getMonth(); // 0-based
 let _calEvents = [];       // from cal_events
+// Contador de cargas. Seis toques seguidos para llegar a mayo son seis
+// consultas en vuelo; si la de marzo contesta despues que la de mayo,
+// pintaria los datos equivocados. Cada carga se queda con su numero y
+// se retira sola si mientras tanto ha arrancado otra mas nueva.
+let _calLoadSeq = 0;
 let _calAvail  = {};       // { "YYYY-MM-DD": { member_key: 'yes'|'no' } }
 let _calEvRsvp = {};       // { event_id: { member_key: 'yes'|'no' } } — asistencia por evento
 let _calEvGuests = {};     // { event_id: [{key,name,status}] } — gente de FUERA de la banda
@@ -17990,25 +17995,38 @@ function closeCalendarToSetlists() {
   showSetlists();
 }
 
+// ── Navegacion de meses ─────────────────────────────────
+// OJO: cada salto de mes tiene que RECARGAR, no solo repintar.
+// _calLoadData() solo trae ±1 mes alrededor del mes visible. Antes
+// estas tres solo llamaban a _calRender(), asi que al irte a un mes
+// de fuera de esa ventana la rejilla salia vacia y parecia que los
+// eventos antiguos se hubieran borrado. Estaban: no se pedian.
+// _calLoadData() ya termina llamando a _calRender(); el _calRender()
+// de aqui es para que el titulo y la rejilla cambien al instante y
+// no se note la espera de la consulta.
 function calPrevMonth() {
   _calMonth--;
   if (_calMonth < 0) { _calMonth = 11; _calYear--; }
   _calRender();
+  _calLoadData();
 }
 function calNextMonth() {
   _calMonth++;
   if (_calMonth > 11) { _calMonth = 0; _calYear++; }
   _calRender();
+  _calLoadData();
 }
 function calGoToday() {
   const now = new Date();
   _calYear  = now.getFullYear();
   _calMonth = now.getMonth();
   _calRender();
+  _calLoadData();
 }
 
 // ── Load data ───────────────────────────────────────────
 async function _calLoadData() {
+  const _seq = ++_calLoadSeq;
   // Load events for ±1 month around current view
   const from = new Date(_calYear, _calMonth - 1, 1).toISOString().slice(0,10);
   const to   = new Date(_calYear, _calMonth + 2, 0).toISOString().slice(0,10);
@@ -18018,6 +18036,7 @@ async function _calLoadData() {
     bandFilter(_sb.from('cal_availability').select('*')).gte('date', from).lte('date', to)
   ]);
 
+  if (_seq !== _calLoadSeq) return;   // ya hay una carga mas nueva en marcha
   _calEvents = evRes.data || [];
 
   // Asistencia por evento (cal_event_rsvp) de los eventos cargados
@@ -18061,6 +18080,7 @@ async function _calLoadData() {
     _calAvail[row.date][row.member_key] = row.status;
   });
 
+  if (_seq !== _calLoadSeq) return;   // idem: no pisar a una carga posterior
   _calRender();
 
   // If a day panel is open, refresh it
