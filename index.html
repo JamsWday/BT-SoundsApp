@@ -1928,13 +1928,29 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   color:#fff; padding:2px 7px; border-radius:10px; letter-spacing:0.03em;
   white-space:nowrap;
 }
-/* En modo lista: etiquetas como puntitos de color (sin texto) para que
-   quepan; y el título cede espacio antes que las etiquetas */
-#libGrid.list-mode .song-card .card-tags { flex-wrap:nowrap; flex-shrink:0; margin:0; gap:6px; margin-right:10px; }
-#libGrid.list-mode .card-tag {
-  width:12px; height:12px; padding:0; border-radius:50%;
-  font-size:0; overflow:hidden; flex-shrink:0;
+/* En modo lista los puntos de etiqueta van DENTRO del boton 🏷️, no en
+   mitad de la fila: alli se comian el ancho justo donde el titulo se
+   recorta, y ademas estaban lejos de lo que significan. En tarjetas se
+   quedan como pastillas con su nombre, que hay sitio de sobra. */
+#libGrid.list-mode .song-card .card-tags { display:none; }
+.tag-dots { display:none; }
+#libGrid.list-mode .card-btn.tag-btn { position:relative; padding:7px 10px; }
+#libGrid.list-mode .tag-dots {
+  display:block;         /* la regla base es display:none */
+  position:absolute; inset:0;
+  pointer-events:none;   /* el toque es del boton, no de los puntos */
 }
+.tag-dots i { display:block; width:6px; height:6px; border-radius:50%; }
+/* Una esquina por punto, siempre en el mismo orden: asi dos canciones
+   con las mismas etiquetas se ven iguales, y el sitio de cada punto
+   no depende de cuantos haya. El borde del boton redondea 4px, por eso
+   3px: mas cerca y la curva se comeria el punto.
+   Flexbox no sirve para esto; cada uno va colocado. */
+#libGrid.list-mode .tag-dots i { position:absolute; }
+#libGrid.list-mode .tag-dots i:nth-child(1) { left:3px;  bottom:3px; }
+#libGrid.list-mode .tag-dots i:nth-child(2) { right:3px; bottom:3px; }
+#libGrid.list-mode .tag-dots i:nth-child(3) { right:3px; top:3px;    }
+#libGrid.list-mode .tag-dots i:nth-child(4) { left:3px;  top:3px;    }
 #libGrid.list-mode .song-card .card-title {
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;
 }
@@ -5999,7 +6015,12 @@ async function loadSongPlays() {
     .select('song_id, veces, cal_events(date, type)')
     .eq('banda_id', BAND.id);
   if (error) return;
+  // Un evento que todavia no ha pasado es un PLAN: no cuenta como
+  // tocada. Si contara, el numero iria por delante de la realidad y la
+  // "ultima vez" podria caer en el futuro.
+  const _hoy = _dateStr(new Date());
   (data || []).forEach(r => {
+    if (!r.cal_events || !r.cal_events.date || r.cal_events.date > _hoy) return;
     const k = String(r.song_id);
     const e = _songPlays[k] || (_songPlays[k] = { sesiones: 0, pasadas: 0, ultima: null, directo: 0 });
     e.sesiones++;
@@ -6091,6 +6112,17 @@ function renderLibrary(songs) {
         return t ? `<span class="card-tag" style="background:${t.color};" title="${esc(t.nombre)}">${esc(t.nombre)}</span>` : '';
       }).join('')
     }</div>` : '';
+    // Los mismos colores, en puntos, para el boton de etiquetas. Solo se
+    // ven en modo lista (lo decide el CSS). Tope de 4: los que caben en
+    // el borde del boton.
+    const _ordenTags = songTags.slice().sort(
+      (a, b) => _bandTags.findIndex(t => t.id === a) - _bandTags.findIndex(t => t.id === b));
+    const tagDots = songTags.length ? `<span class="tag-dots">${
+      _ordenTags.slice(0, 4).map(id => {
+        const t = _bandTags.find(x => x.id === id);
+        return t ? `<i style="background:${t.color};"></i>` : '';
+      }).join('')
+    }</span>` : '';
     card.innerHTML = `
       <div class="card-title">${esc(s.titulo) || "(Sin título)"}${badgeHtml}</div>
       <div class="card-artist">${esc(s.artista) || "—"}</div>
@@ -6099,7 +6131,7 @@ function renderLibrary(songs) {
       <div class="card-by">✏️ ${esc(s.created_by) || "desconocido"}</div>
       <div class="card-actions">
         <button class="card-btn" onclick="openSong('${s.id}', false)">✏️<span class="btn-label"> Editar</span></button>
-        <button class="card-btn tag-btn" onclick="openTagPicker('${s.id}', event)">🏷️<span class="btn-label"> Etiquetas</span></button>
+        <button class="card-btn tag-btn" onclick="openTagPicker('${s.id}', event)">🏷️<span class="btn-label"> Etiquetas</span>${tagDots}</button>
         ${isOwner ? `<button class="card-btn danger" onclick="deleteSong('${s.id}', event)">🗑<span class="btn-label"> Borrar</span></button>` : ""}
       </div>`;
     grid.appendChild(card);
@@ -6702,7 +6734,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261107.10";
+const APP_VERSION = "20261108.6";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -17207,6 +17239,14 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .cal-setlist-link:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 
+/* Tinta de los nombres y del xN: el acento del tema, como los titulos
+   de la biblioteca. Pero la tarjeta de evento es --surface2, no
+   --surface: medido, --accent ahi da 3.95 en Claro y 4.47 en Dia, los
+   dos por debajo de 4.5. En claro se oscurece un pelin y los dos pasan
+   (Claro 4.54). En oscuro el acento ya da 10 de sobra. */
+:root { --play-ink: var(--accent); }
+:root[data-mode="light"] { --play-ink: color-mix(in srgb, var(--accent) 92%, black); }
+
 /* ── Que tocamos (song_plays) ─────────────────────────────────────
    Una FILA por cancion, no pastillas. El numero de pasadas es lo que
    se viene a mirar, y en una columna alineada se compara de un vistazo;
@@ -17230,6 +17270,13 @@ document.addEventListener('DOMContentLoaded', function() {
   color: var(--text);
 }
 .ev-play:last-child { border-bottom: 0; }
+/* En un evento futuro el nombre es texto, no boton: mismo aspecto, sin
+   el gesto que no lleva a ninguna parte. */
+.ev-play-tx {
+  flex: 1; min-width: 0; font-weight: 700; color: var(--play-ink);
+  height: 28px; line-height: 28px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 /* El nombre es el boton de sumar: lo normal es sumar, asi que el gesto
    normal cae sobre lo que ya esta ahi, sin anadir nada a la fila.
    No lo parece a proposito: sin borde ni fondo.
@@ -17240,7 +17287,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .ev-play-tt {
   flex: 1; min-width: 0; font-weight: 700; text-align: left;
   border: 0; background: none; padding: 0; margin: 0;
-  font-family: inherit; font-size: inherit; color: inherit; cursor: pointer;
+  font-family: inherit; font-size: inherit; color: var(--play-ink); cursor: pointer;
   /* display:block + height en vez de flex: con flex el ellipsis dejaria
      de aplicar al propio boton y haria falta un span de mas dentro. */
   display: block; height: 28px; line-height: 28px;
@@ -17269,7 +17316,7 @@ document.addEventListener('DOMContentLoaded', function() {
   min-width: 26px; height: 28px; text-align: center; flex: 0 0 auto;
   border: 0; background: none; padding: 0 2px; cursor: pointer;
   font-family: var(--font-data); font-size: inherit;
-  font-weight: 700; color: var(--accent);
+  font-weight: 700; color: var(--play-ink);
 }
 .ev-play-del {
   border: 0; background: none; cursor: pointer; padding: 0; flex: 0 0 auto;
@@ -18626,12 +18673,15 @@ function _calRenderPanelBody(dateStr) {
         </div>
         </div>`;
 
-      // ── Que tocamos ──────────────────────────────────────
-      // Solo donde se toca, y solo cuando ya ha pasado: marcar un ensayo
-      // que todavia no ha ocurrido no significa nada.
+      // ── Que tocamos / Que vamos a tocar ──────────────────
+      // Tambien en eventos futuros: sirve para preparar el ensayo. Pero
+      // una fila de un evento que aun no ha pasado es un PLAN, no una
+      // tocada — loadSongPlays() las descarta para que el contador de la
+      // biblioteca no vaya por delante. No hace falta marcar nada: la
+      // fila se convierte en tocada sola cuando llega el dia.
       const _hoyStr = _dateStr(new Date());
-      const _marcable = (ev.type === 'ensayo' || ev.type === 'concierto' || ev.type === 'otro')
-                        && ev.date <= _hoyStr;
+      const _marcable = (ev.type === 'ensayo' || ev.type === 'concierto' || ev.type === 'otro');
+      const _futuro   = ev.date > _hoyStr;
       let playsHtml = '';
       if (_marcable) {
         const _plays = _calPlays[ev.id] || [];
@@ -18640,7 +18690,9 @@ function _calRenderPanelBody(dateStr) {
           const _ab = String(_calPlayAbierto) === String(p.id);
           // Cerrada: solo el xN, y solo si hay mas de una pasada.
           // Abierta: el - y el +, con el numero en medio para cerrar.
-          const _ctl = _ab
+          // En un plan no hay pasadas que contar todavia.
+          const _ctl = _futuro ? ''
+            : _ab
             ? `<span class="ev-play-ctl">` +
                 `<button class="ev-play-b" title="Quitar una pasada"${_n <= 1 ? ' disabled' : ''} ` +
                 `onclick="calPlayBump('${p.id}',-1)">\u2212</button>` +
@@ -18654,8 +18706,10 @@ function _calRenderPanelBody(dateStr) {
                   `onclick="calPlayToggle('${p.id}')">\u00d7${_n}</button>`
                 : '');
           return `<div class="ev-play">` +
-            `<button class="ev-play-tt" title="Tocar para sumar una pasada" ` +
-            `onclick="calPlayBump('${p.id}',1)">${esc(p.titulo)}</button>` +
+            (_futuro
+              ? `<span class="ev-play-tx">${esc(p.titulo)}</span>`
+              : `<button class="ev-play-tt" title="Tocar para sumar una pasada" ` +
+                `onclick="calPlayBump('${p.id}',1)">${esc(p.titulo)}</button>`) +
             _ctl +
             `<button class="ev-play-del" title="Quitar la canci\u00f3n" ` +
             `onclick="calPlayRemove('${p.id}')">\u2715</button>` +
@@ -18670,14 +18724,14 @@ function _calRenderPanelBody(dateStr) {
         playsHtml = `
         <div class="ev-block ev-block-plays">
           <div class="ev-plays-head">
-            <span>\uD83C\uDFB5 Qu\u00e9 tocamos${_plays.length ? ' \u00b7 ' + _plays.length : ''}</span>
+            <span>\uD83C\uDFB5 ${_futuro ? 'Qu\u00e9 vamos a tocar' : 'Qu\u00e9 tocamos'}${_plays.length ? ' \u00b7 ' + _plays.length : ''}</span>
             <span style="display:flex;gap:6px;">${_slBtn}
               <button class="cal-event-btn" onclick="calPlaysAdd('${ev.id}')">\uFF0B A\u00f1adir</button>
             </span>
           </div>
           ${_plays.length
             ? `<div class="ev-plays-list">${_filas}</div>`
-            : `<div class="ev-plays-empty">Sin marcar</div>`}
+            : `<div class="ev-plays-empty">${_futuro ? 'Nada previsto todav\u00eda' : 'Sin marcar'}</div>`}
         </div>`;
       }
 
