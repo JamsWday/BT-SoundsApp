@@ -1896,6 +1896,17 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   transition: all 0.2s;
   display: flex; flex-direction: column; gap: 6px;
 }
+/* ── Veces tocada, en la tarjeta de la biblioteca ─────────────────
+   Sin fondo tenido a proposito: var(--accent) sobre var(--surface)
+   cumple en los 5 temas (el peor, Claro, a 4.60). Con un fondo al
+   10% el Claro bajaba a 4.05 y habria hecho falta tinta aparte. */
+.card-plays {
+  margin-left: 8px;
+  font-family: var(--font-data); font-size: 0.62rem; font-weight: 700;
+  color: var(--accent); white-space: nowrap;
+}
+.card-plays .cp-last { color: var(--muted); font-weight: 400; }
+
 .song-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
 .song-card .card-title {
   font-family: var(--font-display);
@@ -1942,7 +1953,37 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   cursor:pointer; transition:all 0.12s; white-space:nowrap;
 }
 .lib-tagchip:active { transform:scale(0.95); }
-.lib-tagchip.clear { border-color:var(--muted); color:var(--muted); }
+/* ── Ordenar ──────────────────────────────────────────────────────
+   Va en la fila de los filtros pero NO es un filtro, por eso tiene su
+   propio estilo: neutra cuando no hay orden puesto, del acento cuando
+   si. Y dice POR QUE esta ordenado, no solo «Ordenar»: si dejas la
+   lista por «menos ensayadas» y vuelves manana, sin eso verias un
+   orden rarisimo sin saber de donde sale. */
+.lib-ordenchip {
+  font-family:var(--font-data); font-size:0.66rem; font-weight:700;
+  padding:5px 11px; border-radius:14px; white-space:nowrap;
+  border:1.5px solid var(--border-soft); background:transparent;
+  color:var(--muted); cursor:pointer; transition:all 0.12s;
+}
+.lib-ordenchip.on {
+  border-color:var(--accent); color:var(--accent);
+  background:color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.lib-ordenchip:active { transform:scale(0.95); }
+.lib-orden-menu {
+  position:fixed; z-index:9999; width:200px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:5px;
+  box-shadow:0 8px 28px rgba(0,0,0,0.35);
+  display:flex; flex-direction:column; gap:2px;
+}
+.lib-orden-opt {
+  font-family:var(--font-data); font-size:0.7rem; text-align:left;
+  padding:9px 10px; border:0; border-radius:6px; background:none;
+  color:var(--text); cursor:pointer; white-space:nowrap;
+}
+.lib-orden-opt.on { color:var(--accent); font-weight:700; }
+.lib-orden-opt:active { transform:scale(0.97); }
 .song-card .card-meta {
   font-family: var(--font-body);
   font-size: 0.72rem;
@@ -2085,6 +2126,16 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
 @media (max-width: 500px) {
   #libGrid.list-mode .song-card .card-artist,
   #libGrid.list-mode .song-card .card-meta { display: none; }
+}
+/* Excepcion: el contador de veces tocada si sobrevive en la fila
+   estrecha. Sin padding en la meta y con el margen en la propia
+   pastilla, una cancion sin tocar no deja hueco ninguno. */
+@media (max-width: 500px) {
+  #libGrid.list-mode .song-card .card-meta {
+    display: block; flex: 0 0 auto; padding-right: 0;
+  }
+  #libGrid.list-mode .song-card .card-meta .cm-date { display: none; }
+  #libGrid.list-mode .song-card .card-plays { margin-left: 0; margin-right: 6px; }
 }
 
 /* ── CLOUD SAVE indicator ── */
@@ -4262,7 +4313,8 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 .chord-pill:active, .sug-chip:active, .de-note-btn:active,
 .de-sdiv-btn:active, .de-tuplet-opt:active, .cal-ev-icon:active,
 .cal-setlist-link:active, .muro-mention-opt:active, .muro-reax-add:active,
-.cfg-swatch:active, .cfg-pal-swatch:active {
+.cfg-swatch:active, .cfg-pal-swatch:active, .ev-play-del:active,
+.ev-play-b:active, .ev-play-tt:active, .ev-play-n:active {
   transform: scale(0.92);
   transition-duration: 0s;
 }
@@ -5917,6 +5969,9 @@ async function doLogout() {
 // LIBRARY
 // ═══════════════════════════════════════════════
 let _allSongs = [];
+// Veces tocada por cancion: { song_id: {sesiones, pasadas, ultima, directo} }
+// Se recalcula al cargar la biblioteca. No se guarda nada: son filas contadas.
+let _songPlays = {};
 
 async function showLibrary() {
   window._immersiveDeactivate && window._immersiveDeactivate();
@@ -5932,6 +5987,48 @@ async function showLibrary() {
     Router.go('library');
   }
   await loadLibrary();
+}
+
+// Trae las tocadas de la banda y las agrupa por cancion. Se traen
+// enteras y se cuentan aqui: son unas 800 filas al ano, de tres campos.
+// Si algun dia crece, se cambia por una vista; hoy no hace falta.
+async function loadSongPlays() {
+  _songPlays = {};
+  if (!BAND.id) return;
+  const { data, error } = await _sb.from('song_plays')
+    .select('song_id, veces, cal_events(date, type)')
+    .eq('banda_id', BAND.id);
+  if (error) return;
+  (data || []).forEach(r => {
+    const k = String(r.song_id);
+    const e = _songPlays[k] || (_songPlays[k] = { sesiones: 0, pasadas: 0, ultima: null, directo: 0 });
+    e.sesiones++;
+    e.pasadas += (r.veces || 1);
+    const ev = r.cal_events;
+    if (ev && ev.date && (!e.ultima || ev.date > e.ultima)) e.ultima = ev.date;
+    if (ev && ev.type === 'concierto') e.directo++;
+  });
+}
+
+// La pastilla de la tarjeta. Devuelve '' si nunca se ha tocado: una
+// cancion sin marcar no debe llevar un cero colgado.
+function songPlaysBadge(songId) {
+  const p = _songPlays[String(songId)];
+  if (!p || !p.sesiones) return '';
+  let corta = '';
+  if (p.ultima) {
+    const d = new Date(p.ultima + 'T12:00:00');
+    corta = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  }
+  // El numero grande son las PASADAS, que es lo que contaba el gomet.
+  // Las sesiones van en el titulo emergente: dicen otra cosa distinta
+  // (en cuantos dias ha sonado), y las dos juntas se leen mal de un vistazo.
+  const tip = p.pasadas + (p.pasadas === 1 ? ' pasada' : ' pasadas')
+            + ' \u00b7 en ' + p.sesiones + (p.sesiones === 1 ? ' ocasi\u00f3n' : ' ocasiones')
+            + (corta ? ' \u00b7 \u00faltima el ' + corta : '')
+            + (p.directo ? ' \u00b7 ' + p.directo + ' en directo' : '');
+  return `<span class="card-plays" title="${esc(tip)}">\uD83C\uDFB5 ${p.pasadas}` +
+         (corta ? `<span class="cp-last"> \u00b7 ${esc(corta)}</span>` : '') + `</span>`;
 }
 
 async function loadLibrary() {
@@ -5954,6 +6051,7 @@ async function loadLibrary() {
   }
   // Preferencias del usuario (vista y filtro por defecto), solo la 1ª vez
   if (!_libPrefsDone) { _libPrefsDone = true; libApplyPrefs(); }
+  await loadSongPlays();
   renderTagFilter();
   renderLibrary(_getFilteredSongs());
 }
@@ -5997,7 +6095,7 @@ function renderLibrary(songs) {
       <div class="card-title">${esc(s.titulo) || "(Sin título)"}${badgeHtml}</div>
       <div class="card-artist">${esc(s.artista) || "—"}</div>
       ${tagsHtml}
-      <div class="card-meta">${date}</div>
+      <div class="card-meta"><span class="cm-date">${date}</span>${songPlaysBadge(s.id)}</div>
       <div class="card-by">✏️ ${esc(s.created_by) || "desconocido"}</div>
       <div class="card-actions">
         <button class="card-btn" onclick="openSong('${s.id}', false)">✏️<span class="btn-label"> Editar</span></button>
@@ -6073,7 +6171,45 @@ function _getFilteredSongs() {
       return true;
     });
   }
-  return list;
+  return _libOrdenar(list);
+}
+
+// ── Orden de la biblioteca ─────────────────────────────────────
+// Las etiquetas dicen «ensayadas» aunque el numero sean pasadas de
+// ensayo Y de concierto: con 36 ensayos frente a 2 conciertos la
+// palabra es exacta casi siempre, y es la que usa la banda.
+// El orden usa el MISMO numero que ensena la tarjeta; si ordenara por
+// otra cosa, verias una de 7 por debajo de una de 5 y pareceria un fallo.
+const _LIB_ORDENES = {
+  def:      'Orden normal',
+  mas:      'M\u00e1s ensayadas',
+  menos:    'Menos ensayadas',
+  reciente: 'Ensayadas hace poco',
+  antigua:  'Ensayadas hace mucho',
+};
+// No se guarda entre visitas a proposito: al entrar en la biblioteca
+// siempre ves el orden normal, y nunca te encuentras una lista rara
+// sin acordarte de por que.
+let _libOrden = 'def';
+
+function _libOrdenar(list) {
+  if (_libOrden === 'def') return list;
+  const dato = s => _songPlays[String(s.id)] || null;
+  // Las que no se han tocado NUNCA van siempre al final. La pregunta de
+  // un jueves es «que se tocar y llevo tiempo sin tocar», no «que hay en
+  // la biblioteca que no he tocado nunca»: con 97 de 100 sin tocar, por
+  // arriba taparian justo lo que buscas. Como esas tarjetas no llevan
+  // pastilla, se ve solo donde acaban unas y empiezan otras.
+  const con = [], sin = [];
+  list.forEach(x => (dato(x) ? con : sin).push(x));
+  const txt = v => String(v || '');
+  const cmp = {
+    mas:      (a, b) => dato(b).pasadas - dato(a).pasadas,
+    menos:    (a, b) => dato(a).pasadas - dato(b).pasadas,
+    reciente: (a, b) => txt(dato(b).ultima).localeCompare(txt(dato(a).ultima)),
+    antigua:  (a, b) => txt(dato(a).ultima).localeCompare(txt(dato(b).ultima)),
+  }[_libOrden];
+  return con.sort(cmp).concat(sin);
 }
 
 // ── Filtro de biblioteca por etiquetas ─────────────────────────
@@ -6081,9 +6217,12 @@ let _activeTagFilter = new Set();
 function renderTagFilter() {
   const bar = document.getElementById('libTagFilter');
   if (!bar) return;
-  if (!_bandTags.length) { bar.style.display = 'none'; return; }
+  // La fila se pinta SIEMPRE, tenga la banda etiquetas o no: ordenar no
+  // depende de que existan. Antes se ocultaba entera sin etiquetas, y la
+  // Formacion de Bateria va a nacer justo asi.
   bar.style.display = 'flex';
   bar.innerHTML = '';
+
   _bandTags.forEach(t => {
     const on = _activeTagFilter.has(t.id);
     const b = document.createElement('button');
@@ -6099,13 +6238,55 @@ function renderTagFilter() {
     };
     bar.appendChild(b);
   });
-  if (_activeTagFilter.size) {
-    const clear = document.createElement('button');
-    clear.className = 'lib-tagchip clear';
-    clear.textContent = '✕ Quitar filtro';
-    clear.onclick = () => { _activeTagFilter.clear(); renderTagFilter(); renderLibrary(_getFilteredSongs()); };
-    bar.appendChild(clear);
-  }
+
+  // Ordenar va la ULTIMA: primero se filtra, luego se ordena lo que
+  // queda. Y no es un filtro, de ahi su estilo propio.
+  const ord = document.createElement('button');
+  ord.className = 'lib-ordenchip' + (_libOrden !== 'def' ? ' on' : '');
+  ord.textContent = '\u21c5 ' + (_libOrden === 'def' ? 'Ordenar' : _LIB_ORDENES[_libOrden]);
+  ord.onclick = (e) => { e.stopPropagation(); libOrdenMenu(ord); };
+  bar.appendChild(ord);
+}
+
+// Menu flotante bajo la pastilla. Mismo patron que el selector de
+// temas: se cuelga del body, se coloca bajo el boton y se cierra al
+// tocar fuera.
+function libOrdenMenu(btn) {
+  if (document.getElementById('libOrdenMenu')) { libOrdenMenuCerrar(); return; }
+  const m = document.createElement('div');
+  m.id = 'libOrdenMenu';
+  m.className = 'lib-orden-menu';
+  Object.keys(_LIB_ORDENES).forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'lib-orden-opt' + (k === _libOrden ? ' on' : '');
+    b.textContent = (k === _libOrden ? '\u2713 ' : '') + _LIB_ORDENES[k];
+    b.onclick = () => {
+      _libOrden = k;
+      libOrdenMenuCerrar();
+      renderTagFilter();
+      renderLibrary(_getFilteredSongs());
+    };
+    m.appendChild(b);
+  });
+  document.body.appendChild(m);
+  const r = btn.getBoundingClientRect();
+  let left = r.left;
+  if (left + 200 > window.innerWidth - 8) left = window.innerWidth - 208;
+  if (left < 8) left = 8;
+  m.style.top  = (r.bottom + 6) + 'px';
+  m.style.left = left + 'px';
+  setTimeout(() => document.addEventListener('click', _libOrdenFuera), 10);
+}
+
+function _libOrdenFuera(e) {
+  const m = document.getElementById('libOrdenMenu');
+  if (m && !m.contains(e.target)) libOrdenMenuCerrar();
+}
+
+function libOrdenMenuCerrar() {
+  const m = document.getElementById('libOrdenMenu');
+  if (m) m.remove();
+  document.removeEventListener('click', _libOrdenFuera);
 }
 
 function filterLibrary() {
@@ -6521,7 +6702,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261106.2";
+const APP_VERSION = "20261107.10";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -17026,6 +17207,80 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .cal-setlist-link:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 
+/* ── Que tocamos (song_plays) ─────────────────────────────────────
+   Una FILA por cancion, no pastillas. El numero de pasadas es lo que
+   se viene a mirar, y en una columna alineada se compara de un vistazo;
+   entre pastillas que fluyen, cada numero cae en un sitio distinto.
+   Cuadradas y separadas por una linea, como una lista.
+   Los colores salen del tema: ni un hex a pelo (regla 1). */
+.ev-block-plays { border-color: color-mix(in srgb, var(--accent) 28%, transparent); }
+.ev-plays-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-family: var(--font-data); font-size: 0.64rem; letter-spacing: 0.06em;
+  text-transform: uppercase; font-weight: 700;
+  color: var(--text);              /* antes --muted: se pedia destacada */
+  margin-bottom: 5px;
+}
+.ev-plays-list { display: flex; flex-direction: column; }
+.ev-play {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 1px 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-family: var(--font-data); font-size: 0.68rem;
+  color: var(--text);
+}
+.ev-play:last-child { border-bottom: 0; }
+/* El nombre es el boton de sumar: lo normal es sumar, asi que el gesto
+   normal cae sobre lo que ya esta ahi, sin anadir nada a la fila.
+   No lo parece a proposito: sin borde ni fondo.
+   En negrita porque el color ya es --text, el mas oscuro del tema: el
+   peso era el unico margen que quedaba para destacarlos.
+   Se recorta: un titulo largo no debe empujar fuera de la fila ni el
+   numero ni la X. */
+.ev-play-tt {
+  flex: 1; min-width: 0; font-weight: 700; text-align: left;
+  border: 0; background: none; padding: 0; margin: 0;
+  font-family: inherit; font-size: inherit; color: inherit; cursor: pointer;
+  /* display:block + height en vez de flex: con flex el ellipsis dejaria
+     de aplicar al propio boton y haria falta un span de mas dentro. */
+  display: block; height: 28px; line-height: 28px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ev-play-ctl { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+/* Sin marco: mas limpio, y el simbolo solo se ve de sobra.
+   Medido sobre la superficie de la tarjeta: --muted da 4.80 en los
+   temas oscuros, 6.17 en Claro y 6.41 en Dia. El minimo para un
+   control es 3.
+   El boton sigue midiendo 26px aunque no se vea: lo que se quita es
+   el borde, no el area donde se puede pulsar. */
+.ev-play-b {
+  width: 28px; height: 28px; padding: 0;
+  border: 0; background: none;
+  color: var(--muted); font-family: var(--font-data); font-size: 0.95rem;
+  line-height: 1; cursor: pointer;
+}
+/* El menos se apaga en 1: quitar pasadas nunca borra la cancion.
+   Para eso esta la X, que es un gesto distinto y a proposito. */
+.ev-play-b:disabled { opacity: 0.3; cursor: default; }
+/* El xN hace dos papeles y por eso es un boton: ensena las pasadas y,
+   al tocarlo, despliega el - y el +. Solo aparece cuando hay mas de
+   una: con una sola no hay nada que corregir hacia abajo. */
+.ev-play-n {
+  min-width: 26px; height: 28px; text-align: center; flex: 0 0 auto;
+  border: 0; background: none; padding: 0 2px; cursor: pointer;
+  font-family: var(--font-data); font-size: inherit;
+  font-weight: 700; color: var(--accent);
+}
+.ev-play-del {
+  border: 0; background: none; cursor: pointer; padding: 0; flex: 0 0 auto;
+  width: 26px; height: 28px;
+  color: var(--muted); font-size: 0.72rem; line-height: 1;
+}
+.ev-play-del:hover { color: var(--accent2); }
+.ev-plays-empty {
+  font-family: var(--font-body); font-size: 0.72rem; color: var(--muted); padding: 2px 0;
+}
+
 /* Conflict warning */
 .cal-conflict-warn {
   background: rgba(232,64,64,0.12);
@@ -17319,6 +17574,14 @@ let _calEvents = [];       // from cal_events
 // pintaria los datos equivocados. Cada carga se queda con su numero y
 // se retira sola si mientras tanto ha arrancado otra mas nueva.
 let _calLoadSeq = 0;
+// Canciones tocadas por evento: { event_id: [ {id, song_id, titulo, artista} ] }
+// No guarda cuantas veces en total: eso es count(*) sobre song_plays.
+let _calPlays = {};
+// Id de la fila con el -/+ desplegado. Vive FUERA del render porque
+// cada cambio recarga y repinta: si el estado viviera en el DOM, el
+// desplegable se cerraria tras cada toque y no se podria pulsar dos
+// veces seguidas.
+let _calPlayAbierto = null;
 let _calAvail  = {};       // { "YYYY-MM-DD": { member_key: 'yes'|'no' } }
 let _calEvRsvp = {};       // { event_id: { member_key: 'yes'|'no' } } — asistencia por evento
 let _calEvGuests = {};     // { event_id: [{key,name,status}] } — gente de FUERA de la banda
@@ -18078,6 +18341,7 @@ async function _calLoadData() {
   // Asistencia por evento (cal_event_rsvp) de los eventos cargados
   _calEvRsvp = {};
   _calEvGuests = {};
+  _calPlays = {};
   const _evIds = _calEvents.map(e => e.id).filter(Boolean);
   if (_evIds.length) {
     const { data: _rs } = await _sb.from('cal_event_rsvp')
@@ -18102,6 +18366,21 @@ async function _calLoadData() {
       const arr = (_calEvGuests[t.event_id] = _calEvGuests[t.event_id] || []);
       if (arr.some(g => g.key === t.member_key || _cfgNorm(g.name) === _cfgNorm(t.guest_name))) return;
       arr.push({ key: t.member_key, name: t.guest_name, status: null, pending: true });
+    });
+
+    // Que se toco en cada evento. El titulo viene de la propia consulta
+    // (Canciones esta relacionada por clave foranea) para que las pastillas
+    // se pinten aunque no se haya abierto la biblioteca todavia.
+    const { data: _pl } = await _sb.from('song_plays')
+      .select('id, event_id, song_id, veces, Canciones(titulo, artista)')
+      .in('event_id', _evIds);
+    if (_seq !== _calLoadSeq) return;   // llego tarde: hay una carga mas nueva
+    (_pl || []).forEach(p => {
+      (_calPlays[p.event_id] = _calPlays[p.event_id] || []).push({
+        id: p.id, song_id: p.song_id, veces: p.veces,
+        titulo:  (p.Canciones && p.Canciones.titulo)  || '(sin titulo)',
+        artista: (p.Canciones && p.Canciones.artista) || ''
+      });
     });
   }
 
@@ -18347,6 +18626,61 @@ function _calRenderPanelBody(dateStr) {
         </div>
         </div>`;
 
+      // ── Que tocamos ──────────────────────────────────────
+      // Solo donde se toca, y solo cuando ya ha pasado: marcar un ensayo
+      // que todavia no ha ocurrido no significa nada.
+      const _hoyStr = _dateStr(new Date());
+      const _marcable = (ev.type === 'ensayo' || ev.type === 'concierto' || ev.type === 'otro')
+                        && ev.date <= _hoyStr;
+      let playsHtml = '';
+      if (_marcable) {
+        const _plays = _calPlays[ev.id] || [];
+        const _filas = _plays.map(p => {
+          const _n  = p.veces || 1;
+          const _ab = String(_calPlayAbierto) === String(p.id);
+          // Cerrada: solo el xN, y solo si hay mas de una pasada.
+          // Abierta: el - y el +, con el numero en medio para cerrar.
+          const _ctl = _ab
+            ? `<span class="ev-play-ctl">` +
+                `<button class="ev-play-b" title="Quitar una pasada"${_n <= 1 ? ' disabled' : ''} ` +
+                `onclick="calPlayBump('${p.id}',-1)">\u2212</button>` +
+                `<button class="ev-play-n" title="Cerrar" ` +
+                `onclick="calPlayToggle('${p.id}')">${_n}</button>` +
+                `<button class="ev-play-b" title="Sumar una pasada" ` +
+                `onclick="calPlayBump('${p.id}',1)">+</button>` +
+              `</span>`
+            : (_n > 1
+                ? `<button class="ev-play-n" title="Cambiar las pasadas" ` +
+                  `onclick="calPlayToggle('${p.id}')">\u00d7${_n}</button>`
+                : '');
+          return `<div class="ev-play">` +
+            `<button class="ev-play-tt" title="Tocar para sumar una pasada" ` +
+            `onclick="calPlayBump('${p.id}',1)">${esc(p.titulo)}</button>` +
+            _ctl +
+            `<button class="ev-play-del" title="Quitar la canci\u00f3n" ` +
+            `onclick="calPlayRemove('${p.id}')">\u2715</button>` +
+          `</div>`;
+        }).join('');
+        // Boton del repertorio: solo si el evento tiene uno. Es un boton,
+        // no un pre-marcado: en los ensayos el repertorio colgado es el
+        // vigente, no lo que se toco ese dia.
+        const _slBtn = ev.setlist_id
+          ? `<button class="cal-event-btn" onclick="calPlaysFromSetlist('${ev.id}','${ev.setlist_id}')">\uD83C\uDFAD Todo el repertorio</button>`
+          : '';
+        playsHtml = `
+        <div class="ev-block ev-block-plays">
+          <div class="ev-plays-head">
+            <span>\uD83C\uDFB5 Qu\u00e9 tocamos${_plays.length ? ' \u00b7 ' + _plays.length : ''}</span>
+            <span style="display:flex;gap:6px;">${_slBtn}
+              <button class="cal-event-btn" onclick="calPlaysAdd('${ev.id}')">\uFF0B A\u00f1adir</button>
+            </span>
+          </div>
+          ${_plays.length
+            ? `<div class="ev-plays-list">${_filas}</div>`
+            : `<div class="ev-plays-empty">Sin marcar</div>`}
+        </div>`;
+      }
+
       // Setlist link
       let setlistHtml = '';
       if (ev.setlist_id) {
@@ -18365,6 +18699,7 @@ function _calRenderPanelBody(dateStr) {
         ${ev.notes ? `<div class="cal-event-notes" style="white-space:pre-wrap;">${ev.notes}</div>` : ''}
         ${attHtml}
         ${conflictHtml}
+        ${playsHtml}
         <div class="cal-event-actions ev-block ev-block-actions">
           <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
           <button class="cal-event-btn danger" onclick="calDeleteEvent('${ev.id}')">🗑</button>
@@ -18729,6 +19064,91 @@ async function calDeleteEvent(eventId) {
   if (error) { alert('Error al eliminar.'); return; }
   await _calLoadData();
   if (_calOpenDate) _calRenderPanelBody(_calOpenDate);
+}
+
+// ── Que tocamos (song_plays) ─────────────────────────────
+// Una fila por cancion y ocasion. El contador, el ranking y la ultima
+// vez NO se guardan: salen de contar filas.
+
+// Inserta varias de golpe. Repetible sin consecuencias: la clave unica
+// (event_id, song_id) hace que volver a mandarla no duplique nada, que
+// importa cuando se guarda desde el local con mala cobertura.
+async function _calPlaysInsertar(eventId, songIds) {
+  if (!songIds.length) return true;
+  const filas = songIds.map(id => bandPayload({
+    event_id: eventId, song_id: id, anotado_por: currentUserName()
+  }));
+  const { error } = await _sb.from('song_plays')
+    .upsert(filas, { onConflict: 'event_id,song_id', ignoreDuplicates: true });
+  if (error) { alert('Error al guardar: ' + error.message); return false; }
+  await _calLoadData();
+  return true;
+}
+
+// Anadir desde la biblioteca, con el selector de los repertorios (R2):
+// ya busca por titulo y artista, es multi y excluye versiones e ideas.
+async function calPlaysAdd(eventId) {
+  const yaEstan = (_calPlays[eventId] || []).map(p => p.song_id);
+  await slPickerOpen({
+    title: 'Qu\u00e9 tocamos',
+    multi: true,
+    yaEstan: yaEstan,
+    onPickMany: async (elegidas) => {
+      await _calPlaysInsertar(eventId, elegidas.map(x => x.id));
+    }
+  });
+}
+
+// Marcar de una vez las del repertorio del evento. Las filas del
+// repertorio que nunca se vincularon a la biblioteca no tienen song_id
+// y no se pueden marcar: se avisa en vez de perderlas en silencio.
+async function calPlaysFromSetlist(eventId, setlistId) {
+  const { data: sl, error } = await _sb.from('setlists')
+    .select('songs').eq('id', setlistId).single();
+  if (error || !sl) { alert('No se ha podido leer el repertorio.'); return; }
+  const todas    = sl.songs || [];
+  const conId    = todas.filter(x => x.song_id).map(x => x.song_id);
+  const sueltas  = todas.length - conId.length;
+  if (!conId.length) { alert('Ese repertorio no tiene ninguna cancion vinculada a la biblioteca.'); return; }
+  if (!await _calPlaysInsertar(eventId, conId)) return;
+  if (sueltas) {
+    alert(sueltas + (sueltas === 1
+      ? ' cancion del repertorio no esta vinculada a la biblioteca y no se ha marcado.'
+      : ' canciones del repertorio no estan vinculadas a la biblioteca y no se han marcado.'));
+  }
+}
+
+// Suma o resta una pasada. El valor nuevo se calcula sobre el que ya
+// tenemos cargado, no con un incremento en la base: si la fila cambio
+// por otro lado, la recarga de despues lo deja en su sitio.
+// Nunca baja de 1: restar no borra la cancion. Para eso esta la X, que
+// es un gesto distinto, y asi no se pierde nada por pulsar de mas.
+async function calPlayBump(playId, delta) {
+  let actual = 1;
+  for (const lista of Object.values(_calPlays)) {
+    const p = lista.find(x => String(x.id) === String(playId));
+    if (p) { actual = p.veces || 1; break; }
+  }
+  const nuevo = Math.max(1, actual + (delta || 1));
+  if (nuevo === actual) return;
+  const { error } = await _sb.from('song_plays')
+    .update({ veces: nuevo }).eq('id', playId);
+  if (error) { alert('Error al cambiar las pasadas: ' + error.message); return; }
+  await _calLoadData();
+}
+
+// Abre o cierra el -/+ de una fila. Solo repinta el panel: no toca la
+// base, que para eso no ha cambiado nada.
+function calPlayToggle(playId) {
+  _calPlayAbierto = (String(_calPlayAbierto) === String(playId)) ? null : playId;
+  if (_calOpenDate) _calRenderPanelBody(_calOpenDate);
+}
+
+async function calPlayRemove(playId) {
+  if (String(_calPlayAbierto) === String(playId)) _calPlayAbierto = null;
+  const { error } = await _sb.from('song_plays').delete().eq('id', playId);
+  if (error) { alert('Error al quitar: ' + error.message); return; }
+  await _calLoadData();
 }
 
 // ── Linked setlist ───────────────────────────────────────
