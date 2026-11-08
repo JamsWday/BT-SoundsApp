@@ -4648,6 +4648,8 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
         <p class="cfg-desc" style="margin-top:8px;font-size:0.7rem;opacity:0.8;">
           Si dejas alguna marcada, la biblioteca abrirá filtrada y te lo avisará arriba para que no te despistes. 😉
         </p>
+        <p class="cfg-desc" style="margin-top:14px;">Orden al abrir:</p>
+        <div id="cfgLibOrden" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
       </div>
 
       <div id="bandSwitchRow" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
@@ -6334,6 +6336,11 @@ function cfgSetLibView(list) {
   cfgRenderLibPrefs();
 }
 
+function cfgSetLibOrden(k) {
+  _userSettings.libOrden = k;
+  cfgRenderLibPrefs();
+}
+
 function cfgToggleLibTag(id) {
   const arr = _userSettings.libDefaultTags || [];
   const i = arr.indexOf(id);
@@ -6348,6 +6355,21 @@ function cfgRenderLibPrefs() {
   const bl = document.getElementById('cfgLibViewList');
   if (bc) bc.classList.toggle('on', !list);
   if (bl) bl.classList.toggle('on', list);
+
+  // OJO: el bloque de etiquetas de abajo sale con un return si la banda
+  // no tiene ninguna. El orden se pinta ANTES, que no depende de eso.
+  const cajaOrd = document.getElementById('cfgLibOrden');
+  if (cajaOrd) {
+    cajaOrd.innerHTML = '';
+    const actual = _userSettings.libOrden || 'def';
+    Object.keys(_LIB_ORDENES).forEach(k => {
+      const b = document.createElement('button');
+      b.className = 'cfg-pill' + (k === actual ? ' on' : '');
+      b.textContent = _LIB_ORDENES[k];
+      b.onclick = () => cfgSetLibOrden(k);
+      cajaOrd.appendChild(b);
+    });
+  }
 
   const box = document.getElementById('cfgLibTags');
   if (!box) return;
@@ -6369,6 +6391,10 @@ function cfgRenderLibPrefs() {
 // Aplica las preferencias al abrir la biblioteca
 function libApplyPrefs() {
   if (_userSettings.libListMode && !_libListMode) toggleLibView();
+  // Se comprueba contra el catalogo: un orden guardado que ya no exista
+  // dejaria la biblioteca en un estado que no sabe pintar.
+  const ord = _userSettings.libOrden;
+  if (ord && _LIB_ORDENES[ord]) _libOrden = ord;
   const def = _userSettings.libDefaultTags || [];
   if (def.length) {
     _activeTagFilter = new Set(def.filter(id => _bandTags.some(t => t.id === id)));
@@ -6734,7 +6760,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261108.6";
+const APP_VERSION = "20261108.8";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -15182,6 +15208,10 @@ function cfgCycleColor(i) {
 
 async function cfgSave() {
   await saveUserSettings();
+  // Las preferencias se aplican una sola vez por sesion (_libPrefsDone).
+  // Si no se rearma, eliges el orden, guardas, entras en la biblioteca
+  // y no pasa nada hasta la proxima vez que abras la app.
+  _libPrefsDone = false;
   closeLibConfig();
   render();
 }
