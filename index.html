@@ -1901,11 +1901,14 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
    cumple en los 5 temas (el peor, Claro, a 4.60). Con un fondo al
    10% el Claro bajaba a 4.05 y habria hecho falta tinta aparte. */
 .card-plays {
-  margin-left: 8px;
+  margin-left: 0;   /* antes iba detras de la fecha; ahora abre la linea */
   font-family: var(--font-data); font-size: 0.62rem; font-weight: 700;
   color: var(--accent); white-space: nowrap;
 }
 .card-plays .cp-last { color: var(--muted); font-weight: 400; }
+/* Las palabras ('veces', 'última el') solo caben en tarjetas. */
+.cp-w { color: var(--muted); font-weight: 400; }
+#libGrid.list-mode .cp-w { display: none; }
 
 .song-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
 .song-card .card-title {
@@ -2150,7 +2153,6 @@ body.readonly .audio-btn.btn-icon { display: none !important; }
   #libGrid.list-mode .song-card .card-meta {
     display: block; flex: 0 0 auto; padding-right: 0;
   }
-  #libGrid.list-mode .song-card .card-meta .cm-date { display: none; }
   #libGrid.list-mode .song-card .card-plays { margin-left: 0; margin-right: 6px; }
 }
 
@@ -6050,8 +6052,12 @@ function songPlaysBadge(songId) {
             + ' \u00b7 en ' + p.sesiones + (p.sesiones === 1 ? ' ocasi\u00f3n' : ' ocasiones')
             + (corta ? ' \u00b7 \u00faltima el ' + corta : '')
             + (p.directo ? ' \u00b7 ' + p.directo + ' en directo' : '');
+  // Las palabras solo en tarjetas: en modo lista la fila es estrecha y
+  // el CSS las oculta. Mismo dato, dos densidades.
   return `<span class="card-plays" title="${esc(tip)}">\uD83C\uDFB5 ${p.pasadas}` +
-         (corta ? `<span class="cp-last"> \u00b7 ${esc(corta)}</span>` : '') + `</span>`;
+         `<span class="cp-w"> ${p.pasadas === 1 ? 'vez' : 'veces'}</span>` +
+         (corta ? `<span class="cp-last"> \u00b7 <span class="cp-w">\u00faltima el </span>${esc(corta)}</span>` : '') +
+         `</span>`;
 }
 
 async function loadLibrary() {
@@ -6059,7 +6065,7 @@ async function loadLibrary() {
   grid.innerHTML = '<div class="lib-empty"><div class="lib-empty-icon">⏳</div><p>Cargando...</p></div>';
 
   const { data, error } = await bandFilter(_sb.from("Canciones")
-    .select("id, titulo, artista, created_by, updated_at, parent_id, version_type, tags"))
+    .select("id, titulo, artista, created_by, updated_by, updated_at, parent_id, version_type, tags"))
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -6100,6 +6106,8 @@ function renderLibrary(songs) {
       if (!e.target.closest(".card-actions")) openSong(s.id);
     });
     const date = s.updated_at ? new Date(s.updated_at).toLocaleDateString("es-ES") : "";
+    // Decidido: solo el creador borra. Ahora created_by si es el creador
+    // — hasta la V2 era «el ultimo que guardo», y el dueño cambiaba solo.
     const isOwner = s.created_by === (currentUserName());
     // Count versions/ideas
     const children = songs.filter(c => c.parent_id === s.id);
@@ -6129,8 +6137,8 @@ function renderLibrary(songs) {
       <div class="card-title">${esc(s.titulo) || "(Sin título)"}${badgeHtml}</div>
       <div class="card-artist">${esc(s.artista) || "—"}</div>
       ${tagsHtml}
-      <div class="card-meta"><span class="cm-date">${date}</span>${songPlaysBadge(s.id)}</div>
-      <div class="card-by">✏️ ${esc(s.created_by) || "desconocido"}</div>
+      <div class="card-meta">${songPlaysBadge(s.id)}</div>
+      <div class="card-by">✏️ ${esc(s.updated_by || s.created_by) || "desconocido"}<span class="cm-date"> · ${date}</span></div>
       <div class="card-actions">
         <button class="card-btn" onclick="openSong('${s.id}', false)">✏️<span class="btn-label"> Editar</span></button>
         <button class="card-btn tag-btn" onclick="openTagPicker('${s.id}', event)">🏷️<span class="btn-label"> Etiquetas</span>${tagDots}</button>
@@ -6511,10 +6519,17 @@ async function versionsLoadForSong(songId, songTitle) {
   _notesUpdateBadge(songData?.notes || '');
 
   // Cargar sub-canciones
+  // Por fecha de CREACION, no de modificacion: una idea que retocaste
+  // ayer pero que tuviste en junio sigue siendo una idea de junio.
+  // created_at existe desde el principio con default now(), asi que el
+  // dato estaba ahi sin que nadie lo leyera.
+  // nullsFirst:false por si alguna fila antigua no lo tuviera: iria al
+  // final en vez de colarse arriba, que es lo que hace Postgres por
+  // defecto al ordenar descendente.
   const { data } = await _sb.from('Canciones')
-    .select('id, titulo, version_type, updated_at')
+    .select('id, titulo, version_type, created_at, updated_at')
     .eq('parent_id', songId)
-    .order('updated_at', { ascending: false });
+    .order('created_at', { ascending: false, nullsFirst: false });
 
   _versionsList = data || [];
   const badge = document.getElementById('btnVersionsBadge');
@@ -6551,7 +6566,11 @@ function versionsRenderPanel() {
     const vtype = v.version_type || 'idea';
     card.className = `version-card ${vtype}`;
     const icon = vtype === 'version' ? '💿' : '💡';
-    const date = v.updated_at ? new Date(v.updated_at).toLocaleDateString('es-ES') : '';
+    // La fecha que se ensena tiene que ser la MISMA por la que se
+    // ordena; si no, verias una lista ordenada por un criterio y unas
+    // fechas contando otro. Se cae a updated_at solo si faltara.
+    const _f = v.created_at || v.updated_at;
+    const date = _f ? new Date(_f).toLocaleDateString('es-ES') : '';
     card.innerHTML = `
       <div class="version-card-icon">${icon}</div>
       <div class="version-card-info">
@@ -6613,6 +6632,7 @@ async function versionsConfirmNew(copiar) {
     artista,
     data: dataNueva,
     created_by: currentUserName(),
+    updated_by: currentUserName(),   // al crear, el creador es tambien el ultimo
     updated_at: new Date().toISOString(),
     parent_id: _currentSongId,
     version_type: type
@@ -6680,11 +6700,14 @@ async function saveSongCloud() {
   if (!_currentUser) { alert("Debes iniciar sesión."); return; }
   setCloudStatus("saving", "☁ Guardando...");
 
+  // created_by NO va aqui: este payload sirve tambien para el update, y
+  // ponerlo convertiria al que guarda en «creador» cada vez. Ese era el
+  // fallo: la columna se llamaba created_by y guardaba al ultimo editor.
   const payload = {
     titulo: songData.title || "(Sin título)",
     artista: songData.artist || "",
     data: songData,
-    created_by: currentUserName(),
+    updated_by: currentUserName(),
     updated_at: new Date().toISOString()
   };
   // Preserve parent link if this is a version/idea
@@ -6697,6 +6720,7 @@ async function saveSongCloud() {
   if (_currentSongId) {
     result = await _sb.from("Canciones").update(payload).eq("id", _currentSongId).select().single();
   } else {
+    payload.created_by = currentUserName();   // solo al nacer, nunca despues
     result = await _sb.from("Canciones").insert(bandPayload(payload)).select().single();
   }
 
@@ -6760,7 +6784,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261108.8";
+const APP_VERSION = "20261109.3";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
