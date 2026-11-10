@@ -1669,8 +1669,12 @@ body.readonly #songBpmPill { font-size: 0.85rem; letter-spacing: 0.08em; border-
 body.readonly #songKeyBar > div { background: transparent; border-color: transparent; padding-left: 0; }
 body.readonly #songKeyPill { pointer-events: none; font-size: 0.85rem; letter-spacing: 0.08em; border-color: transparent; background: transparent; }
 /* Eagle button and toggles must stay clickable in readonly */
+/* OJO: #songKeyBar entero lleva pointer-events:none en Tocar, asi que
+   TODO boton nuevo de esa barra tiene que anadirse aqui o nace muerto
+   en Tocar. Ya paso con otros; ahora verificar.py lo comprueba solo. */
 body.readonly #btnEagle,
 body.readonly #btnDrumScore,
+body.readonly #btnEstructura,
 body.readonly #btnLyrics,
 body.readonly #eagleToggles,
 body.readonly #btnEagleSections,
@@ -3493,6 +3497,12 @@ body.readonly .drum-add-btn  { display: none !important; }
 #lyricsOverlay.open { display: flex !important; }
 #lyricsOverlay.open ~ #songPlayerBar { display: none !important; }
 body:has(#lyricsOverlay.open) #songPlayerBar { display: none !important; }
+/* Una CAPA del Router se muestra con la clase .open (lo hace
+   Router._setVisible), pero el overlay lleva display:none EN LINEA, que
+   gana a cualquier regla normal. Sin esta linea el boton no hace nada:
+   la clase se pone y no se ve. Lo mismo que arriba para la letra. */
+#estructuraOverlay.open { display: flex !important; }
+body:has(#estructuraOverlay.open) #songPlayerBar { display: none !important; }
 #lyricsBody { overflow-x: hidden !important; overflow-y: auto !important; overflow-wrap: anywhere; }
 /* Modo 2 columnas en páginas */
 .lyrics-page { display: flex; gap: 5vw; align-items: flex-start; }
@@ -4504,6 +4514,21 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   <div id="lyricsBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 20px 24px;"></div>
 </div>
 
+<!-- ══ VISOR ESTRUCTURA 🗺 (capa del Router) ══
+     Mismo molde que el visor de letra: barra arriba, cuerpo que ocupa
+     todo lo demas. z-index igual que la letra: son hermanos y nunca se
+     abren a la vez. -->
+<div id="estructuraOverlay" style="display:none;position:fixed;inset:0;z-index:9600;background:var(--bg);flex-direction:column;height:100vh;height:100dvh;overflow:hidden;">
+  <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <span id="estTitle" style="font-family:var(--font-display);font-size:1rem;color:var(--play-ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Estructura</span>
+    <button class="est-ctl" onclick="estructuraAjustar()" title="Ajustar a la pantalla">&#8690;</button>
+    <button class="est-ctl" onclick="estructuraFont(-3)" title="M&aacute;s peque&ntilde;o">A&minus;</button>
+    <button class="est-ctl" onclick="estructuraFont(3)"  title="M&aacute;s grande">A+</button>
+    <button class="est-ctl" onclick="estructuraClose()"  title="Cerrar">&#10005;</button>
+  </div>
+  <div id="estBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 20px 26px;"></div>
+</div>
+
 <!-- ══ MODAL DUPLICAR SECCIÓN (selección de instrumentos) ══ -->
 <div id="dupSecOverlay" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:18px;height:100vh;height:100dvh;">
   <div style="background:var(--surface);border:1px solid var(--accent);border-radius:12px;max-width:380px;width:100%;display:flex;flex-direction:column;overflow:hidden;">
@@ -4777,25 +4802,6 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     💡💿 <span id="btnVersionsBadge" style="display:none;font-size:0.7rem;background:var(--accent);color:var(--bg);border-radius:10px;padding:1px 5px;margin-left:2px;"></span>
   </button>
 
-  <div style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
-    <label style="font-family:var(--font-data);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0;">🎵 Tonalidad</label>
-    <span id="songKeyPill" onclick="openKeyPopup(this)" title="Editar tonalidad"
-      style="font-family:var(--font-data);font-size:0.82rem;font-weight:700;
-             padding:4px 10px;border-radius:5px;cursor:pointer;transition:all 0.15s;
-             border:1px solid var(--border);background:var(--bg);color:var(--accent);
-             min-width:80px;display:inline-block;text-align:center;">—</span>
-  </div>
-
-  <!-- BPM de la canción: por fin una UI que lo ESCRIBE (antes siempre 90) -->
-  <div id="songBpmBar" style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
-    <label style="font-family:var(--font-data);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0;">♩ BPM</label>
-    <span id="songBpmPill" onclick="songBpmEdit()" title="Editar BPM de la canción"
-      style="font-family:var(--font-data);font-size:0.82rem;font-weight:700;
-             padding:4px 10px;border-radius:5px;cursor:pointer;transition:all 0.15s;
-             border:1px solid var(--border);background:var(--bg);color:var(--accent);
-             min-width:52px;display:inline-block;text-align:center;">—</span>
-  </div>
-
   <!-- Botón Eagle -->
   <button id="btnEagle" onclick="toggleEagleMode()" title="Modo Águila — vista compacta"
     style="font-family:var(--font-data);font-size:0.8rem;padding:7px 11px;border-radius:8px;
@@ -4807,6 +4813,12 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   <!-- Botón Visor de Letra -->
   <button id="btnDrumScore" onclick="drumScoreOpen()" title="Partitura de batería"
     style="background:rgba(255,255,255,0.05);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:1.05rem;line-height:1;padding:6px 10px;">🥁</button>
+  <button id="btnEstructura" onclick="estructuraOpen()" title="Estructura de la canci&oacute;n"
+    style="font-family:var(--font-data);font-size:0.8rem;padding:7px 11px;border-radius:8px;
+           border:1px solid var(--border);background:var(--surface);color:var(--muted);
+           cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;white-space:nowrap;">
+    🗺
+  </button>
   <button id="btnLyrics" onclick="lyricsOpen()" title="Visor de letra"
     style="font-family:var(--font-data);font-size:0.8rem;padding:7px 11px;border-radius:8px;
            border:1px solid var(--border);background:var(--surface);color:var(--muted);
@@ -4822,6 +4834,25 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
     📝 <span id="btnNotesDot" style="display:none;width:7px;height:7px;border-radius:50%;
       background:var(--accent);display:inline-block;margin-left:2px;vertical-align:middle;"></span>
   </button>
+
+  <div id="songKeyWrap" style="display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 9px;">
+    <label style="font-family:var(--font-data);font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">🎵 Ton</label>
+    <span id="songKeyPill" onclick="openKeyPopup(this)" title="Editar tonalidad"
+      style="font-family:var(--font-data);font-size:0.78rem;font-weight:700;
+             padding:4px 7px;border-radius:5px;cursor:pointer;transition:all 0.15s;
+             border:1px solid var(--border);background:var(--bg);color:var(--accent);
+             min-width:44px;display:inline-block;text-align:center;">—</span>
+  </div>
+
+  <!-- BPM de la canción: por fin una UI que lo ESCRIBE (antes siempre 90) -->
+  <div id="songBpmBar" style="display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 9px;">
+    <label style="font-family:var(--font-data);font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">♩ BPM</label>
+    <span id="songBpmPill" onclick="songBpmEdit()" title="Editar BPM de la canción"
+      style="font-family:var(--font-data);font-size:0.78rem;font-weight:700;
+             padding:4px 7px;border-radius:5px;cursor:pointer;transition:all 0.15s;
+             border:1px solid var(--border);background:var(--bg);color:var(--accent);
+             min-width:34px;display:inline-block;text-align:center;">—</span>
+  </div>
 
   <!-- Toggles Eagle — solo visibles en eagle-mode -->
   <div id="eagleToggles" style="display:none;align-items:center;gap:6px;">
@@ -5102,6 +5133,11 @@ const Router = (function () {
     library:  { el: 'libraryScreen',  how: 'open',    icon: '🎵', title: 'Volver a la biblioteca' },
     setlist:  { el: 'setlistScreen',  how: 'display', icon: '🎭', title: 'Volver al repertorio' },
     concert:  { el: 'concertMode',    how: 'display', icon: '🎭', title: 'Volver al concierto' },
+    // 'ensayo' = EL MISMO elemento que 'concert', con otro nombre. No es
+    // una pantalla nueva: el modo concierto solo necesita un array de
+    // {title, song_id} y la lista del evento ya lo es. Lo unico que
+    // cambia es de donde vienes y lo que dice el boton volver.
+    ensayo:   { el: 'concertMode',    how: 'display', icon: '🥁', title: 'Volver al ensayo' },
     calendar: { el: 'calendarScreen', how: 'open',    icon: '📅', title: 'Volver al calendario' },
     muro:     { el: 'muroScreen',     how: 'open',    icon: '📢', title: 'Volver a novedades' },
     // 'song' = canción abierta. No tiene pantalla propia: se monta sobre
@@ -5113,6 +5149,10 @@ const Router = (function () {
     lyrics:   { el: 'lyricsOverlay',  how: 'layer',   icon: '🎤', title: 'Volver a la letra' },
     // 'drumscore' = partitura de batería. Misma naturaleza CAPA que lyrics.
     drumscore:{ el: 'drumScoreOverlay', how: 'layer', icon: '🥁', title: 'Volver a la batería' },
+    // 'estructura' = el mapa de la cancion. Misma naturaleza CAPA que
+    // lyrics y drumscore: se abre desde la cancion, desde el concierto y
+    // desde Ensayar, y al cerrar vuelve a la que lo abrio.
+    estructura:{ el: 'estructuraOverlay', how: 'layer', icon: '🗺', title: 'Volver a la estructura' },
   };
 
   let _stack = [];      // [{screen, state}]
@@ -6784,7 +6824,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261109.3";
+const APP_VERSION = "20261110.8";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -11596,18 +11636,28 @@ function confirmAddSong() {
 // ═══════════════════════════════════════════════
 let _cm = { idx: 0, songs: [], auto: false, secs: 120, elapsed: 0, paused: false, timer: null };
 let _cmSavedState = null;
+// Si no es null estamos en Ensayar y no en el concierto: {eventId, date,
+// futuro, rotulo}. Es lo que hace que la misma pantalla se comporte de
+// dos maneras y que ✕ Salir sepa a donde volver.
+let _ensayo = null;
 
-// Al volver al concierto (desde el cifrado), restaurar su estado y timer.
-Router.onShow('concert', () => {
+// Al volver al concierto o al ensayo (desde el cifrado o la letra),
+// restaurar su estado y timer. Las dos pantallas son el mismo elemento,
+// asi que comparten el hook.
+function _cmRestore() {
   if (_cmSavedState) {
     Object.assign(_cm, _cmSavedState);
     _cmSavedState = null;
     clearInterval(_cm.timer);
     _cm.paused = true; // el usuario decide si reanuda
     document.getElementById("cmPauseBtn").textContent = "▶ Reanudar";
-    _cmRender();
   }
-});
+  // Repintar siempre, no solo si habia estado guardado: en Ensayar las
+  // pasadas pueden haber cambiado mientras estabas en el cifrado.
+  _cmRender();
+}
+Router.onShow('concert', _cmRestore);
+Router.onShow('ensayo',  _cmRestore);
 
 function openConcertMode() {
   _cmSwipeSetup();
@@ -11628,6 +11678,16 @@ function openConcertMode() {
 
 function closeConcertMode() {
   clearInterval(_cm.timer);
+  // Si vinimos de un ensayo, volvemos al calendario y al panel del dia.
+  // _calOpenDate nunca se borro (el 🔗 y Ensayar solo TAPAN el panel),
+  // asi que el hook Router.onShow('calendar') lo reabre solo.
+  if (_ensayo) {
+    _ensayo = null;
+    const prev = Router.backInfo();
+    if (prev && prev.screen === 'calendar') Router.back();
+    else Router.replace('calendar');
+    return;
+  }
   const returnSetlistId = _currentSetlist?.id;
   if (returnSetlistId) {
     showSetlists();                  // abre la pantalla de repertorios (resetea _currentSetlist)
@@ -11653,6 +11713,16 @@ function _cmRender() {
   document.getElementById("cmScoreBtn").style.display = s.song_id ? "" : "none";
   // Botón letra
   document.getElementById("cmLyricsBtn").style.display = s.song_id ? "" : "none";
+  // Botón estructura
+  document.getElementById("cmEstBtn").style.display = s.song_id ? "" : "none";
+
+  // «← Anterior» no sale en la primera: cmPrev() ya no hacia nada ahi,
+  // pero un boton que no hace nada es peor que no tenerlo. Y si tampoco
+  // esta el de pausa, se esconde la fila entera: si no, queda flotando
+  // el hueco de 10px del gap.
+  const _hayPrev = _cm.idx > 0;
+  document.getElementById("cmPrevBtn").style.display = _hayPrev ? "" : "none";
+  document.getElementById("cmNavRow").style.display  = (_hayPrev || _cm.auto) ? "flex" : "none";
 
   // Timer display
   const timerEl = document.getElementById("cmTimer");
@@ -11667,6 +11737,93 @@ function _cmRender() {
     seg.style.cssText = `flex:1;height:4px;background:${i < _cm.idx ? "var(--green)" : i === _cm.idx ? "var(--accent)" : "var(--dim)"};transition:background 0.3s;`;
     prog.appendChild(seg);
   });
+
+  _ensRender();   // el bloque de pasadas: solo tiene sentido en Ensayar
+}
+
+// ═══════════════════════════════════════════════
+// ENSAYAR — la lista del evento, cancion a cancion
+// ═══════════════════════════════════════════════
+// Misma pantalla que el concierto. Lo que anade: el rotulo de arriba y el
+// contador de pasadas, que es la razon de existir de todo esto — si
+// marcas mientras tocas, el numero tiene que estar donde estas mirando.
+
+// La fila viva de song_plays de la cancion actual. Se lee de _calPlays y
+// NO del array de _cm: las pasadas cambian con cada +1 y _cm es una foto
+// del momento de entrar. Lo unico que se guarda en la foto es play_id,
+// que no cambia.
+function _ensPlay() {
+  if (!_ensayo) return null;
+  const s = _cm.songs[_cm.idx];
+  if (!s || !s.play_id) return null;
+  const lista = (typeof _calPlays !== 'undefined' && _calPlays[_ensayo.eventId]) || [];
+  return lista.find(p => String(p.id) === String(s.play_id)) || null;
+}
+
+function _ensRender() {
+  const blk = document.getElementById('ensBlock');
+  const lbl = document.getElementById('ensLabel');
+  if (!blk || !lbl) return;
+  if (!_ensayo) { blk.style.display = 'none'; lbl.style.display = 'none'; return; }
+
+  lbl.style.display = '';
+  lbl.textContent = _ensayo.rotulo;
+
+  const p = _ensPlay();
+  // En un evento que no ha pasado todavia no hay pasadas que contar: es
+  // un plan. Misma regla que en la lista del panel, sin inventar nada.
+  if (!p || _ensayo.futuro) { blk.style.display = 'none'; return; }
+  blk.style.display = 'flex';
+  const n = p.veces || 1;
+  document.getElementById('ensN').textContent = '\u00d7' + n;
+  document.getElementById('ensMenos').disabled = n <= 1;
+}
+
+// Suma o resta una pasada desde la pantalla. Reutiliza calPlayBump, que
+// ya recarga y ya protege el 1 (restar nunca borra la cancion).
+async function ensBump(delta) {
+  const p = _ensPlay();
+  if (!p) return;
+  await calPlayBump(p.id, delta);
+  _ensRender();
+}
+
+// Entrar. Se puede entrar tambien a un evento futuro: sirve para
+// preparar el ensayo del dia antes, y entonces no hay contador.
+function ensayoOpen(eventId) {
+  const plays = (typeof _calPlays !== 'undefined' && _calPlays[eventId]) || [];
+  if (!plays.length) { alert('Esa lista no tiene canciones todavia.'); return; }
+  const ev  = (_calEvents || []).find(e => String(e.id) === String(eventId));
+  const hoy = _dateStr(new Date());
+  const icon = !ev ? '🎸' : ev.type === 'ensayo' ? '🎸' : ev.type === 'concierto' ? '🎤' : '📌';
+  const d = ev && ev.date ? new Date(ev.date + 'T12:00:00') : null;
+  const fecha = d ? d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '';
+
+  _ensayo = {
+    eventId: eventId,
+    date:    ev ? ev.date : null,
+    futuro:  !!(ev && ev.date > hoy),
+    rotulo:  [icon + ' ' + ((ev && ev.title) || 'Lista'), fecha].filter(Boolean).join(' · ')
+  };
+
+  // La foto: el concierto solo necesita title y song_id. Lo demas va
+  // vacio a proposito — un ensayo no tiene tono ni bpm ni semaforo.
+  _cm.songs = plays.map(p => ({
+    title: p.titulo, artist: p.artista || '',
+    key: '', bpm: '', duration: '', notes: '', status: 0,
+    song_id: p.song_id, play_id: p.id
+  }));
+  _cm.idx = 0; _cm.elapsed = 0; _cm.paused = false;
+  _cm.auto = false;            // sin cronometro: en un ensayo estorba
+  _cmSavedState = null;
+  clearInterval(_cm.timer);
+
+  _cmSwipeSetup();
+  _calPanelHide();             // el panel es hermano: hay que taparlo
+  Router.go('ensayo');
+  document.getElementById('cmPauseBtn').style.display = 'none';
+  document.getElementById('cmTimer').style.display    = 'none';
+  _cmRender();
 }
 
 function _cmSwipeSetup() {
@@ -11763,6 +11920,22 @@ async function cmOpenLyrics() {
   lyricsSetSource(data.data);   // el visor leerá esta canción, no songData
   lyricsSetNav((_cm.songs || []).map(x => ({ song_id: x.song_id, title: x.title })), _cm.idx);
   lyricsOpen();                 // se apila sobre 'concert' (Router)
+}
+
+// Igual que cmOpenLyrics: trae la cancion de la base (en _cm solo hay
+// titulo y song_id), guarda el estado del concierto y abre la capa.
+async function cmOpenEstructura() {
+  const s = _cm.songs[_cm.idx];
+  if (!s || !s.song_id) return;
+  const { data, error } = await _sb.from("Canciones").select("*").eq("id", s.song_id).single();
+  if (error || !data || !data.data) { alert('No se pudo cargar la estructura de esta canci\u00f3n.'); return; }
+  clearInterval(_cm.timer);
+  _cmSavedState = {
+    idx: _cm.idx, songs: _cm.songs, auto: _cm.auto,
+    secs: _cm.secs, elapsed: _cm.elapsed, paused: _cm.paused
+  };
+  estructuraSetSource(data.data);
+  estructuraOpen();             // se apila sobre 'concert' o sobre 'ensayo'
 }
 
 function cmOpenScore() {
@@ -14506,6 +14679,244 @@ function lyricsGetSections() {
   return out;
 }
 
+// ── Visor ESTRUCTURA 🗺 (capa del Router) ────────────────────
+// El mapa de la cancion: que partes tiene y en que orden. Nada mas, a
+// proposito. Para Hugo, que improvisa y se pierde.
+let _estSource  = null;    // cancion explicita (la pone el concierto)
+// El minimo baja a 11 porque la estructura tiene que CABER: si hay que
+// hacer scroll deja de verse de un vistazo, que es para lo que existe.
+// Lo que antes sostenia el minimo de 20 ahora lo sostiene _estObjetivo():
+// por debajo de 19px el nombre deja de ser «texto grande» y la tinta
+// pasa a exigir 4.5 en vez de 3.0, o sea que se empuja mas.
+const _EST_MIN  = 11, _EST_MAX = 64;
+const _EST_GRANDE = 19;   // negrita por encima de 18.66px = texto grande
+let _estFontIni = null;    // para saber si hay que guardar al cerrar
+
+// Igual que lyricsSetSource: el concierto dice QUE cancion ensenar sin
+// tocar songData, que es la que esta abierta en el editor.
+function estructuraSetSource(song) { _estSource = song || null; }
+function estructuraData() { return _estSource || songData; }
+
+// Mucho mas simple que lyricsGetSections(): alli hay que filtrar las
+// filas de voz y juntar sus textos; aqui el nombre ya esta.
+function estructuraGetSections() {
+  const data = estructuraData();
+  const secs = (data && data.sections) || [];
+  return secs.map((sec, i) => ({
+    n: i + 1,
+    // Sin nombre no se deja un hueco: un hueco parece un fallo de la
+    // app, y «Seccion 3» dice que falta ponerle nombre.
+    name: (sec.name || '').trim() || ('Secci\u00f3n ' + (i + 1)),
+    sinNombre: !(sec.name || '').trim(),
+    // El MISMO color que pinta el Aguila y la cabecera del cifrado:
+    // getSectionColor busca el nombre en las reglas {keyword, color}
+    // que cada uno tiene en sus ajustes. Si no hay regla, null.
+    color: getSectionColor(sec.name || '')
+  }));
+}
+
+// ── Color: el del Aguila, salvo que no se lea ────────────────
+// El Aguila pinta el color crudo y casi siempre vale. Aqui se mide cada
+// uno contra el fondo REAL (el tinte del 9% sobre el fondo del visor) y
+// solo se empuja el que no llega, y lo minimo. Asi los que ya estaban
+// bien salen identicos al Aguila, que es lo que se pedia.
+// El objetivo cambia con el tamano: a partir de 19px el nombre en
+// negrita es «texto grande» (3.0 segun la norma, 3.2 con un margen);
+// por debajo es texto normal y pide 4.5 (4.6 con margen).
+function _estObjetivo() {
+  return ((_userSettings.estFontPx || 30) >= _EST_GRANDE) ? 3.2 : 4.6;
+}
+
+function _estRgb(c) {
+  if (!c) return null;
+  c = String(c).trim();
+  if (c[0] === '#') {
+    let h = c.slice(1);
+    if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    if (h.length < 6) return null;
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+  }
+  const m = c.match(/[\d.]+/g);
+  return (m && m.length >= 3) ? [+m[0], +m[1], +m[2]] : null;
+}
+function _estLum(c) {
+  const f = v => { v /= 255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+  return 0.2126*f(c[0]) + 0.7152*f(c[1]) + 0.0722*f(c[2]);
+}
+function _estRatio(a, b) {
+  const A = _estLum(a), B = _estLum(b);
+  return (Math.max(A,B) + 0.05) / (Math.min(A,B) + 0.05);
+}
+// El fondo de la fila: el color al 9% encima del fondo del visor. Hay
+// que componerlo, porque medir contra el fondo suelto da un numero que
+// no es el que se ve.
+function _estFondoFila(rgbColor, fondo) {
+  if (!rgbColor) return fondo;
+  return rgbColor.map((v, i) => Math.round(v*0.09 + fondo[i]*0.91));
+}
+function _estTinta(hex, fondo) {
+  const c = _estRgb(hex);
+  if (!c || !fondo) return null;
+  const bg   = _estFondoFila(c, fondo);
+  const meta = _estObjetivo();
+  if (_estRatio(c, bg) >= meta) return null;   // vale el del Aguila
+  const hacia = _estLum(bg) > 0.35 ? [0,0,0] : [255,255,255];
+  for (let p = 4; p <= 92; p += 4) {
+    const m = c.map((v, k) => Math.round(v + (hacia[k]-v)*p/100));
+    if (_estRatio(m, bg) >= meta) return 'rgb(' + m.join(',') + ')';
+  }
+  return hacia[0] ? '#ffffff' : '#000000';
+}
+
+function estructuraOpen() {
+  const px = _userSettings.estFontPx || 30;
+  _estFontIni = px;
+  const data = estructuraData();
+  document.getElementById('estTitle').textContent =
+    (data && data.title) ? data.title : 'Estructura';
+  document.getElementById('estBody').style.fontSize = px + 'px';
+  document.body.style.overflow = 'hidden';   // bloquear scroll del fondo
+  estructuraPinchSetup();
+  Router.go('estructura');
+  estructuraRender();
+  // Si no cabe, encoger hasta que quepa. NUNCA crece por encima de lo
+  // que el usuario tiene elegido, y no se guarda: su tamano sigue
+  // siendo el suyo, esto es solo lo que se ve en esta cancion.
+  const body = document.getElementById('estBody');
+  if (body.scrollHeight > body.clientHeight + 1) {
+    const cabe = _estTamanoQueCabe(px);
+    if (cabe < px) {
+      body.style.fontSize = cabe + 'px';
+      const antes = _userSettings.estFontPx;
+      _userSettings.estFontPx = cabe;   // para que la tinta mida bien
+      _estTintasSiCruza();
+      _userSettings.estFontPx = antes;  // y el ajuste del usuario intacto
+    }
+  }
+}
+
+function estructuraClose() {
+  document.body.style.overflow = '';
+  estructuraSetSource(null);
+  // Guardar el tamano solo si cambio: no hace falta escribir por abrir.
+  if (_estFontIni !== null && _estFontIni !== _userSettings.estFontPx) {
+    try { saveUserSettings(); } catch (e) { /* no pasa nada */ }
+  }
+  _estFontIni = null;
+  if (Router.current() === 'estructura') Router.back();
+  else document.getElementById('estructuraOverlay').classList.remove('open');
+}
+
+function estructuraRender() {
+  const body = document.getElementById('estBody');
+  const secs = estructuraGetSections();
+  body.innerHTML = '';
+  if (!secs.length) {
+    body.innerHTML = '<div class="est-vacio">Esta canci\u00f3n todav\u00eda no tiene secciones.</div>';
+    return;
+  }
+  // El fondo que de verdad hay debajo, leido del elemento ya visible
+  // (estructuraOpen muestra la capa antes de llamar aqui).
+  const fondo = _estRgb(getComputedStyle(
+    document.getElementById('estructuraOverlay')).backgroundColor) || [0,0,0];
+
+  _estGrande = (_userSettings.estFontPx || 30) >= _EST_GRANDE;
+  body.innerHTML = secs.map(x => {
+    // --est-col es el color del Aguila: pinta la barra y el tinte.
+    // --est-ink solo aparece cuando ese color no se lee encima del
+    // tinte, y entonces lleva el minimo empujon que hace falta.
+    const ink = x.color ? _estTinta(x.color, fondo) : null;
+    const estilo = x.color
+      ? ` style="--est-col:${x.color}${ink ? ';--est-ink:' + ink : ''}"` : '';
+    return `<div class="est-fila${x.color ? ' est-col' : ''}"${estilo}>` +
+      `<span class="est-n">${x.n}</span>` +
+      `<span class="est-nombre${x.sinNombre ? ' est-falta' : ''}">${esc(x.name)}</span>` +
+    `</div>`;
+  }).join('');
+}
+
+// El tamano de letra: botones A- / A+ y pellizco, como en la letra.
+let _estGrande = null;   // en que lado de los 19px se pinto la ultima vez
+
+function estructuraSetFont(px) {
+  px = Math.max(_EST_MIN, Math.min(_EST_MAX, Math.round(px)));
+  _userSettings.estFontPx = px;
+  document.getElementById('estBody').style.fontSize = px + 'px';
+}
+
+// Las tintas se calculan al pintar, asi que al cruzar los 19px hay que
+// volver a pintar o se quedan con el objetivo del lado anterior. Solo
+// al CRUZAR: repintar en cada pulsacion de A+ seria tirar el scroll por
+// nada. Se conserva la posicion, que si no la lista salta.
+function _estTintasSiCruza() {
+  const grande = (_userSettings.estFontPx || 30) >= _EST_GRANDE;
+  if (grande === _estGrande) return;
+  const body = document.getElementById('estBody');
+  const y = body.scrollTop;
+  estructuraRender();
+  body.scrollTop = y;
+}
+function estructuraFont(d) {
+  estructuraSetFont((_userSettings.estFontPx || 30) + d);
+  _estTintasSiCruza();
+}
+
+// El mayor tamano que cabe sin scroll. Se busca midiendo de verdad y no
+// estimando: los nombres largos parten en dos lineas y eso no se calcula
+// con una multiplicacion. Busqueda binaria, seis o siete pruebas.
+function _estTamanoQueCabe(tope) {
+  const body = document.getElementById('estBody');
+  const guardado = _userSettings.estFontPx || 30;
+  let lo = _EST_MIN, hi = Math.min(_EST_MAX, tope || _EST_MAX), mejor = _EST_MIN;
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    body.style.fontSize = mid + 'px';
+    if (body.scrollHeight <= body.clientHeight + 1) { mejor = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  body.style.fontSize = guardado + 'px';   // dejarlo como estaba
+  return mejor;
+}
+
+// Boton ⤢: busca el tamano que cabe en los dos sentidos y lo guarda.
+function estructuraAjustar() {
+  estructuraSetFont(_estTamanoQueCabe(_EST_MAX));
+  _estTintasSiCruza();
+  try { saveUserSettings(); } catch (e) { /* da igual */ }
+}
+
+// Pellizco. Mismo patron que lyricsPinchSetup pero sin la parte del
+// swipe, que alli sirve para pasar de cancion y aqui no hay lista.
+// El preventDefault del touchmove NO es opcional: sin el, el que hace
+// zoom es el navegador y se va de escala la pagina entera.
+let _estPinch = null;
+function estructuraPinchSetup() {
+  const body = document.getElementById('estBody');
+  if (body._pinchBound) return;
+  body._pinchBound = true;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  body.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      _estPinch = { d: dist(e.touches), px: _userSettings.estFontPx || 30 };
+    }
+  }, { passive: true });
+  body.addEventListener('touchmove', e => {
+    if (_estPinch && e.touches.length === 2) {
+      e.preventDefault();
+      estructuraSetFont(_estPinch.px * dist(e.touches) / _estPinch.d);
+    }
+  }, { passive: false });
+  const fin = () => {
+    if (_estPinch) {
+      _estPinch = null;
+      _estTintasSiCruza();   // al soltar, no en cada dedo que se mueve
+      try { saveUserSettings(); } catch (e) { /* da igual */ }
+    }
+  };
+  body.addEventListener('touchend', fin, { passive: true });
+  body.addEventListener('touchcancel', fin, { passive: true });
+}
+
 // ── Visor PARTITURA DE BATERÍA (capa del Router) ─────────────
 function drumScoreOpen() {
   _dspStop();
@@ -15369,6 +15780,24 @@ function drumPatternToHTML(dp, colorClass) {
   </div>
 </div>
 
+<!-- Ver repertorio desde el panel del dia (F13 - 09/11/2026).
+     Hoja inferior, no pantalla: se cierra y sigues en el mismo dia.
+     Mismo z-index que el selector de canciones, que se abre desde ahi
+     mismo y ya se sabe que funciona encima del panel. -->
+<div id="calSlView" style="position:fixed;inset:0;z-index:8600;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;">
+  <div class="csv-sheet">
+    <div class="csv-head">
+      <div style="flex:1;min-width:0;">
+        <h3 id="calSlName" class="csv-name">Repertorio</h3>
+        <div id="calSlSub" class="csv-sub"></div>
+      </div>
+      <button class="csv-x" onclick="calSlClose()">&#10005;</button>
+    </div>
+    <div id="calSlBody" class="csv-body"></div>
+    <div id="calSlFoot" style="display:none;"></div>
+  </div>
+</div>
+
 <!-- Modal añadir canción -->
 <!-- Selector de cancion de la biblioteca (R1 - 04/09/2026) -->
 <div id="slSongPicker" style="position:fixed;inset:0;z-index:8600;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;">
@@ -15438,6 +15867,9 @@ function drumPatternToHTML(dp, colorClass) {
   <!-- Barra de progreso superior -->
   <div id="cmProgress" style="position:absolute;top:0;left:0;right:0;display:flex;height:4px;"></div>
 
+  <!-- Rotulo: solo en Ensayar, para saber que no estas en un concierto -->
+  <div id="ensLabel" style="display:none;font-family:var(--font-data);font-size:0.7rem;font-weight:700;color:var(--play-ink);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;"></div>
+
   <!-- Contador -->
   <div id="cmCounter" style="font-family:var(--font-data);font-size:0.75rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:16px;"></div>
 
@@ -15445,6 +15877,7 @@ function drumPatternToHTML(dp, colorClass) {
   <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
     <div id="cmStatus" style="font-size:2.5rem;line-height:1;"></div>
     <button id="cmScoreBtn" onclick="cmOpenScore()" title="Ver cifrado" style="display:none;background:rgba(255,255,255,0.05);border:2px solid var(--muted);border-radius:8px;cursor:pointer;font-size:1.4rem;line-height:1;transition:border-color 0.2s,background 0.2s;padding:8px 14px;" onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.borderColor='var(--muted)';this.style.background='rgba(255,255,255,0.05)'">📄</button>
+    <button id="cmEstBtn" onclick="cmOpenEstructura()" title="Ver estructura" style="display:none;background:rgba(255,255,255,0.05);border:2px solid var(--muted);border-radius:8px;cursor:pointer;font-size:1.4rem;line-height:1;transition:border-color 0.2s,background 0.2s;padding:8px 14px;" onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.borderColor='var(--muted)';this.style.background='rgba(255,255,255,0.05)'">🗺</button>
     <button id="cmLyricsBtn" onclick="cmOpenLyrics()" title="Ver letra" style="display:none;background:rgba(255,255,255,0.05);border:2px solid var(--muted);border-radius:8px;cursor:pointer;font-size:1.4rem;line-height:1;transition:border-color 0.2s,background 0.2s;padding:8px 14px;" onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.borderColor='var(--muted)';this.style.background='rgba(255,255,255,0.05)'">🎤</button>
   </div>
 
@@ -15460,11 +15893,22 @@ function drumPatternToHTML(dp, colorClass) {
   <!-- Timer (solo en modo auto) -->
   <div id="cmTimer" style="font-family:var(--font-data);font-size:2.2rem;font-weight:700;color:var(--accent);margin-bottom:28px;display:none;min-height:2.8rem;"></div>
 
+  <!-- Pasadas (solo en Ensayar). El + es el gesto normal y por eso es el
+       que lleva el acento; el - esta para corregir y se apaga en 1. -->
+  <div id="ensBlock" style="display:none;align-items:center;justify-content:center;gap:14px;margin-bottom:26px;">
+    <button id="ensMenos" class="ens-b" onclick="ensBump(-1)" title="Quitar una pasada">&minus;</button>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:62px;">
+      <div id="ensN" class="ens-n">&times;1</div>
+      <div class="ens-lb">pasadas</div>
+    </div>
+    <button id="ensMas" class="ens-b ens-b-mas" onclick="ensBump(1)" title="Sumar una pasada">+</button>
+  </div>
+
   <!-- Controles -->
   <div style="display:flex;flex-direction:column;gap:10px;align-items:stretch;width:100%;max-width:340px;">
     <button id="cmMainBtn" onclick="cmNext()" style="font-family:var(--font-data);font-size:0.9rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:15px 24px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--bg);cursor:pointer;">Siguiente →</button>
-    <div style="display:flex;gap:10px;">
-      <button onclick="cmPrev()" style="flex:1;font-family:var(--font-data);font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;">← Anterior</button>
+    <div id="cmNavRow" style="display:flex;gap:10px;">
+      <button id="cmPrevBtn" onclick="cmPrev()" style="flex:1;font-family:var(--font-data);font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;">← Anterior</button>
       <button id="cmPauseBtn" onclick="cmTogglePause()" style="display:none;flex:1;font-family:var(--font-data);font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;">⏸ Pausar</button>
     </div>
     <button onclick="closeConcertMode()" style="font-family:var(--font-data);font-size:0.66rem;letter-spacing:0.1em;text-transform:uppercase;padding:9px 18px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);opacity:0.6;cursor:pointer;">✕ Salir</button>
@@ -15943,9 +16387,10 @@ function _eagleSyncMode() {
   _eagleDeactivateSection();
   document.querySelectorAll('.eagle-sec-label-global').forEach(el => el.remove());
 
-  // Resetear secciones: en Tocar OFF por defecto, en Editar no aplica
+  // Resetear secciones: ON por defecto, igual que al entrar.
   _eagleSections = false;
   document.body.classList.add('eagle-no-sections');
+  eagleToggleSections();   // -> ON, crea las etiquetas y sincroniza el boton
 
   // Re-aplicar colores y bindings
   _eagleApplySectionColors();
@@ -16061,9 +16506,16 @@ function toggleEagleMode() {
     document.body.classList.remove('eagle-no-sections', 'eagle-comments');
 
     if (_readonly) {
-      // Tocar: secciones OFF por defecto (usuario las activa con botón)
+      // Tocar: secciones ON por defecto. Se deja en false y se llama al
+      // propio toggle en vez de copiar aqui la creacion de etiquetas:
+      // ponerlas y quitarlas vive en UN solo sitio, y asi el boton ☰
+      // queda sincronizado sin tener que acordarse.
+      // Efecto buscado: con las secciones puestas, tocar un bloque ya no
+      // revela una sola (lo dice _eagleActivateSection). Para eso esta
+      // el boton ☰, que ahora apaga en vez de encender.
       _eagleSections = false;
       document.body.classList.add('eagle-no-sections');
+      eagleToggleSections();
     } else {
       // Editar: secciones siempre visibles, sin botón
       _eagleSections = true;
@@ -17127,7 +17579,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .ev-block-actions { flex-wrap: wrap; }
 .ev-block .ev-att-row:first-child { margin-top: 0; }
-.ev-att-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.ev-att-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px; }
 .ev-att {
   font-family:var(--font-data); font-size:0.62rem; letter-spacing:0.03em;
   padding:2px 7px; border-radius:12px; border:1px solid var(--border-soft);
@@ -17135,13 +17587,28 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .ev-att.yes { background:rgba(61,186,110,0.22); color:#3dba6e; border-color:#3dba6e; font-weight:700; }
 .ev-att.no  { background:rgba(232,64,64,0.22);  color:#ff6666; border-color:#ff6666; font-weight:700; }
+/* .ev-att-btns ya no se usa: los botones viven dentro de .ev-att-row.
+   Se deja la regla por si queda algun sitio que la pinte. */
 .ev-att-btns { display:flex; gap:8px; margin-top:8px; }
+/* Mas pequenos, pero NO por debajo del area de toque: la altura se
+   sostiene con min-height, no con el padding, para que encoger la letra
+   no encoja el sitio donde se pulsa. El primero empuja a los dos a la
+   derecha; las pastillas se quedan a la izquierda. */
 .ev-att-btn {
-  font-family:var(--font-data); font-size:0.7rem; padding:6px 14px;
+  /* padding 9 y no 11: medido, con 11 el par se pasaba por 4.1px y se
+     caia a la linea de abajo. El alto no depende del padding (lo fija
+     min-height), asi que estos 4px no le quitan area a nadie. */
+  font-family:var(--font-data); font-size:0.64rem; padding:0 9px;
+  min-height:28px; display:inline-flex; align-items:center;
   border-radius:8px; border:1.5px solid var(--muted); background:var(--surface, rgba(255,255,255,0.05));
   color:var(--text); cursor:pointer; transition:all 0.15s;
   box-shadow:0 1px 3px rgba(0,0,0,0.15);
 }
+/* Los dos juntos en un bloque, y el bloque entero a la derecha. Con el
+   margin-left:auto puesto en el primer BOTON, «Voy» se iba a la derecha
+   y «No voy» caia sola a la linea de abajo, a la izquierda. Asi, o caben
+   los dos en la fila de las pastillas o bajan los dos juntos. */
+.ev-att-acts { display:flex; gap:6px; margin-left:auto; flex:0 0 auto; }
 .ev-att-btn.yes.active { background:rgba(61,186,110,0.18); color:#3dba6e; border-color:#3dba6e; font-weight:700; }
 .ev-att-btn.no.active  { background:rgba(232,64,64,0.18);  color:#ff6666; border-color:#ff6666; font-weight:700; }
 .ev-att-btn:hover { border-color:var(--accent); }
@@ -17317,7 +17784,10 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .ev-plays-list { display: flex; flex-direction: column; }
 .ev-play {
-  display: flex; align-items: center; gap: 8px; min-width: 0;
+  /* gap 6 y no 8: la fila paso de dos controles a cuatro con el 🔗, y el
+     espaciado de antes se lo comia del titulo. Medido: con 8px el titulo
+     mas largo se quedaba a 7px de caber en el estado «xN cerrado». */
+  display: flex; align-items: center; gap: 6px; min-width: 0;
   padding: 1px 0;
   border-bottom: 1px solid var(--border-soft);
   font-family: var(--font-data); font-size: 0.68rem;
@@ -17366,8 +17836,12 @@ document.addEventListener('DOMContentLoaded', function() {
 /* El xN hace dos papeles y por eso es un boton: ensena las pasadas y,
    al tocarlo, despliega el - y el +. Solo aparece cuando hay mas de
    una: con una sola no hay nada que corregir hacia abajo. */
+/* 24 y no 26: con el 🔗 en la fila, al titulo mas largo le faltaban
+   0.61px para caber y salia recortado por menos de un pixel. Esto es
+   una pastilla de numero entre dos huecos de 6px, no un icono suelto,
+   asi que los dos pixeles salen de aqui y no del titulo. */
 .ev-play-n {
-  min-width: 26px; height: 28px; text-align: center; flex: 0 0 auto;
+  min-width: 24px; height: 28px; text-align: center; flex: 0 0 auto;
   border: 0; background: none; padding: 0 2px; cursor: pointer;
   font-family: var(--font-data); font-size: inherit;
   font-weight: 700; color: var(--play-ink);
@@ -17380,6 +17854,212 @@ document.addEventListener('DOMContentLoaded', function() {
 .ev-play-del:hover { color: var(--accent2); }
 .ev-plays-empty {
   font-family: var(--font-body); font-size: 0.72rem; color: var(--muted); padding: 2px 0;
+}
+/* El 🔗 de cada fila. 26px de ancho: lo mas estrecho que se puede sin
+   bajar del area de toque, porque cada pixel que ocupa lo pierde el
+   titulo y de ahi venimos. Alto 28 como el resto de la fila.
+   El <span> vacio del mismo tamano mantiene los nombres alineados
+   cuando una fila no esta vinculada a la biblioteca. */
+.ev-play-link {
+  flex: 0 0 auto; width: 26px; height: 28px; padding: 0;
+  border: 0; background: none; cursor: pointer;
+  font-size: 0.72rem; line-height: 28px; text-align: center;
+  opacity: 0.75;
+}
+.ev-play-link:hover { opacity: 1; }
+/* Ensayar es la accion principal del bloque, asi que va sola y a todo lo
+   ancho al pie de la lista — no apretada en la cabecera con Anadir. */
+.ev-ens-btn {
+  display: block; width: 100%; margin-top: 8px;
+  padding: 10px 14px; border-radius: 8px;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--bg);
+  font-family: var(--font-data); font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.ev-ens-btn:active { opacity: 0.85; }
+
+/* ── Pasadas dentro de la pantalla de Ensayar ──────────────────────
+   Se mira desde el taburete, con las manos ocupadas: el numero grande
+   y los botones de 48px, no los 28 de la lista. */
+.ens-b {
+  width: 48px; height: 48px; padding: 0; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--muted); cursor: pointer;
+  font-family: var(--font-data); font-size: 1.5rem; font-weight: 700; line-height: 1;
+}
+.ens-b:disabled { opacity: 0.3; cursor: default; }
+/* El + lleva el acento porque es el gesto que vas a hacer; el - solo
+   esta para corregir. */
+.ens-b-mas { border-color: var(--accent); background: var(--accent); color: var(--bg); }
+/* --play-ink y no --accent: medido sobre --bg, el acento da 4.21 en Claro
+   y el minimo para texto es 4.5. La tinta da 4.82 en Claro y 5.51 en Dia,
+   y en los oscuros es el mismo acento. Es el mismo arreglo que se hizo
+   para el contador de la biblioteca. */
+.ens-n {
+  font-family: var(--font-data); font-size: 1.6rem; font-weight: 700;
+  color: var(--play-ink); line-height: 1;
+}
+.ens-lb {
+  font-family: var(--font-data); font-size: 0.56rem; color: var(--muted);
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+
+/* ── Visor de estructura 🗺 ────────────────────────────────────────
+   Se lee desde el taburete y con las manos ocupadas: numero a la
+   izquierda para poder decir «vamos por la 4» en voz alta, y el nombre
+   grande. El tamano lo pone el JS sobre #estBody, y las filas heredan
+   con em para que los botones A- / A+ muevan el conjunto entero. */
+.est-ctl {
+  font-family: var(--font-data); font-size: 0.82rem;
+  min-height: 32px; padding: 0 11px; display: inline-flex; align-items: center;
+  border-radius: 7px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted); cursor: pointer;
+  flex-shrink: 0; white-space: nowrap;
+}
+.est-ctl:active { transform: scale(0.94); transition-duration: 0s; }
+/* La barra de la izquierda siempre ocupa sitio, tenga color o no, para
+   que los nombres queden alineados entre si. */
+.est-fila {
+  display: flex; align-items: baseline; gap: 0.6em;
+  padding: 0.28em 0.5em 0.28em 0.45em;
+  border-left: 5px solid transparent;
+  border-bottom: 1px solid var(--border-soft);
+}
+.est-fila:last-child { border-bottom: 0; }
+/* Igual que _eagleApplySectionColors: barra al color pleno y un fondo
+   muy tenue. Alli es color + '12' (un 7%); aqui 9% porque la fila es
+   mas baja y el tinte se ve menos. */
+.est-col {
+  /* --est-ink solo lo pone el JS cuando el color crudo no se lee; si no
+     esta, sale el del Aguila tal cual. La barra y el nombre van del
+     mismo color para que el empujon no parezca un error. */
+  border-left-color: var(--est-ink, var(--est-col));
+  background: color-mix(in srgb, var(--est-col) 9%, transparent);
+}
+.est-col .est-nombre { color: var(--est-ink, var(--est-col)); }
+/* El numero no baja de 10px aunque el nombre si: a 11px de nombre se
+   quedaba en 6.8px, y el numero es justo lo que se dice en voz alta
+   («vamos por la 4»). */
+.est-n {
+  flex: 0 0 auto; min-width: 1.8em; text-align: right;
+  font-family: var(--font-data); font-size: max(10px, 0.62em); font-weight: 700;
+  color: var(--muted);
+}
+/* overflow-wrap: al tamano maximo (64px) una palabra como
+   «instrumental» mide mas que el ancho del movil y se salia de la fila.
+   Medido: 5 de 10 nombres. Partir la palabra es feo, pero menos que
+   perderla. */
+/* La misma letra que la etiqueta de seccion del Aguila: monoespaciada,
+   negrita, espaciada y en MAYUSCULAS. Las mayusculas no son estetica:
+   los nombres estan escritos a mano y conviven «pUente B» con
+   «ESTROFA 3A». Asi la lista se lee como una lista. */
+.est-nombre {
+  flex: 1; min-width: 0;
+  font-family: var(--font-data); font-size: 1em; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text); line-height: 1.3;
+  overflow-wrap: break-word; word-break: break-word;
+}
+/* Una seccion sin nombre no se esconde: se ensena en gris y en cursiva
+   para que se vea que falta ponerselo. */
+.est-falta { color: var(--muted); font-style: italic; font-weight: 400; }
+.est-vacio {
+  font-family: var(--font-body); font-size: 0.9rem; color: var(--muted);
+  padding: 20px 2px; line-height: 1.5;
+}
+
+/* ── Ver repertorio · hoja sobre el panel del dia ──────────────────
+   Copia el aspecto del selector de canciones a proposito: se abren
+   desde el mismo sitio y hacen cosas parecidas, asi que se parecen. */
+.csv-sheet {
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 14px 14px 0 0; padding: 14px 14px 12px;
+  width: 100%; max-width: 520px; max-height: 85vh;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.csv-head { display: flex; align-items: flex-start; gap: 10px; }
+.csv-name {
+  font-family: var(--font-display); font-weight: 700; color: var(--accent);
+  font-size: 1.05rem; margin: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.csv-sub {
+  font-family: var(--font-data); font-size: 0.64rem; color: var(--muted);
+  letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px;
+}
+.csv-x {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+  border-radius: 8px; padding: 6px 11px; font-size: 1rem; cursor: pointer; flex: 0 0 auto;
+}
+.csv-body { overflow-y: auto; display: flex; flex-direction: column; }
+.csv-row {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 5px 0; border-bottom: 1px solid var(--border-soft);
+}
+.csv-row:last-child { border-bottom: 0; }
+/* --muted y no --dim: medido, --dim da 3.2 sobre la hoja en los cinco
+   temas y el minimo para texto es 4.5. El numero es informacion, no
+   decoracion. Con --muted va de 4.80 a 6.41. */
+.csv-num {
+  flex: 0 0 auto; width: 20px; text-align: right;
+  font-family: var(--font-data); font-size: 0.66rem; font-weight: 700; color: var(--muted);
+}
+/* El texto va en columna y se recorta el titulo, no la fila: con el
+   numero y el control a los lados el sitio es el que es. */
+.csv-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.csv-t {
+  font-family: var(--font-data); font-size: 0.72rem; font-weight: 700;
+  color: var(--play-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.csv-m {
+  font-family: var(--font-data); font-size: 0.6rem; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* El ＋ es el unico que se puede pulsar; el ✓ y el — solo informan, y
+   por eso no parecen botones. */
+.csv-add {
+  flex: 0 0 auto; width: 32px; height: 32px; padding: 0;
+  border: 1px solid var(--border); border-radius: 8px;
+  /* --play-ink: el ＋ se pinta sobre --surface2, donde el acento se queda
+     en 3.95 en Claro. La tinta sube a 4.53. */
+  background: var(--surface2); color: var(--play-ink);
+  font-family: var(--font-data); font-size: 0.95rem; line-height: 1; cursor: pointer;
+}
+.csv-add:active { transform: scale(0.92); transition-duration: 0s; }
+/* El ✓ sigue siendo verde porque el color dice algo («esta puesta»),
+   pero en los temas claros el verde de la app se queda en 4.25 sobre la
+   hoja. Tono + tinta, como en las pastillas de acorde. */
+.csv-ya {
+  flex: 0 0 auto; width: 32px; height: 32px; line-height: 32px; text-align: center;
+  color: var(--green); font-size: 0.9rem; font-weight: 700;
+}
+:root[data-mode="light"] .csv-ya { color: color-mix(in srgb, var(--green) 76%, black); }
+.csv-no {
+  flex: 0 0 auto; width: 32px; height: 32px; line-height: 32px; text-align: center;
+  color: var(--dim); font-size: 0.9rem;
+}
+.csv-todas {
+  display: block; width: 100%; margin-top: 2px;
+  padding: 10px 14px; border-radius: 8px;
+  border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  font-family: var(--font-data); font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.csv-todas:active { transform: scale(0.98); transition-duration: 0s; }
+.csv-avi {
+  font-family: var(--font-body); font-size: 0.66rem; color: var(--muted);
+  line-height: 1.4; margin-top: 8px;
+}
+.csv-vacio {
+  font-family: var(--font-body); font-size: 0.75rem; color: var(--muted); padding: 10px 0;
+}
+
+/* El nombre del repertorio: linea propia para que no se recorte nunca,
+   debajo de su cabecera. */
+.ev-sl-name {
+  font-family: var(--font-data); font-size: 0.72rem; font-weight: 700;
+  color: var(--play-ink); line-height: 1.3; padding: 1px 0;
 }
 
 /* Conflict warning */
@@ -17678,6 +18358,9 @@ let _calLoadSeq = 0;
 // Canciones tocadas por evento: { event_id: [ {id, song_id, titulo, artista} ] }
 // No guarda cuantas veces en total: eso es count(*) sobre song_plays.
 let _calPlays = {};
+// {setlist_id: nombre}. cal_events solo guarda el id; el nombre se trae
+// aparte en _calLoadData() para poder ensenarlo sin abrir nada.
+let _calSetlists = {};
 // Id de la fila con el -/+ desplegado. Vive FUERA del render porque
 // cada cambio recarga y repinta: si el estado viviera en el DOM, el
 // desplegable se cerraria tras cada toque y no se podria pulsar dos
@@ -18443,6 +19126,7 @@ async function _calLoadData() {
   _calEvRsvp = {};
   _calEvGuests = {};
   _calPlays = {};
+  _calSetlists = {};
   const _evIds = _calEvents.map(e => e.id).filter(Boolean);
   if (_evIds.length) {
     const { data: _rs } = await _sb.from('cal_event_rsvp')
@@ -18483,6 +19167,16 @@ async function _calLoadData() {
         artista: (p.Canciones && p.Canciones.artista) || ''
       });
     });
+
+    // El nombre de los repertorios colgados. Consulta aparte y no un join
+    // embebido: el join necesitaria la clave foranea declarada en la base
+    // y esto funciona igual exista o no. Solo se pide si hay alguno.
+    const _slIds = [...new Set(_calEvents.map(e => e.setlist_id).filter(Boolean))];
+    if (_slIds.length) {
+      const { data: _sl } = await _sb.from('setlists').select('id, name').in('id', _slIds);
+      if (_seq !== _calLoadSeq) return;
+      (_sl || []).forEach(x => { _calSetlists[x.id] = x.name || ''; });
+    }
   }
 
   // Build avail map: { 'YYYY-MM-DD': { member_key: 'yes'|'no' } }
@@ -18499,8 +19193,10 @@ async function _calLoadData() {
   if (_seq !== _calLoadSeq) return;   // idem: no pisar a una carga posterior
   _calRender();
 
-  // If a day panel is open, refresh it
-  if (_calOpenDate) _calOpenDayPanel(_calOpenDate);
+  // If a day panel is open, refresh it. Solo si el calendario es la
+  // pantalla activa: durante un Ensayar esto reabriria el panel por
+  // detras, y al abrir el cifrado desde el 🔗 se veria flotando encima.
+  if (_calOpenDate && Router.current() === 'calendar') _calOpenDayPanel(_calOpenDate);
 }
 
 // ── Render grid ─────────────────────────────────────────
@@ -18717,13 +19413,18 @@ function _calRenderPanelBody(dateStr) {
           }).join('')}
         </div>` : '';
 
+      // Las pastillas y los dos botones comparten fila: quien viene y si
+      // vengo yo son la misma pregunta. Los botones se van a la derecha
+      // con margin-left:auto, y si la banda crece y no caben, la fila
+      // envuelve sola (flex-wrap) en vez de desbordarse.
       const attHtml = `
         ${guestHtml}
         <div class="ev-block ev-block-att">
-        <div class="ev-att-row">${attRow}</div>
-        <div class="ev-att-btns">
+        <div class="ev-att-row">${attRow}
+          <span class="ev-att-acts">
           <button class="ev-att-btn yes ${myR==='yes'?'active':''}" onclick="calEvRespond('${ev.id}','yes','${dateStr}')">✓ Voy</button>
           <button class="ev-att-btn no ${myR==='no'?'active':''}"  onclick="calEvRespond('${ev.id}','no','${dateStr}')">✗ No voy</button>
+          </span>
         </div>
         </div>`;
 
@@ -18759,7 +19460,16 @@ function _calRenderPanelBody(dateStr) {
                 ? `<button class="ev-play-n" title="Cambiar las pasadas" ` +
                   `onclick="calPlayToggle('${p.id}')">\u00d7${_n}</button>`
                 : '');
-          return `<div class="ev-play">` +
+          // El 🔗 abre el cifrado. Va al PRINCIPIO y no junto a la X: es
+          // la accion segura y la destructiva se queda sola a la derecha,
+          // que en un movil importa. Si la fila no esta vinculada a la
+          // biblioteca queda un hueco, para que los nombres sigan
+          // alineados entre si.
+          const _lnk = p.song_id
+            ? `<button class="ev-play-link" title="Abrir el cifrado" ` +
+              `onclick="calPlayOpenSong('${p.song_id}')">\uD83D\uDD17</button>`
+            : `<span class="ev-play-link"></span>`;
+          return `<div class="ev-play">` + _lnk +
             (_futuro
               ? `<span class="ev-play-tx">${esc(p.titulo)}</span>`
               : `<button class="ev-play-tt" title="Tocar para sumar una pasada" ` +
@@ -18769,32 +19479,45 @@ function _calRenderPanelBody(dateStr) {
             `onclick="calPlayRemove('${p.id}')">\u2715</button>` +
           `</div>`;
         }).join('');
-        // Boton del repertorio: solo si el evento tiene uno. Es un boton,
-        // no un pre-marcado: en los ensayos el repertorio colgado es el
-        // vigente, no lo que se toco ese dia.
-        const _slBtn = ev.setlist_id
-          ? `<button class="cal-event-btn" onclick="calPlaysFromSetlist('${ev.id}','${ev.setlist_id}')">\uD83C\uDFAD Todo el repertorio</button>`
-          : '';
+        // «Todo el repertorio» ya no esta aqui: vive en la hoja de Ver
+        // repertorio, donde dice cuantas faltan en vez de meterlas todas
+        // a ciegas. Y la cabecera recupera su linea — con dos botones se
+        // partia en dos cuando el evento tenia repertorio.
         playsHtml = `
         <div class="ev-block ev-block-plays">
           <div class="ev-plays-head">
             <span>\uD83C\uDFB5 ${_futuro ? 'Qu\u00e9 vamos a tocar' : 'Qu\u00e9 tocamos'}${_plays.length ? ' \u00b7 ' + _plays.length : ''}</span>
-            <span style="display:flex;gap:6px;">${_slBtn}
+            <span style="display:flex;gap:6px;">
               <button class="cal-event-btn" onclick="calPlaysAdd('${ev.id}')">\uFF0B A\u00f1adir</button>
             </span>
           </div>
           ${_plays.length
             ? `<div class="ev-plays-list">${_filas}</div>`
             : `<div class="ev-plays-empty">${_futuro ? 'Nada previsto todav\u00eda' : 'Sin marcar'}</div>`}
+          ${_plays.length
+            ? `<button class="ev-ens-btn" onclick="ensayoOpen('${ev.id}')">` +
+              (ev.type === 'concierto' ? '\uD83C\uDFA4 Tocar la lista'
+               : ev.type === 'ensayo'  ? '\uD83E\uDD41 Ensayar'
+               : '\u25B6 Pasar la lista') +
+              ` \u00b7 ${_plays.length}</button>`
+            : ''}
         </div>`;
       }
 
-      // Setlist link
+      // El repertorio colgado, con SU NOMBRE. Antes solo ponia «Ver
+      // repertorio» abajo del todo, entre los botones de editar y
+      // borrar: habia que abrirlo para saber cual era.
       let setlistHtml = '';
       if (ev.setlist_id) {
-        setlistHtml = `<a class="cal-setlist-link" onclick="calOpenLinkedSetlist('${ev.setlist_id}')">
-          🎭 Ver repertorio
-        </a>`;
+        const _slN = _calSetlists[ev.setlist_id];
+        setlistHtml = `
+        <div class="ev-block ev-block-sl">
+          <div class="ev-plays-head">
+            <span>\uD83C\uDFAD Repertorio</span>
+            <button class="cal-event-btn" onclick="calOpenLinkedSetlist('${ev.setlist_id}','${ev.id}')">Ver</button>
+          </div>
+          <div class="ev-sl-name">${_slN ? esc(_slN) : 'Cargando\u2026'}</div>
+        </div>`;
       }
 
       card.innerHTML = `
@@ -18807,13 +19530,13 @@ function _calRenderPanelBody(dateStr) {
         ${ev.notes ? `<div class="cal-event-notes" style="white-space:pre-wrap;">${ev.notes}</div>` : ''}
         ${attHtml}
         ${conflictHtml}
+        ${setlistHtml}
         ${playsHtml}
         <div class="cal-event-actions ev-block ev-block-actions">
           <button class="cal-event-btn" onclick="calOpenForm('${ev.id}')">✎ Editar</button>
           <button class="cal-event-btn danger" onclick="calDeleteEvent('${ev.id}')">🗑</button>
           <button class="cal-event-btn share" onclick="calShareEvent('${ev.id}','${ev.title||''}','${ev.date||''}','${ev.time ? ev.time.slice(0,5) : ''}')">📨 Compartir</button>
           <button class="cal-event-btn share" onclick="calShareEventGroup('${ev.id}')">📢 Todos</button>
-          ${setlistHtml}
         </div>`;
       evSection.appendChild(card);
     });
@@ -18868,6 +19591,31 @@ function calCloseDayPanel() {
   _calOpenDate = null;
   document.getElementById('calDayPanel').classList.remove('open');
   document.getElementById('calOverlayDim').classList.remove('open');
+}
+
+// Tapar el panel SIN olvidar el dia. La diferencia con calCloseDayPanel()
+// es justo esa linea de arriba: aqui _calOpenDate sobrevive, porque es a
+// donde volvemos.
+// Hace falta porque calDayPanel es HERMANO de calendarScreen y no hijo:
+// cuando el Router oculta el calendario, el panel se queda flotando
+// encima de la cancion (z-index 8000 y el editor no tiene ninguno).
+function _calPanelHide() {
+  document.getElementById('calDayPanel').classList.remove('open');
+  document.getElementById('calOverlayDim').classList.remove('open');
+}
+
+// Al volver al calendario, reabrir el panel del dia que estaba abierto.
+// Mismo patron que el concierto restaurandose al volver del cifrado.
+Router.onShow('calendar', () => {
+  if (_calOpenDate) _calOpenDayPanel(_calOpenDate);
+});
+
+// Abrir el cifrado desde la lista del evento. NO cierra el panel: solo lo
+// tapa, para que al volver siga abierto el mismo dia.
+function calPlayOpenSong(songId) {
+  if (!songId) return;
+  _calPanelHide();
+  openSong(songId, true);   // entra en Tocar, como desde el concierto
 }
 
 // ── Availability ─────────────────────────────────────────
@@ -19259,13 +20007,113 @@ async function calPlayRemove(playId) {
   await _calLoadData();
 }
 
-// ── Linked setlist ───────────────────────────────────────
-async function calOpenLinkedSetlist(setlistId) {
-  calCloseDayPanel();
-  document.getElementById('calendarScreen').classList.remove('open');
-  showSetlists();
-  // Wait for setlists screen to render, then open the specific one
-  setTimeout(() => openSetlist(setlistId), 300);
+// ── Ver repertorio ───────────────────────────────────────
+// Una hoja sobre el panel del dia, no un viaje a la pantalla de
+// Repertorios: desde ahi no se podia volver (su unica salida es
+// showHome(), que ademas vacia la pila del Router).
+let _calSl = null;   // {setlistId, eventId, nombre, sub, songs:[]}
+
+async function calOpenLinkedSetlist(setlistId, eventId) {
+  const { data, error } = await _sb.from('setlists')
+    .select('id, name, date, venue, songs').eq('id', setlistId).single();
+  if (error || !data) { alert('No se ha podido leer el repertorio.'); return; }
+  const f = data.date
+    ? new Date(data.date + 'T12:00:00').toLocaleDateString('es-ES',
+        { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
+  _calSl = {
+    setlistId: setlistId,
+    eventId:   eventId || null,
+    nombre:    data.name || 'Repertorio',
+    sub:       [f, data.venue || ''].filter(Boolean).join(' \u00b7 '),
+    songs:     data.songs || []
+  };
+  document.getElementById('calSlView').style.display = 'flex';
+  _calSlRender();
+}
+
+function calSlClose() {
+  document.getElementById('calSlView').style.display = 'none';
+  _calSl = null;
+}
+
+// Las que ya estan en «que vamos a tocar», por song_id.
+function _calSlYaEstan() {
+  if (!_calSl || !_calSl.eventId) return new Set();
+  return new Set((_calPlays[_calSl.eventId] || []).map(p => String(p.song_id)));
+}
+
+function _calSlRender() {
+  if (!_calSl) return;
+  const ya    = _calSlYaEstan();
+  const iconos = ['', '\uD83D\uDFE1', '\uD83D\uDFE2'];   // ⬜ no se pinta: vacio es vacio
+  document.getElementById('calSlName').textContent = _calSl.nombre;
+  const sub = document.getElementById('calSlSub');
+  sub.textContent = _calSl.sub;
+  sub.style.display = _calSl.sub ? '' : 'none';
+
+  let faltan = 0, sueltas = 0;
+  const filas = _calSl.songs.map((x, i) => {
+    const meta = [x.artist, x.key, x.bpm ? x.bpm + ' bpm' : '',
+                  x.duration ? '\u23F1 ' + x.duration + 'm' : '']
+                 .filter(Boolean).join(' \u00b7 ');
+    const est = iconos[x.status || 0] || '';
+    let ctl;
+    if (!x.song_id) {
+      // Sin vincular a la biblioteca: no se puede marcar, y se dice.
+      sueltas++;
+      ctl = `<span class="csv-no">\u2014</span>`;
+    } else if (ya.has(String(x.song_id))) {
+      ctl = `<span class="csv-ya" title="Ya esta en la lista">\u2713</span>`;
+    } else {
+      faltan++;
+      ctl = `<button class="csv-add" title="A\u00f1adir a la lista" ` +
+            `onclick="calSlAdd('${x.song_id}')">\uFF0B</button>`;
+    }
+    return `<div class="csv-row">` +
+      `<span class="csv-num">${i + 1}</span>` +
+      `<span class="csv-tx">` +
+        `<span class="csv-t">${est ? est + ' ' : ''}${esc(x.title || '(sin t\u00edtulo)')}</span>` +
+        (meta ? `<span class="csv-m">${esc(meta)}</span>` : '') +
+      `</span>` + ctl + `</div>`;
+  }).join('');
+
+  document.getElementById('calSlBody').innerHTML = filas ||
+    `<div class="csv-vacio">Este repertorio no tiene canciones.</div>`;
+
+  // El pie: el boton de anadir las que faltan, y el aviso de las que no
+  // se pueden marcar. El aviso va escrito y no en un title: en el movil
+  // nadie ve un tooltip, y una fila con un guion y sin explicacion
+  // parece un fallo.
+  const pie = document.getElementById('calSlFoot');
+  const bot = (faltan && _calSl.eventId)
+    ? `<button class="csv-todas" onclick="calSlAddMissing()">` +
+      `\uFF0B A\u00f1adir ${faltan === 1 ? 'la que falta' : 'las ' + faltan + ' que faltan'}</button>`
+    : '';
+  const avi = sueltas
+    ? `<div class="csv-avi">\u2014 ${sueltas === 1
+        ? 'Una canci\u00f3n del repertorio no est\u00e1 vinculada a la biblioteca y no se puede marcar.'
+        : sueltas + ' canciones del repertorio no est\u00e1n vinculadas a la biblioteca y no se pueden marcar.'}</div>`
+    : '';
+  pie.innerHTML = bot + avi;
+  pie.style.display = (bot || avi) ? '' : 'none';
+}
+
+async function calSlAdd(songId) {
+  if (!_calSl || !_calSl.eventId) return;
+  if (!await _calPlaysInsertar(_calSl.eventId, [songId])) return;
+  _calSlRender();   // _calPlaysInsertar ya recargo: ahora sale el ✓
+}
+
+async function calSlAddMissing() {
+  if (!_calSl || !_calSl.eventId) return;
+  const ya = _calSlYaEstan();
+  const ids = _calSl.songs
+    .filter(x => x.song_id && !ya.has(String(x.song_id)))
+    .map(x => x.song_id);
+  if (!ids.length) return;
+  if (!await _calPlaysInsertar(_calSl.eventId, ids)) return;
+  _calSlRender();
 }
 
 // ── Helper ───────────────────────────────────────────────
