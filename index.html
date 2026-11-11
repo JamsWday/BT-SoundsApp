@@ -1657,6 +1657,39 @@ body.readonly .section-block:hover { border-color: var(--border-soft); }
 body.readonly .collapse-arrow { display: none; }
 body.readonly .section-lyric-input:placeholder-shown { display: none; }
 body.readonly .section-header .sec-play-btn { pointer-events: all; cursor: pointer; }
+/* 🔁 Bucle de seccion. Interruptor: apagado es un contorno discreto,
+   encendido se rellena con el acento para que se vea de lejos cual se
+   esta repitiendo. 28px de alto, como el resto de lo que se pulsa. */
+.sec-loop-btn { display: none; }   /* solo en Tocar — ver regla de abajo */
+body.readonly .section-header .sec-loop-btn { display: inline-flex; }
+.sec-loop-btn {
+  flex: 0 0 auto; margin-left: auto;
+  /* OJO: el display NO va aqui. Vive solo en las dos reglas de arriba
+     (none por defecto, inline-flex en Tocar). Si se repite aqui gana
+     esta, que va despues, y el boton sale tambien en Editar — medido. */
+  /* El marco se queda, pero ajustado al simbolo: 28x28 clavados, que es
+     el SUELO que nos pusimos para algo que se pulsa con el dedo. Mas
+     pequeno que esto ya no se puede sin romper esa regla; lo que se ha
+     quitado es el aire de sobra (eran 34 de ancho y 8 de relleno) y una
+     esquina menos redonda, que abultaba. */
+  min-width: 28px; min-height: 28px; padding: 0;
+  align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--muted);
+  font-size: 0.86rem; line-height: 1; cursor: pointer;
+  pointer-events: all;
+  transition: background 0.15s, border-color 0.15s;
+}
+.sec-loop-btn.on {
+  background: var(--accent); border-color: var(--accent); color: var(--bg);
+}
+.sec-loop-btn:active { transform: scale(0.94); transition-duration: 0s; }
+/* Sin calibrar: se ve igual de bien, lo que cambia es la FORMA del
+   borde. Nada de opacidad: medido, al 0.4 el simbolo se queda en 1.78
+   de contraste (invisible) y ni al 0.7 llega al 3 en neon. Y este boton
+   NO esta deshabilitado — se pulsa, y al pulsarlo es cuando te explica
+   que falta y te lleva al calibrador. Atenuarlo diria lo contrario. */
+.sec-loop-btn.sin-cal { border-style: dashed; border-color: var(--dim); }
 
 /* Replace editable inputs with static text in readonly mode */
 body.readonly .title-input,
@@ -5640,6 +5673,20 @@ instrumentos ve al abrir una canción). Se guarda en
 _userSettings.defaultView (BBDD user_settings, por usuario). El filtro
 manual sigue disponible; al abrir cada canción arranca en tu vista.
 
+## Modo Tocar — se construye TODO y se oculta con CSS
+Entrar en Tocar NO repinta: toggleReadonly solo pone la clase .readonly
+en el body. Solo repinta al VOLVER a Editar (bug 20/07: abriendo en
+Tocar, los botones de editar patrón no llegaban a crearse nunca).
+Y al abrir una canción se pinta en Editar y DESPUÉS se pasa a Tocar.
+CONSECUENCIA, en los dos sentidos:
+- Un elemento creado bajo «if (_readonly)» NO SE CREA NUNCA.
+- Un elemento creado bajo «if (!_readonly)» sí se crea, y hay que
+  ocultarlo por CSS (de ahí body.readonly .btn-icon { display:none }).
+REGLA: en render() se construye todo sin mirar _readonly, y se decide
+qué se ve con una regla body.readonly. Y el display va en UN SOLO sitio:
+si se repite en el bloque de estilo del propio elemento, gana ése por ir
+después y el control aparece donde no debía (pasó con .sec-loop-btn).
+
 ## Visor de letra (🎤)
 Pantalla tipo 'layer' del Router. Recopila la letra de las filas del
 instrumento voz (row.vozText) — fuente única, NO usa sec.lyric (eso es el
@@ -6014,6 +6061,9 @@ async function doLogin() {
 }
 
 async function doLogout() {
+  // Antes no se paraba nada: cerrabas sesion y lo que estuviera sonando
+  // seguia sonando encima de la pantalla de login.
+  if (typeof audioCallarTodo === 'function') audioCallarTodo();
   await _sb.auth.signOut();
   _currentUser = null;
   _currentSongId = null;
@@ -6824,7 +6874,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261110.8";
+const APP_VERSION = "20261111.7";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -7432,6 +7482,41 @@ function render(scrollTargetId) {
       toggleSectionAudio(sec.id, secPlayBtn);
     });
     hdr.appendChild(secPlayBtn);
+
+    // ⟳ Repetir esta seccion en bucle. Se crea SIEMPRE que haya audio,
+    // sin mirar _readonly, y es el CSS quien lo ensena solo en Tocar.
+    //
+    // OJO, esto no es un capricho: entrar en Tocar NO repinta (ver
+    // toggleReadonly), solo pone la clase en el body. Y al abrir una
+    // cancion se pinta en Editar y DESPUES se pasa a Tocar. Asi que un
+    // elemento creado bajo «if (_readonly)» no se crea nunca. Es el
+    // mismo bug del 20/07 que esta comentado en toggleReadonly, pero en
+    // el sentido contrario: alli faltaban los botones de EDITAR.
+    //
+    // Regla de la casa: se construye todo y se oculta con CSS.
+    // Tampoco lleva btn-icon, que esa clase se oculta entera en Tocar
+    // (body.readonly .btn-icon { display:none !important }).
+    if (songData.audio && songData.audio.src) {
+      const _secCal = (songData.sectionTimestamps || {})[sec.id];
+      const _secTieneCal = (_secCal !== undefined && _secCal !== null);
+      const secLoopBtn = document.createElement("button");
+      secLoopBtn.className = "sec-loop-btn" + (_syncBucleSecId === sec.id ? " on" : "")
+                           + (_secTieneCal ? "" : " sin-cal");
+      secLoopBtn.dataset.secId = sec.id;
+      secLoopBtn.textContent = "\u27F3";   // el mismo que spbLoopBtn, que ya es el bucle de la cancion
+      secLoopBtn.title = !_secTieneCal
+        ? "Esta secci\u00f3n no est\u00e1 calibrada todav\u00eda"
+        : (_syncBucleSecId === sec.id
+            ? "Dejar de repetir esta secci\u00f3n" : "Repetir esta secci\u00f3n en bucle");
+      secLoopBtn.setAttribute('aria-pressed', _syncBucleSecId === sec.id ? 'true' : 'false');
+      // stopPropagation: la cabecera entera salta a la seccion en Tocar,
+      // y el salto lo hace ya syncBucleToggle cuando enciende.
+      secLoopBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        syncBucleToggle(sec.id);
+      });
+      hdr.appendChild(secLoopBtn);
+    }
 
     // 📤 Enviar esta sección a otra canción de la familia
     if (!_readonly) {
@@ -8958,6 +9043,7 @@ function calibTogglePlay() {
   if (!_cAudio) return;
   const btn = document.getElementById("calibPlayBtn");
   if (_cAudio.paused) {
+    audioTurno('calibrador');
     _cAudio.play().catch(function() {});
     btn.textContent = "⏸";
   } else {
@@ -9069,6 +9155,8 @@ async function calibSave() {
     return;
   }
   songData.sectionTimestamps = Object.assign({}, _cTimes);
+  // Los ⟳ de las secciones se encienden sin repintar la cancion.
+  if (typeof _syncBucleSync === 'function') _syncBucleSync();
   const btn = document.getElementById("calibSaveBtn");
   try {
     if (_currentSongId) {
@@ -9349,6 +9437,7 @@ function syncStop() {
   if (_syncUserScrollTimer) { clearTimeout(_syncUserScrollTimer); _syncUserScrollTimer = null; }
   // F2: el audio es el de la BARRA de abajo. Al parar el sync se pausa
   // (sin destruirlo: la barra sigue usable y con su posición).
+  syncBucleQuitar();   // el bucle no sobrevive a parar: se encenderia solo
   if (_syncAudioEl && !_syncAudioEl.paused) {
     _syncAudioEl.pause();
     if (typeof _spbSyncBtns === "function") _spbSyncBtns(false);
@@ -9375,12 +9464,115 @@ function _syncOnUserScroll() {
   _syncUserScrollTimer = setTimeout(function() { _syncUserScrolled = false; }, 2500);
 }
 
+// ── Bucle de seccion ─────────────────────────────────────────
+// Una sola seccion en bucle a la vez: su id, o null.
+let _syncBucleSecId = null;
+
+// El final de una seccion es el principio de la SIGUIENTE calibrada; si
+// es la ultima, el final del audio. No se guarda nada: se deduce de
+// sectionTimestamps, que ya existe.
+function _syncBucleFin(secId, calibrated) {
+  const lista = calibrated || _syncGetCalibrated();
+  for (let k = 0; k < lista.length; k++) {
+    if (lista[k].id === secId) {
+      if (k + 1 < lista.length) return lista[k + 1].time;
+      break;
+    }
+  }
+  // La duracion la da el audio que haya: con el sync parado sigue
+  // estando la barra de la cancion, que es el MISMO fichero.
+  const dur = (_syncAudioEl && _syncAudioEl.duration)
+           || (typeof _spb !== 'undefined' && _spb.audio && _spb.audio.duration);
+  return (dur && isFinite(dur)) ? dur : Infinity;
+}
+
+// Pinta los interruptores segun quien este en bucle.
+function _syncBucleSync() {
+  const stamps = songData.sectionTimestamps || {};
+  document.querySelectorAll('.sec-loop-btn').forEach(b => {
+    const on  = (b.dataset.secId === _syncBucleSecId);
+    // El calibrado puede cambiar sin repintar la cancion (el calibrador
+    // es un modal), asi que el estado «sin calibrar» se refresca aqui y
+    // no solo al construir el boton.
+    const cal = stamps[b.dataset.secId];
+    const sin = (cal === undefined || cal === null);
+    b.classList.toggle('on', on);
+    b.classList.toggle('sin-cal', sin);
+    b.title = sin ? 'Esta secci\u00f3n no est\u00e1 calibrada todav\u00eda'
+            : (on ? 'Dejar de repetir esta secci\u00f3n' : 'Repetir esta secci\u00f3n en bucle');
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+// La vigilancia del bucle, en UN SOLO sitio. La llaman DOS relojes: el
+// del sync (_syncStep) y el de la barra de la cancion (_spbTick). Son el
+// mismo audio, pero no siempre corren los dos: antes esta regla vivia
+// dentro de _syncStep y por eso el ⟳ solo funcionaba con el play del
+// sync — el mismo boton, en el mismo sitio, funcionando o no segun un
+// modo que no se ve. Eso es peor que no tenerlo.
+// Devuelve el tiempo que hay que usar en ESTE frame.
+function _bucleVigilar(t) {
+  if (!_syncBucleSecId) return t;
+  const ini = (songData.sectionTimestamps || {})[_syncBucleSecId];
+  if (ini === undefined || ini === null) { syncBucleQuitar(); return t; }
+  const reloj = (t !== undefined && t !== null) ? t
+              : ((typeof _spb !== 'undefined' && _spb.audio) ? _spb.audio.currentTime : null);
+  if (reloj === null) return t;
+  // Solo hacia delante: tirar hacia atras da tirones al buscar.
+  if (reloj < _syncBucleFin(_syncBucleSecId) - 0.05) return reloj;
+  if (typeof _spb !== 'undefined' && _spb.audio) _spb.audio.currentTime = ini;
+  if (_syncAudioEl && _syncAudioEl !== (typeof _spb !== 'undefined' ? _spb.audio : null)) {
+    _syncAudioEl.currentTime = ini;
+  }
+  return ini;
+}
+
+// Mover la barra a mano gana al bucle: si te vas FUERA de la seccion, se
+// apaga. Dentro no — ahi mover es justo lo que quieres hacer.
+function _bucleSiSalesApaga() {
+  if (!_syncBucleSecId || typeof _spb === 'undefined' || !_spb.audio) return;
+  const ini = (songData.sectionTimestamps || {})[_syncBucleSecId];
+  if (ini === undefined || ini === null) return;
+  const t = _spb.audio.currentTime;
+  if (t < ini - 0.25 || t >= _syncBucleFin(_syncBucleSecId)) syncBucleQuitar();
+}
+
+function syncBucleQuitar() {
+  if (!_syncBucleSecId) return;
+  _syncBucleSecId = null;
+  _syncBucleSync();
+}
+
+// Encender el bucle SALTA a la seccion: «repetir esto» es ir alli y
+// quedarse, no esperar a que el tema llegue solo.
+function syncBucleToggle(secId) {
+  if (_syncBucleSecId === secId) { syncBucleQuitar(); return; }
+  const t = (songData.sectionTimestamps || {})[secId];
+  if (t === undefined || t === null) {
+    // No hacer nada en silencio es lo peor: parece que esta roto. Se
+    // dice por que y se ofrece el camino. Mismo criterio que el aviso
+    // de «sin vincular a la biblioteca» en la hoja de repertorio.
+    if (confirm('Esta secci\u00f3n no est\u00e1 calibrada todav\u00eda.\n\n'
+              + 'Para repetirla hay que marcar en qu\u00e9 segundo empieza '
+              + 'cada secci\u00f3n de la canci\u00f3n.\n\n\u00bfAbrir el calibrador \uD83C\uDFAF?')
+        && typeof openCalibModal === 'function') openCalibModal();
+    return;
+  }
+  _syncBucleSecId = secId;
+  _syncBucleSync();
+  syncJumpToSection(secId);
+}
+
 // ── F3: saltar a una sección tocando su cabecera ──
 // Mueve el audio (que es quien manda desde la F2) al segundo calibrado de
 // esa sección; la letra va detrás sola. Sin calibrar, no hace nada.
 function syncJumpToSection(secId) {
   const t = (songData.sectionTimestamps || {})[secId];
   if (t === undefined || t === null) return;
+
+  // Irte a OTRA seccion apaga el bucle. Si no, el salto y el bucle se
+  // pelean: te devolveria a la fuerza sin que supieras por que.
+  if (_syncBucleSecId && _syncBucleSecId !== secId) syncBucleQuitar();
 
   if (_syncAudioEl) {
     _syncAudioEl.currentTime = t;         // manda el audio
@@ -9439,6 +9631,20 @@ function _syncStep(now) {
 
   const calibrated = _syncGetCalibrated();
   if (!calibrated.length) { syncStop(); return; }
+
+  // ── Bucle: si nos hemos pasado del final de la seccion marcada,
+  // volver a su principio. Va ANTES de calcular la seccion activa para
+  // que el resaltado y el scroll usen ya el tiempo corregido y no den
+  // un salto de un frame a la seccion siguiente.
+  // Solo hacia DELANTE: tirar hacia atras cuando el reloj va por detras
+  // produce tirones raros mientras buscas con la barra.
+  if (_syncBucleSecId) {
+    const _antesDelBucle = _syncElapsed;
+    _syncElapsed = _bucleVigilar(_syncElapsed);
+    // Si el bucle movio el reloj, recolocar el cronometro propio (el que
+    // se usa cuando no manda el audio).
+    if (_syncElapsed !== _antesDelBucle) _syncStartTs = now - _syncElapsed * 1000;
+  }
 
   // 1. Sección activa
   var current = calibrated[0], currentPos = 0;
@@ -10165,6 +10371,7 @@ function togglePreviewPlay() {
   if (!_audioPreviewEl) return;
   const btn = document.getElementById("previewPlayBtn");
   if (_audioPreviewEl.paused) {
+    audioTurno('adjuntar');
     _audioPreviewEl.play().catch(() => {});
     btn.textContent = "⏸"; btn.classList.add("playing");
   } else {
@@ -10388,6 +10595,7 @@ function toggleSectionAudio(secId, btn) {
       btn.classList.remove("playing");
       return;
     } else {
+      audioTurno('seccion');
       _secAudioEl.play().catch(() => {});
       btn.textContent = "⏸";
       btn.classList.add("playing");
@@ -10413,6 +10621,7 @@ function toggleSectionAudio(secId, btn) {
     _secAudioEl = null;
     _secAudioId = null;
   });
+  audioTurno('seccion');
   _secAudioEl.play().catch(() => {});
   btn.textContent = "⏸";
   btn.classList.add("playing");
@@ -10485,6 +10694,7 @@ function toggleSongAudio() {
   const scrollBtn = document.getElementById("btnScrollSongAudio");
   const lbl = document.getElementById("scrollSongAudioLbl");
   if (_activeAudioEl.paused) {
+    audioTurno('scroll');
     _activeAudioEl.play().catch(() => {});
     if (btn) { btn.textContent = "⏸"; btn.classList.add("playing"); }
     if (scrollBtn) { scrollBtn.style.borderColor = "var(--accent2)"; scrollBtn.style.color = "var(--accent2)"; }
@@ -10556,6 +10766,76 @@ document.getElementById("audioModal").addEventListener("click", e => {
 // Funciona en: edición, modo Tocar, y editor de batería
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════
+// PORTERO DE AUDIO
+// ═══════════════════════════════════════════════
+// Siete fuentes de sonido y ninguna sabe de las demas (cinco <audio> y
+// dos planificadores sobre el mismo AudioContext de bateria). Hasta
+// ahora se toleraba porque todo termina solo; con bucles deja de
+// terminar. El portero guarda QUIEN tiene el turno y como se silencia
+// cada uno, y al dar turno nuevo silencia al anterior.
+//
+// Silenciar, no destruir: se pausa, asi no se pierde por donde ibas.
+// Y donde ya existe un camino de pausa (los toggle) se reutiliza, para
+// que la interfaz quede como si hubieras pulsado tu el boton.
+let _audioTurno    = null;    // clave de quien sueña ahora
+let _audioFrenando = false;   // un silenciador no puede reentrar aqui
+
+const _AUDIO_FUENTES = {
+  cancion: () => {
+    if (typeof _spb !== 'undefined' && _spb.audio && !_spb.audio.paused) _spb.audio.pause();
+  },
+  seccion: () => {
+    // El audio de seccion se PARA del todo: es su propia regla («⏹
+    // cierra siempre») y son clips cortos.
+    if (typeof stopAllSectionAudio === 'function') stopAllSectionAudio();
+  },
+  scroll: () => {
+    if (typeof _activeAudioEl !== 'undefined' && _activeAudioEl && !_activeAudioEl.paused
+        && typeof toggleSongAudio === 'function') toggleSongAudio();
+  },
+  calibrador: () => {
+    if (typeof _cAudio !== 'undefined' && _cAudio && !_cAudio.paused
+        && typeof calibTogglePlay === 'function') calibTogglePlay();
+  },
+  adjuntar: () => {
+    if (typeof _audioPreviewEl !== 'undefined' && _audioPreviewEl && !_audioPreviewEl.paused
+        && typeof togglePreviewPlay === 'function') togglePreviewPlay();
+  },
+  bateria: () => {
+    if (typeof _dau !== 'undefined' && _dau.playing && typeof deStop === 'function') deStop();
+  },
+  partitura: () => {
+    if (typeof _dsp !== 'undefined' && _dsp.playing && typeof _dspStop === 'function') _dspStop();
+  },
+};
+
+// Pedir turno: silencia al que lo tenia y se queda con el.
+function audioTurno(clave) {
+  if (_audioFrenando) return;
+  if (_audioTurno && _audioTurno !== clave) {
+    const callar = _AUDIO_FUENTES[_audioTurno];
+    if (typeof callar === 'function') {
+      _audioFrenando = true;
+      try { callar(); } catch (e) { console.warn('portero de audio:', e); }
+      _audioFrenando = false;
+    }
+  }
+  _audioTurno = clave;
+}
+
+// Silenciar todo, sin excepcion. Para salir de una cancion, cerrar
+// sesion o cualquier sitio donde no debe quedar nada sonando.
+function audioCallarTodo() {
+  if (_audioFrenando) return;
+  _audioFrenando = true;
+  Object.keys(_AUDIO_FUENTES).forEach(k => {
+    try { _AUDIO_FUENTES[k](); } catch (e) { console.warn('portero de audio:', e); }
+  });
+  _audioFrenando = false;
+  _audioTurno = null;
+}
+
 const _spb = {
   audio: null,          // HTMLAudioElement activo
   speed: 1.0,           // playbackRate actual
@@ -10573,6 +10853,9 @@ function _spbFmt(s) {
 // Actualiza todas las barras de progreso y tiempo (global + drum editor)
 function _spbTick() {
   if (!_spb.audio) return;
+  // El bucle de seccion tambien vive aqui: asi el ⟳ funciona con el play
+  // de la barra y no solo con el del sync.
+  if (typeof _bucleVigilar === 'function') _bucleVigilar();
   const cur = _spb.audio.currentTime;
   const dur = _spb.audio.duration || 0;
   const pct = dur > 0 ? (cur / dur * 100).toFixed(1) : 0;
@@ -10644,6 +10927,7 @@ function _spbDestroy() {
 function spbToggle() {
   if (!_spbInit()) return;
   if (_spb.audio.paused) {
+    audioTurno('cancion');
     // Detener audio de sección si estaba sonando
     stopAllSectionAudio();
     _spb.audio.play().catch(() => {});
@@ -10657,9 +10941,10 @@ function spbSeek(delta) {
   if (!_spbInit()) return;
   _spb.audio.currentTime = Math.max(0,
     Math.min(_spb.audio.duration || 0, _spb.audio.currentTime + delta));
+  _bucleSiSalesApaga();
   _spbTick();
   // Si estaba pausado, arrancar
-  if (_spb.audio.paused) _spb.audio.play().catch(() => {});
+  if (_spb.audio.paused) { audioTurno('cancion'); _spb.audio.play().catch(() => {}); }
 }
 
 // Click en barra de progreso
@@ -10669,8 +10954,9 @@ function spbClickProgress(e) {
   const rect = bar.getBoundingClientRect();
   const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
   _spb.audio.currentTime = ratio * (_spb.audio.duration || 0);
+  _bucleSiSalesApaga();
   _spbTick();
-  if (_spb.audio.paused) _spb.audio.play().catch(() => {});
+  if (_spb.audio.paused) { audioTurno('cancion'); _spb.audio.play().catch(() => {}); }
 }
 
 // Cambiar velocidad con preservación de tono
@@ -14230,6 +14516,10 @@ function dePlay() {
   // Rebuild step list fresh
   _dau.barSteps = dauBuildStepList();
   if (!_dau.barSteps.length) return;
+  // Antes NADIE paraba la partitura al arrancar el editor (la partitura
+  // si paraba al editor): dos planificadores sobre el mismo
+  // AudioContext. El portero cierra ese agujero.
+  audioTurno('bateria');
 
   // Init AudioContext on first use (requires user gesture)
   if (!_dau.ctx) _dau.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -15159,6 +15449,7 @@ function drumScorePlayToggle() {
 // Usado por ▶ (desde 0) y por el tap en un compás (desde su t0).
 function _dspPlayFrom(startT) {
   if (!_dsp.events.length) return;
+  audioTurno('partitura');
   if (_dau.playing) deStop();
   if (!_dau.ctx) _dau.ctx = new (window.AudioContext || window.webkitAudioContext)();
   dauLoadKit(_dau.ctx);
