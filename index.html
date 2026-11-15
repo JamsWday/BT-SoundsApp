@@ -224,7 +224,6 @@
 [data-mode="light"] .btn-primary:hover { background: color-mix(in srgb, var(--accent) 86%, white); }
 [data-mode="light"] .pbtn.ok:hover { background: color-mix(in srgb, var(--accent) 86%, white); }
 [data-mode="light"] .drum-preview-tuplet-badge { background: var(--bg); color: var(--v-c); }
-[data-mode="light"] .bar-div:hover { background: #c04040; }
 [data-mode="light"] .ac-group-label { color: var(--dim); border-top-color: var(--border-soft); }
 [data-mode="light"] .ac-item:hover,
 [data-mode="light"] .ac-item.ac-active { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent); }
@@ -672,26 +671,8 @@ body {
   border-radius: 1px;
   margin: 0 6px;
   flex-shrink: 0;
-  cursor: pointer;
-  transition: background 0.15s;
   position: relative;
-}
-.bar-div:hover { background: #c04040; }
-.bar-div[title]:hover::after {
-  content: "Eliminar compás";
-  position: absolute;
-  top: -26px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #222;
-  color: #c04040;
-  font-size: 0.65rem;
-  font-family: var(--font-data);
-  padding: 3px 6px;
-  border-radius: 3px;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 10;
+  pointer-events: none;   /* solo dibujo (F24) */
 }
 
 /* ── CHORD PILL ── */
@@ -922,6 +903,27 @@ body {
 
 /* ── INPUT WRAPPER (for dropdown positioning) ── */
 .popup-input-wrap { position: relative; }
+/* F30: en el cuadro de acorde el predictivo va EN LINEA, en el hueco de
+   las sugerencias: flotando tapaba OK y Cancelar. */
+.chord-popup .chord-autocomplete { position: static; max-height: 210px; box-shadow: none; margin-top: 8px; }
+.ac-volver {
+  font-family: var(--font-data); font-size: 0.72rem; color: var(--muted);
+  padding: 8px 10px; cursor: pointer; text-align: right;
+  border-bottom: 1px solid var(--border-soft);
+}
+/* F29: caja + # + b en una fila */
+.pop-campo { display: flex; gap: 6px; align-items: stretch; }
+/* flex-basis 0 y width 0: la caja NO empuja el ancho del cuadro (si no,
+   su ancho natural + los botones lo sacaban de la pantalla por la derecha) */
+.pop-campo input[type="text"] { flex: 1 1 0; min-width: 0; width: 0; }
+.pop-alt {
+  flex: none; width: 36px; min-height: 34px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface2); color: var(--text);
+  font-family: var(--font-data); font-size: 1rem; font-weight: 700;
+  cursor: pointer; padding: 0;
+}
+.pop-alt:active { transform: scale(0.92); }
 
 /* ── AUTOCOMPLETE DROPDOWN ── */
 .chord-autocomplete {
@@ -1010,7 +1012,7 @@ body {
   white-space: nowrap;
 }
 .sug-chip:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
-.sug-chip.type-key     { background:color-mix(in srgb, var(--sug-key) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-key) var(--sug-edge), transparent); color:var(--sug-key-ink); }
+.sug-chip.type-key, .sug-chip.type-notas { background:color-mix(in srgb, var(--sug-key) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-key) var(--sug-edge), transparent); color:var(--sug-key-ink); }
 .sug-chip.type-fifth   { background:color-mix(in srgb, var(--sug-fifth) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-fifth) var(--sug-edge), transparent); color:var(--sug-fifth-ink); }
 .sug-chip.type-rel     { background:color-mix(in srgb, var(--sug-rel) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-rel) var(--sug-edge), transparent); color:var(--sug-rel-ink); }
 .sug-chip.type-cadence { background:color-mix(in srgb, var(--sug-cadence) var(--sug-fill), transparent); border-color:color-mix(in srgb, var(--sug-cadence) var(--sug-edge), transparent); color:var(--sug-cadence-ink); }
@@ -4384,7 +4386,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 /* ── Las que se quedaron fuera en la primera pasada ── */
 .spb-seek:active, .calib-seek-btn:active, .de-bar-comment:active,
 .de-beat-head-clickable:active, .version-breadcrumb-inner:active,
-.bar-div:active, .de-sel:active, .cal-form-select:active {
+.de-sel:active, .cal-form-select:active {
   transform: scale(0.94);
   transition-duration: 0s;
 }
@@ -6957,7 +6959,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261115.3";
+const APP_VERSION = "20261115.12";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -7869,14 +7871,10 @@ function render(scrollTargetId) {
       // ── each bar
       row.bars.forEach((bar, bi) => {
         if (bi > 0) {
+          // Solo dibujo. Antes un toque aquí borraba el compás (y sin
+          // deshacer): demasiado fácil sin querer. F24, 15/11.
           const div = document.createElement("span");
           div.className = "bar-div";
-          div.title = "Eliminar compás";
-          div.addEventListener("click", (e) => {
-            e.stopPropagation();
-            row.bars.splice(bi, 1);
-            render();
-          });
           barLine.appendChild(div);
         }
 
@@ -8109,6 +8107,14 @@ function render(scrollTargetId) {
       });
     }
   }
+
+  // F26: las cajas de letra y comentario, medidas YA (antes, dos frames
+  // despues: en ese hueco se pintaba todo 200-600 px mas arriba y luego
+  // volvia). Y el scroll otra vez, ahora que la pagina tiene su alto final.
+  _textosAjustarYa();
+  if (Math.abs(window.scrollY - _savedScrollY) >= 1) {
+    window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+  }
 }
 
 function insertSectionAt(idx) {
@@ -8286,8 +8292,10 @@ function _buildAutocomplete(text) {
   const groups = {};
   matches.forEach(c => {
     if (!groups[c.g]) groups[c.g] = [];
-    groups[c.g].push({ name: root + c.s, desc: c.d });
+    // F29: la nota tal como la escribes (D# -> D#m, no Ebm)
+    groups[c.g].push({ name: rootRaw + c.s, desc: c.d });
   });
+
   return groups;
 }
 
@@ -8320,6 +8328,33 @@ const _KEY_NAMES = [
   { display: "Sib menor",  chord: "Bbm", mode: "Menor" },
   { display: "Mib menor",  chord: "Ebm", mode: "Menor" },
 ];
+
+// ── Escala de la tonalidad, BIEN escrita (F28, 15/11) ─────────
+// Cada letra una vez: Dm = D E F G A Bb C · La Mayor = A B C# D E F# G#.
+// (_noteAtInterval escribe cada nota siempre igual —Ab, Eb…— y para una
+// escala eso da «Abdim» en La mayor.) Acepta «Re menor», «Dm», «A»…
+// Devuelve { notas:[7], menor, nombre } o null.
+const _LETRAS = ['C','D','E','F','G','A','B'];
+const _NAT    = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
+function _tonalidadDe(songKey) {
+  const k = String(songKey || '').trim();
+  if (!k) return null;
+  const e = _KEY_NAMES.find(x => x.display.toLowerCase() === k.toLowerCase() ||
+                                 x.chord.toLowerCase()   === k.toLowerCase());
+  const m = (e ? e.chord : k).match(/^([A-Ga-g])([#b]?)(.*)$/);
+  if (!m) return null;
+  const letra = m[1].toUpperCase(), alt = m[2], resto = m[3].trim().toLowerCase();
+  const menor = e ? e.mode === 'Menor' : (/^m(?!aj)/.test(resto) || /menor|min/.test(resto));
+  const raiz = (_NAT[letra] + (alt === '#' ? 1 : alt === 'b' ? -1 : 0) + 12) % 12;
+  const ivs = menor ? [0,2,3,5,7,8,10] : [0,2,4,5,7,9,11];
+  const i0 = _LETRAS.indexOf(letra);
+  const notas = ivs.map((iv, i) => {
+    const L = _LETRAS[(i0 + i) % 7];
+    const d = (raiz + iv - _NAT[L] + 24) % 12;
+    return L + ({ 0: '', 1: '#', 2: '##', 11: 'b', 10: 'bb' }[d] ?? '');
+  });
+  return { notas, menor, nombre: letra + alt + (menor ? 'm' : '') };
+}
 
 // Sincroniza el pill visual con songData.key
 function _syncBpmPill() {
@@ -8498,29 +8533,28 @@ function _buildSuggestions(prevChord, songKey) {
   const suggestions = [];
   const prev = _parseChord(prevChord);
 
-  // Resuelve la tonalidad — acepta tanto "La menor" como "Am"
-  const keyEntry = _KEY_NAMES.find(k =>
-    k.display.toLowerCase() === (songKey||"").toLowerCase() ||
-    k.chord.toLowerCase() === (songKey||"").toLowerCase()
-  );
-  const key = keyEntry ? _parseChord(keyEntry.chord) : _parseChord(songKey);
-
   // ── 1. Key-based suggestions (from song key)
-  if (key) {
-    const diatonic = [
-      { iv: 0,  suf: "",   role: "I — Tónica" },
-      { iv: 2,  suf: "m",  role: "ii — Subdominante" },
-      { iv: 4,  suf: "m",  role: "iii — Mediante" },
-      { iv: 5,  suf: "",   role: "IV — Subdominante" },
-      { iv: 7,  suf: "",   role: "V — Dominante" },
-      { iv: 9,  suf: "m",  role: "vi — Relativo menor" },
-      { iv: 11, suf: "dim",role: "vii° — Sensible" },
+  // F28: de la escala BIEN escrita, y en menor, grados de menor. Antes
+  // «Dm» sugeria los de Re MAYOR (D Em F#m G A Bm C#dim).
+  const ton = _tonalidadDe(songKey);
+  if (ton) {
+    const grados = ton.menor ? [
+      [0, "m",   "i — Tónica"],          [1, "dim", "ii° — Supertónica"],
+      [2, "",    "III — Relativo mayor"], [3, "m",   "iv — Subdominante"],
+      [4, "m",   "v — Dominante menor"],  [4, "",    "V — Dominante"],
+      [5, "",    "VI — Submediante"],     [6, "",    "VII — Subtónica"],
+    ] : [
+      [0, "",    "I — Tónica"],           [1, "m",   "ii — Subdominante"],
+      [2, "m",   "iii — Mediante"],       [3, "",    "IV — Subdominante"],
+      [4, "",    "V — Dominante"],        [5, "m",   "vi — Relativo menor"],
+      [6, "dim", "vii° — Sensible"],
     ];
-    diatonic.forEach(d => {
-      const n = _noteAtInterval(key.root, d.iv);
-      if (n) suggestions.push({ chord: n + d.suf, type: "key", label: d.role });
-    });
+    grados.forEach(([g, suf, role]) =>
+      suggestions.push({ chord: ton.notas[g] + suf, type: "key", label: role }));
   }
+  // F30/F31: todas las notas (se elige la raiz y el predictivo hace el
+  // resto). Sin tonalidad van arriba; con tonalidad, al final.
+  _NOTES.forEach(n => suggestions.push({ chord: n, type: "notas", label: "Nota" }));
 
   if (prev) {
     const isMajor = prev.suffix === "" || prev.suffix === "7" || prev.suffix === "maj7" || prev.suffix === "9";
@@ -8588,11 +8622,11 @@ function _buildSuggestions(prevChord, songKey) {
 
 // Icon per suggestion type
 const _SUG_ICONS = {
-  key: "🎵", fifth: "🔄", rel: "↔️", cadence: "🎼",
+  notas: "🎵", key: "🎵", fifth: "🔄", rel: "↔️", cadence: "🎼",
   jazz: "🎷", flam: "💃", rock: "🎸"
 };
 const _SUG_TITLES = {
-  key: "Tonalidad", fifth: "Círculo 5ªs", rel: "Relativo",
+  notas: "Notas", key: "Tonalidad", fifth: "Círculo 5ªs", rel: "Relativo",
   cadence: "Cadencia", jazz: "Jazz", flam: "Flamenco", rock: "Rock"
 };
 
@@ -8629,8 +8663,12 @@ function openPopup(anchor, ctx) {
   pop.innerHTML = `
     <label>${isEdit ? "Editar acorde" : "Nuevo acorde"}</label>
     <div class="popup-input-wrap">
-      <input type="text" id="popInput" value="${isEdit ? esc(ctx.chord) : ""}"
-        placeholder="${isEdit ? ctx.chord : "Ej: Am7, C, Fmaj7…"}" spellcheck="false" autocomplete="off" />
+      <div class="pop-campo">
+        <input type="text" id="popInput" value="${isEdit ? esc(ctx.chord) : ""}"
+          placeholder="${isEdit ? ctx.chord : "Ej: Am7, C, Fmaj7…"}" spellcheck="false" autocomplete="off" />
+        <button type="button" class="pop-alt" data-alt="#" title="Sostenido">#</button>
+        <button type="button" class="pop-alt" data-alt="b" title="Bemol">b</button>
+      </div>
       <div class="chord-autocomplete" id="popAC"></div>
     </div>
     <div class="chord-suggestions" id="popSug"></div>
@@ -8690,8 +8728,22 @@ function openPopup(anchor, ctx) {
         acItems.push({ el, name: item.name });
       });
     });
+    // F30: arriba, «✕ sugerencias» para volver (vacia la caja)
+    if (acItems.length) {
+      const volver = document.createElement("div");
+      volver.className = "ac-volver";
+      volver.textContent = "✕ sugerencias";
+      volver.addEventListener("mousedown", e => {
+        e.preventDefault();
+        input.value = "";
+        input.dispatchEvent(new Event("input"));
+      });
+      acBox.insertBefore(volver, acBox.firstChild);
+    }
     // Show/hide
     acBox.style.display = acItems.length ? "block" : "none";
+    // F30: el predictivo ocupa el sitio de las sugerencias (no encima)
+    sugBox.style.display = acItems.length ? "none" : "";
     // Reposition popup if near bottom
     _repositionPopup(pop, rect);
   };
@@ -8711,7 +8763,9 @@ function openPopup(anchor, ctx) {
     });
 
     // Show all types
-    const typeOrder = ["key","fifth","rel","cadence","jazz","flam","rock"];
+    const typeOrder = grouped.key
+      ? ["key","fifth","rel","cadence","jazz","flam","rock","notas"]   // F31: notas de colofon
+      : ["notas","fifth","rel","cadence","jazz","flam","rock"];
 
     typeOrder.forEach(type => {
       if (!grouped[type]) return;
@@ -8722,12 +8776,24 @@ function openPopup(anchor, ctx) {
 
       const chips = document.createElement("div");
       chips.className = "sug-chips";
-      grouped[type].slice(0, 5).forEach(s => {
+      // F28: de la tonalidad, todos los grados (7, u 8 en menor); antes
+      // el tope de 5 dejaba fuera A, Bb y C en Dm. El resto, 5 como siempre.
+      grouped[type].slice(0, type === "notas" ? 12 : type === "key" ? 8 : 5).forEach(s => {
         const chip = document.createElement("span");
         chip.className = `sug-chip type-${type}`;
         chip.title = s.label;
         chip.textContent = s.chord;
-        chip.addEventListener("mousedown", e => { e.preventDefault(); applyChord(s.chord); });
+        chip.addEventListener("mousedown", e => {
+          e.preventDefault();
+          // F32: solo las Notas abren el predictivo; Tonalidad y el
+          // resto meten el acorde directo
+          if (type === "notas") {
+            input.value = s.chord;
+            input.dispatchEvent(new Event("input"));
+          } else {
+            applyChord(s.chord);
+          }
+        });
         chips.appendChild(chip);
       });
       sugBox.appendChild(chips);
@@ -8747,9 +8813,18 @@ function openPopup(anchor, ctx) {
   };
 
   // Initial render
-  input.focus();
-  input.select();
-  if (isEdit) refreshAC();
+  // F27: en el movil NO se pone el cursor: el teclado tapaba media
+  // pantalla y las sugerencias. Se escribe tocando la caja; al editar,
+  // ese primer toque selecciona el acorde para escribir encima.
+  const _tactil = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  if (_tactil) {
+    if (isEdit) input.addEventListener('focus', () => setTimeout(() => input.select(), 0), { once: true });
+  } else {
+    input.focus();
+    input.select();
+  }
+  // F31: sin predictivo al abrir (taparia las sugerencias); sale al
+  // escribir o al tocar una nota/tonalidad.
   refreshSug(isEdit ? ctx.chord : prevChord);
 
   // ── Input events
@@ -8759,6 +8834,20 @@ function openPopup(anchor, ctx) {
     // Refresh suggestions: if valid chord use it, if empty fall back to context
     const parsed = _parseChord(val);
     refreshSug(parsed ? val : (isEdit ? ctx.chord : prevChord));
+  });
+
+  // F29: # y b ponen la alteracion en la ULTIMA nota escrita (la del
+  // bajo si hay «/»). mousedown con preventDefault: no se lleva el foco,
+  // asi ni abre el teclado del movil ni lo cierra si estaba abierto.
+  pop.querySelectorAll(".pop-alt").forEach(btn => {
+    btn.addEventListener("mousedown", e => e.preventDefault());
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const nuevo = _ponerAlteracion(input.value, btn.dataset.alt);
+      if (nuevo === input.value) return;
+      input.value = nuevo;
+      input.dispatchEvent(new Event("input"));
+    });
   });
 
   input.addEventListener("keydown", e => {
@@ -8801,7 +8890,30 @@ function openPopup(anchor, ctx) {
   setTimeout(() => document.addEventListener("click", outsideClose), 10);
 }
 
+// F29: pone # o b en la ULTIMA nota del acorde (la raiz, o la del bajo
+// tras «/»). Si ya tenia esa alteracion, la quita; si tenia la otra, la
+// cambia. «D»+# = D# · «Dm7»+# = D#m7 · «D/F»+# = D/F# · «D#»+b = Db ·
+// «D#»+# = D. Sin nota, lo deja igual.
+function _ponerAlteracion(txt, alt) {
+  const v = String(txt || "");
+  let pos = -1;
+  if (/^[A-Ga-g]/.test(v)) pos = 0;
+  const barra = v.lastIndexOf("/");
+  if (barra >= 0 && /[A-Ga-g]/.test(v.charAt(barra + 1))) pos = barra + 1;
+  if (pos < 0) return v;
+  const sig = v.charAt(pos + 1);
+  if (sig === "#" || sig === "b") {
+    return sig === alt ? v.slice(0, pos + 1) + v.slice(pos + 2)
+                       : v.slice(0, pos + 1) + alt + v.slice(pos + 2);
+  }
+  return v.slice(0, pos + 1) + alt + v.slice(pos + 1);
+}
+
 function _repositionPopup(pop, anchorRect) {
+  // F29: la colocacion inicial supone 300 px de ancho; con 8 sugerencias
+  // de tonalidad el cuadro mide algo mas y rozaba el borde derecho.
+  const r0 = pop.getBoundingClientRect();
+  if (r0.right > window.innerWidth - 8) pop.style.left = Math.max(8, window.innerWidth - r0.width - 8) + "px";
   const popRect = pop.getBoundingClientRect();
   if (popRect.bottom > window.innerHeight - 8) {
     pop.style.top = Math.max(8, anchorRect.top - popRect.height - 8) + "px";
@@ -8958,7 +9070,54 @@ document.addEventListener('visibilitychange', () => {
   if (typeof muroCheckNews === 'function') muroCheckNews();
 });
 
+// ── Ancla de pantalla (F25, 15/11) ───────────────────────────
+// Tocar y Editar no miden lo mismo de alto; volver al mismo scrollY te
+// dejaba 2-4 pantallas mas abajo (o mas arriba). Se guarda QUE fila
+// mirabas y a cuantos px de la cabecera estaba, y se vuelve a poner ahi.
+function _anclaCabecera() {           // borde de abajo de la cabecera pegajosa
+  const h = document.querySelector('.header');
+  if (!h || h.offsetParent === null) return 0;
+  return Math.max(0, h.getBoundingClientRect().bottom);
+}
+function _anclaTomar() {
+  const lim = _anclaCabecera();
+  const pick = (sel, attr) => {
+    for (const el of document.querySelectorAll('#chart ' + sel)) {
+      if (el.offsetParent === null) continue;            // oculta
+      const r = el.getBoundingClientRect();
+      if (r.bottom > lim + 1) {
+        const secEl = el.closest('[data-secid]');
+        return { sel: `[${attr}="${el.getAttribute(attr)}"]`,
+                 sec: secEl ? secEl.dataset.secid : null,
+                 off: r.top - lim };
+      }
+    }
+    return null;
+  };
+  return pick('[data-rowid]', 'data-rowid') || pick('[data-secid]', 'data-secid');
+}
+function _anclaPoner(a) {
+  if (!a) return;
+  let el = document.querySelector('#chart ' + a.sel);
+  if ((!el || el.offsetParent === null) && a.sec)
+    el = document.querySelector(`#chart [data-secid="${a.sec}"]`);
+  if (!el || el.offsetParent === null) return;
+  const d = el.getBoundingClientRect().top - _anclaCabecera() - a.off;
+  if (Math.abs(d) >= 1) window.scrollTo({ top: window.scrollY + d, behavior: 'instant' });
+}
+// Lo mismo que resizeAllVozTextareas, pero YA (sin los dos frames), y en
+// dos pasadas (todas a auto, luego medir) para no recalcular la pagina
+// una vez por caja. Las ocultas no se tocan: medirian 0.
+function _textosAjustarYa() {
+  const tas = [...document.querySelectorAll('.comment-input, .voz-text')]
+    .filter(ta => ta.offsetParent !== null);
+  tas.forEach(ta => { ta.style.height = 'auto'; });
+  const altos = tas.map(ta => ta.scrollHeight);
+  tas.forEach((ta, i) => { ta.style.height = altos[i] + 'px'; });
+}
+
 function toggleReadonly() {
+  const _ancla = _anclaTomar();   // F25: que fila mirabas, antes de cambiar nada
   _readonly = !_readonly;
   document.body.classList.toggle("readonly", _readonly);
   wakeLockSync();   // tocando: la pantalla no se apaga
@@ -8992,6 +9151,11 @@ function toggleReadonly() {
   resizeAllVozTextareas();
   // Sincronizar eagle con el nuevo modo
   if (typeof _eagleOn !== 'undefined' && _eagleOn) _eagleSyncMode();
+  // F25: la misma fila, a la misma altura. Ya, y otra vez tres frames
+  // despues (cuando ha terminado la medida de siempre y el aguila).
+  _textosAjustarYa();
+  _anclaPoner(_ancla);
+  requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => _anclaPoner(_ancla))));
 }
 
 // ═══════════════════════════════════════════════
