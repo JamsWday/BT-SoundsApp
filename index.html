@@ -6959,7 +6959,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261115.12";
+const APP_VERSION = "20261115.13";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -7476,7 +7476,10 @@ function render(scrollTargetId) {
     secHandle.textContent = "⠿";
     secHandle.title = "Arrastrar para reordenar sección";
     secHandle.draggable = true;
-    secHandle.addEventListener("click", e => e.stopPropagation());
+    secHandle.addEventListener("click", e => {
+      e.stopPropagation();            // no plegar la seccion
+      _asaSaltarAudio(sec.id);        // F33: con el audio sonando, ir aqui
+    });
     secHandle.addEventListener("dragstart", e => {
       _drag = { type: "section", fromIdx: si };
       e.dataTransfer.effectAllowed = "move";
@@ -9835,6 +9838,25 @@ function syncBucleToggle(secId) {
   _syncBucleSecId = secId;
   _syncBucleSync();
   syncJumpToSection(secId);
+}
+
+// ── F33: en Editar, un toque en ⠿ lleva el audio a esta sección ──
+// Solo si el audio de la canción está SONANDO y la sección está
+// calibrada. Mueve solo el audio: la pantalla se queda (estás editando
+// ahí). Devuelve true si ha movido algo.
+function _asaSaltarAudio(secId) {
+  if (_readonly) return false;
+  const t = (songData.sectionTimestamps || {})[secId];
+  if (t === undefined || t === null) return false;
+  const a = (_syncAudioEl && !_syncAudioEl.paused) ? _syncAudioEl
+          : (_spb && _spb.audio && !_spb.audio.paused) ? _spb.audio
+          : null;
+  if (!a) return false;
+  // Ir a OTRA sección apaga el bucle (misma regla que syncJumpToSection)
+  if (_syncBucleSecId && _syncBucleSecId !== secId) syncBucleQuitar();
+  a.currentTime = t;
+  if (a === _spb.audio && typeof _spbTick === 'function') _spbTick();
+  return true;
 }
 
 // ── F3: saltar a una sección tocando su cabecera ──
