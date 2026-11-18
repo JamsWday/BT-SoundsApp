@@ -903,6 +903,8 @@ body {
 
 /* ── INPUT WRAPPER (for dropdown positioning) ── */
 .popup-input-wrap { position: relative; }
+/* F34: soltar una linea en el hueco de una seccion (va al final) */
+.drag-over-fin { outline: 2px dashed var(--accent); outline-offset: -2px; border-radius: 8px; }
 /* F30: en el cuadro de acorde el predictivo va EN LINEA, en el hueco de
    las sugerencias: flotando tapaba OK y Cancelar. */
 .chord-popup .chord-autocomplete { position: static; max-height: 210px; box-shadow: none; margin-top: 8px; }
@@ -6959,7 +6961,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261115.13";
+const APP_VERSION = "20261117.2";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -7680,6 +7682,43 @@ function render(scrollTargetId) {
     const barsArea = document.createElement("div");
     barsArea.className = "bars-area";
 
+    // F34/F35: soltar una linea aqui la pone AL FINAL de la seccion.
+    //   · seccion SIN lineas: vale todo el hueco (no hay otro sitio, y en
+    //     modo aguila la botonera esta oculta).
+    //   · seccion CON lineas: SOLO la botonera de «+ MARCO…». Con todo el
+    //     hueco, el recuadro parpadeaba al cruzar entre lineas (F35).
+    const _aceptaLinea = e => sec.rows.length === 0 ||
+      !!(e.target && e.target.closest && e.target.closest(".add-row-inst-wrap"));
+    const _marcoSoltar = () => sec.rows.length === 0 ? barsArea
+      : barsArea.querySelector(".add-row-inst-wrap");
+    ["dragenter", "dragover"].forEach(tipo => barsArea.addEventListener(tipo, e => {
+      if (!_drag || _drag.type !== "row") return;
+      const m = _marcoSoltar();
+      if (!_aceptaLinea(e)) { if (m) m.classList.remove("drag-over-fin"); return; }
+      e.preventDefault();
+      if (m) m.classList.add("drag-over-fin");
+    }));
+    barsArea.addEventListener("dragleave", e => {
+      // Por coordenadas: en Chrome relatedTarget suele llegar null.
+      const m = _marcoSoltar();
+      if (!m) return;
+      const r = m.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX >= r.right || e.clientY < r.top || e.clientY >= r.bottom)
+        m.classList.remove("drag-over-fin");
+    });
+    barsArea.addEventListener("drop", e => {
+      document.querySelectorAll(".drag-over-fin").forEach(x => x.classList.remove("drag-over-fin"));
+      if (!_drag || _drag.type !== "row" || !_aceptaLinea(e)) return;
+      e.preventDefault();
+      const fromSec = songData.sections.find(s => s.id === _drag.secId);
+      if (!fromSec || !fromSec.rows[_drag.fromRowIdx]) return;
+      saveUndo();
+      const movedRow = fromSec.rows.splice(_drag.fromRowIdx, 1)[0];
+      sec.rows.push(movedRow);
+      _drag = null;
+      render();
+    });
+
     // Sanear filas nulas/corruptas antes de renderizar
     sec.rows = sec.rows.filter(r => r != null && typeof r === 'object');
 
@@ -7707,6 +7746,8 @@ function render(scrollTargetId) {
         document.querySelectorAll(".row-wrap").forEach(rw => {
           if (rw !== rowWrap) rw.classList.remove("drag-over-top", "drag-over-bottom");
         });
+        // F34: y el recuadro del hueco de la seccion
+        document.querySelectorAll(".drag-over-fin").forEach(b => b.classList.remove("drag-over-fin"));
         const rect = rowWrap.getBoundingClientRect();
         const mid  = rect.top + rect.height / 2;
         rowWrap.classList.remove("drag-over-top", "drag-over-bottom");
@@ -7734,7 +7775,8 @@ function render(scrollTargetId) {
         // Calcular toRi ANTES de mutar el array
         let toRi = sec.rows.indexOf(row);
         if (below) toRi++;
-        // Ahora extraer la fila
+        // Ahora extraer la fila (F34: con deshacer, antes no lo tenia)
+        saveUndo();
         const movedRow = fromSec.rows.splice(fromRi, 1)[0];
         // Si movemos dentro de la misma sección y fromRi estaba antes del destino,
         // el splice desplazó los índices: ajustar
@@ -7828,6 +7870,7 @@ function render(scrollTargetId) {
         document.querySelectorAll(".row-wrap").forEach(rw =>
           rw.classList.remove("drag-over-top", "drag-over-bottom")
         );
+        document.querySelectorAll(".drag-over-fin").forEach(b => b.classList.remove("drag-over-fin"));
         _drag = null;
       });
       barLine.appendChild(rowHandle);
