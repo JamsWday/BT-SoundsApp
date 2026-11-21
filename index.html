@@ -558,7 +558,7 @@ body {
   background: var(--surface2);
   border-bottom: 1px solid var(--border-soft);
   cursor: pointer;
-  user-select: none;
+  user-select: none; -webkit-user-select: none;
   overflow: hidden;
 }
 .section-name-input {
@@ -650,7 +650,7 @@ body {
   font-family: var(--font-data);
   font-size: 1.3rem;
   color: #404055;
-  user-select: none;
+  user-select: none; -webkit-user-select: none;
   padding: 0 4px;
   flex-shrink: 0;
 }
@@ -903,6 +903,18 @@ body {
 
 /* ── INPUT WRAPPER (for dropdown positioning) ── */
 .popup-input-wrap { position: relative; }
+/* F36 · iPhone: mantener pulsado un control seleccionaba su texto (y en el
+   ⠿ eso impedia coger la linea). Safari solo entiende el -webkit-. */
+button, [onclick]:not(input):not(textarea):not(select), [draggable="true"],
+.drag-handle, .sl-handle, .chord-pill, .add-chord-in-bar, .sug-chip, .ac-item,
+.pop-alt, .section-header, .song-card, .comment-inst-btn {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+/* …y lo que SI se escribe, siempre seleccionable (un padre sin seleccion
+   puede bloquear sus inputs en Safari) */
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
+}
 /* F34: soltar una linea en el hueco de una seccion (va al final) */
 .drag-over-fin { outline: 2px dashed var(--accent); outline-offset: -2px; border-radius: 8px; }
 /* F30: en el cuadro de acorde el predictivo va EN LINEA, en el hueco de
@@ -1112,7 +1124,7 @@ body {
   color: #333348;
   font-size: 1rem;
   padding: 2px 6px 2px 2px;
-  user-select: none;
+  user-select: none; -webkit-user-select: none;
   transition: color 0.15s;
   flex-shrink: 0;
   line-height: 1;
@@ -1562,8 +1574,13 @@ body:not(.editor-open).readonly #songPlayerBar.has-audio {
   font-size: 0.5rem;
   color: var(--green);
   opacity: 0.7;
-  flex-shrink: 0;
+  flex-shrink: 1;              /* F37: cede antes que el ⛶ */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+#spbSpeedRow .spb-speed-slider { min-width: 56px; }   /* F37: puede encoger */
 
 /* ── Botón loop ── */
 .spb-loop-btn {
@@ -1764,6 +1781,11 @@ body.readonly .comment-input::placeholder { color: transparent; }
 /* En Tocar (normal y eagle): ocultar comment-row si el input está vacío */
 body.readonly .comment-row:has(.comment-input:placeholder-shown) { display: none !important; }
 body.eagle-mode.readonly .comment-row:has(.comment-input:placeholder-shown) { display: none !important; }
+/* F38: linea sin contenido en Tocar → ni su caja vacia ni el xN; si
+   tampoco tiene comentario, fuera entera. */
+body.readonly .row-wrap.fila-sin-contenido .bar-line,
+body.readonly .row-wrap.fila-sin-contenido .row-right { display: none !important; }
+body.readonly .row-wrap.fila-sin-contenido:has(.comment-input:placeholder-shown) { display: none !important; }
 
 /* Right side: only show repeat badge, hide controls */
 body.readonly .row-right { gap: 6px; }
@@ -3061,7 +3083,7 @@ body.readonly .drum-add-btn  { display: none !important; }
   position: relative;
   border-radius: 3px;
   transition: background 0.08s;
-  user-select: none;
+  user-select: none; -webkit-user-select: none;
 }
 .de-cell.beat-start { border-left: 1px solid rgba(255,255,255,0.12); }
 .de-cell.bar-start  { border-left: 2px solid rgba(255,255,255,0.22); }
@@ -3743,7 +3765,7 @@ body.readonly .voz-text { pointer-events: none; border-color: transparent; }
   color: var(--muted);
   cursor: pointer;
   transition: all 0.15s;
-  user-select: none;
+  user-select: none; -webkit-user-select: none;
   white-space: nowrap;
 }
 .inst-pill:hover { border-color: var(--accent); color: var(--accent); }
@@ -3948,7 +3970,7 @@ body.readonly #playBar { display: flex !important; }
   color: var(--accent);
   flex-shrink: 0;
   cursor: pointer;
-  user-select: none;
+  user-select: none; -webkit-user-select: none;
   transition: background 0.15s;
   display: inline-flex;
   align-items: center;
@@ -4497,7 +4519,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
         style="position:fixed;left:12px;bottom:10px;z-index:5;
                font-family:var(--font-data);font-size:0.62rem;
                color:var(--dim);letter-spacing:0.06em;cursor:pointer;
-               padding:4px 6px;user-select:none;"></span>
+               padding:4px 6px;user-select:none; -webkit-user-select:none;"></span>
 </div>
 
 <!-- LIBRARY SCREEN -->
@@ -4920,6 +4942,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
   <div class="spb-row1" id="spbEmptyRow">
     <button class="spb-edit" onclick="openAudioModal('song',null)" title="Añadir audio">✎</button>
     <span class="spb-empty-label">Pulsa para añadir audio a la canción</span>
+    <button class="spb-loop-btn spb-ampliar" onclick="toggleImmersive()" title="Pantalla ampliada">⛶</button>
   </div>
   <!-- Estado con audio -->
   <div class="spb-row1" id="spbAudioRow" style="display:none;">
@@ -4942,6 +4965,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       oninput="spbSetSpeed(this.value)" />
     <span class="spb-speed-val" id="spbSpeedVal">100%</span>
     <span class="spb-pitch-note" id="spbPitchNote">♪ tono conservado</span>
+    <button class="spb-loop-btn spb-ampliar" onclick="toggleImmersive()" title="Pantalla ampliada">⛶</button>
   </div>
 </div>
 
@@ -4955,7 +4979,6 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 
     <div class="audio-source-tabs">
       <button class="audio-tab active" id="atab-file" onclick="switchAudioTab('file')">📁 Archivo</button>
-      <button class="audio-tab" id="atab-url" onclick="switchAudioTab('url')">🔗 URL</button>
       <button class="audio-tab" id="atab-rec" onclick="switchAudioTab('rec')">🎙 Grabar</button>
     </div>
 
@@ -4973,13 +4996,6 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <input type="file" id="audioFileInput" accept="audio/*,.m4a,video/mp4" style="display:none" onchange="handleAudioFile(event)" />
     </div>
 
-    <!-- URL tab -->
-    <div class="audio-panel hidden" id="apanel-url">
-      <input class="audio-url-input" id="audioUrlInput" type="url"
-        placeholder="https://ejemplo.com/cancion.mp3"
-        onkeydown="if(event.key==='Enter')applyAudioUrl()" />
-      <button class="btn btn-primary" onclick="applyAudioUrl()" style="width:100%">✓ Usar esta URL</button>
-    </div>
 
     <!-- Record tab -->
     <div class="audio-panel hidden" id="apanel-rec">
@@ -6961,7 +6977,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261117.2";
+const APP_VERSION = "20261121.3";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -7732,6 +7748,7 @@ function render(scrollTargetId) {
       rowWrap.className = `row-wrap row-inst-${inst}`;
       rowWrap.dataset.instrument = inst;
       rowWrap.dataset.rowid = row.id;
+      rowWrap.classList.toggle("fila-sin-contenido", _filaSinContenido(row));   // F38
 
       // Instrument color stripe
       const stripe = document.createElement("div");
@@ -7832,6 +7849,7 @@ function render(scrollTargetId) {
       // Crece con el texto en vez de hacer scroll horizontal (en Tocar no
       // se podía leer lo que sobraba). Enter no salta línea: confirma.
       const _commFit = () => {
+        if (commIn.offsetParent === null) return;   // F39: oculto, no aplastar
         commIn.style.height = "auto";
         commIn.style.height = commIn.scrollHeight + "px";
       };
@@ -7899,10 +7917,14 @@ function render(scrollTargetId) {
         vozTa.value = row.vozText || "";
         vozTa.rows = 1;
         const autoResize = () => {
+          if (vozTa.offsetParent === null) return;   // F39: oculta, no aplastar
           vozTa.style.height = "auto";
           vozTa.style.height = vozTa.scrollHeight + "px";
         };
-        vozTa.addEventListener("input", () => { row.vozText = vozTa.value; autoResize(); });
+        vozTa.addEventListener("input", () => {
+          row.vozText = vozTa.value; autoResize();
+          rowWrap.classList.toggle("fila-sin-contenido", !vozTa.value.trim());   // F38
+        });
         barLine.appendChild(vozTa);
         // Use rAF to ensure layout is painted before measuring scrollHeight
         requestAnimationFrame(() => requestAnimationFrame(autoResize));
@@ -8147,7 +8169,7 @@ function render(scrollTargetId) {
           font-family:var(--font-data);font-size:0.65rem;font-weight:700;
           letter-spacing:0.12em;text-transform:uppercase;
           color:${color};padding:2px 8px 2px 10px;
-          pointer-events:none;user-select:none;
+          pointer-events:none;user-select:none; -webkit-user-select:none;
         `;
         block.insertBefore(tag, block.firstChild);
       });
@@ -9069,11 +9091,15 @@ function resizeAllVozTextareas() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       // Los comentarios ahora también crecen a lo alto: mismo recálculo
+      // F39: una caja OCULTA mide 0; si se le pone, al aparecer sale
+      // aplastada. Las ocultas se quedan como estaban.
       document.querySelectorAll(".comment-input").forEach(ta => {
+        if (ta.offsetParent === null) return;
         ta.style.height = "auto";
         ta.style.height = ta.scrollHeight + "px";
       });
       document.querySelectorAll(".voz-text").forEach(ta => {
+        if (ta.offsetParent === null) return;
         ta.style.height = "auto";
         ta.style.height = ta.scrollHeight + "px";
       });
@@ -9162,9 +9188,31 @@ function _textosAjustarYa() {
   tas.forEach((ta, i) => { ta.style.height = altos[i] + 'px'; });
 }
 
+// ── F38: lineas sin contenido ─────────────────────────────────
+// En Tocar una linea vacia no pinta su caja ni el xN (solo su comentario,
+// si lo tiene). Tocar no repinta: render() marca y el CSS decide.
+function _filaSinContenido(row) {
+  if (!row) return false;
+  if (row.instrument === "voz") return !String(row.vozText || "").trim();
+  if (row.instrument === "bat") {
+    const dp = row.drumPattern;
+    if (!dp || !dp.bars || !dp.bars.length) return true;
+    return !dp.bars.some(b => b && b.voices &&
+      Object.keys(b.voices).some(v => (b.voices[v] || []).length > 0));
+  }
+  return !(row.bars || []).some(bar => (bar || []).some(c => String(c || "").trim()));
+}
+function _marcarFilasSinContenido() {
+  (songData.sections || []).forEach(sec => (sec.rows || []).forEach(row => {
+    const w = row && document.querySelector(`#chart [data-rowid="${row.id}"]`);
+    if (w) w.classList.toggle("fila-sin-contenido", _filaSinContenido(row));
+  }));
+}
+
 function toggleReadonly() {
   const _ancla = _anclaTomar();   // F25: que fila mirabas, antes de cambiar nada
   _readonly = !_readonly;
+  if (_readonly) _marcarFilasSinContenido();   // F38: por si algo cambio sin repintar
   document.body.classList.toggle("readonly", _readonly);
   wakeLockSync();   // tocando: la pantalla no se apaga
   const btn = document.getElementById("btnReadonly");
@@ -10687,7 +10735,7 @@ async function deleteCurrentAudio() {
 }
 
 function switchAudioTab(tab) {
-  ["file","url","rec"].forEach(t => {
+  ["file","rec"].forEach(t => {   // F36: sin «url»
     document.getElementById("apanel-" + t).classList.toggle("hidden", t !== tab);
     document.getElementById("atab-" + t).classList.toggle("active", t === tab);
   });
@@ -10715,12 +10763,6 @@ function handleAudioDrop(e) {
   loadPreviewAudio(url, file.name);
 }
 
-function applyAudioUrl() {
-  const url = document.getElementById("audioUrlInput").value.trim();
-  if (!url) { alert("Introduce una URL válida."); return; }
-  _pendingAudio = { src: url, type: "url", name: url.split("/").pop() || "Audio externo" };
-  loadPreviewAudio(url, _pendingAudio.name);
-}
 
 function loadPreviewAudio(src, name) {
   stopPreviewAudio();
@@ -11896,7 +11938,7 @@ function _renderSongList() {
 
     mainRow.style.cssText = "display:flex;align-items:center;gap:5px;";
     mainRow.innerHTML = `
-      <span style="cursor:grab;color:var(--dim);font-size:1rem;padding:2px 2px;user-select:none;flex-shrink:0;" class="sl-handle">⠿</span>
+      <span style="cursor:grab;color:var(--dim);font-size:1rem;padding:2px 2px;user-select:none; -webkit-user-select:none;flex-shrink:0;" class="sl-handle">⠿</span>
       <span style="font-family:var(--font-data);font-size:0.72rem;color:var(--muted);text-align:right;flex-shrink:0;">${idx + 1}</span>
       <button class="sl-status-btn" title="Cambiar estado (clic para ciclar)" style="background:transparent;border:none;cursor:pointer;font-size:1.1rem;padding:0 1px;flex-shrink:0;line-height:1;">${statusIcons[song.status || 0]}</button>
       <div style="flex:1;min-width:0;">
@@ -16890,6 +16932,17 @@ body.eagle-mode.readonly .section-block {
   box-shadow: 0 1px 0 rgba(0,255,231,0.08);
 }
 body.eagle-mode:not(.eagle-comments) .comment-row { display: none !important; }
+/* F40: en Tocar, el titulo mini se toca para llevar el audio a la seccion.
+   Nacen con pointer-events:none en linea: hace falta !important. El ::after
+   da 28 px de alto para el dedo sin mover nada. */
+body.eagle-mode.readonly .eagle-sec-label-global,
+body.eagle-mode.readonly [id^="eagleSecLabel-ind-"] {
+  pointer-events: auto !important; cursor: pointer; position: relative;
+}
+body.eagle-mode.readonly .eagle-sec-label-global::after,
+body.eagle-mode.readonly [id^="eagleSecLabel-ind-"]::after {
+  content: ""; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px;
+}
 
 /* ☰ Secciones — solo visible en Tocar */
 body:not(.readonly) #btnEagleSections { display: none !important; }
@@ -16966,6 +17019,26 @@ body:not(.readonly) #btnEagleSections { display: none !important; }
   padding: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.45);
   opacity: 0.7;
+}
+/* F37: el ⛶ vive en la barra del audio (.spb-ampliar). El flotante solo
+   cuando no hay barra a la vista: Tocar sin audio, o la pantalla
+   ampliada (para salir). Mismo tamaño que el ⟳ y por encima de la franja
+   del gesto de inicio del iPhone. */
+.spb-ampliar { display: none; margin-left: auto; }
+body.immersive-ok .spb-ampliar { display: inline-block; }
+body.immersive-ok.immersive-mode #btnImmersive,
+body.immersive-ok.readonly:not(.has-song-player) #btnImmersive {
+  display: flex;
+  width: auto; height: auto;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  right: 16px;
+  padding: 4px 7px;
+  font-size: 0.85rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  background: var(--surface);
+  opacity: 1;
 }
 #btnImmersive.active {
   background: var(--accent);
@@ -17091,6 +17164,14 @@ function _eagleApplySectionColors() {
 
 function _eagleActivateSection(block, e) {
   if (!_eagleOn) return;
+  // F40: en Tocar, tocar el titulo mini lleva el audio a esa seccion
+  // (el mismo salto que la cabecera en Tocar normal).
+  if (_readonly && e && e.target && e.target.closest &&
+      e.target.closest('.eagle-sec-label-global, [id^="eagleSecLabel-ind-"]')) {
+    e.stopPropagation();
+    syncJumpToSection(block.dataset.secid);
+    return;
+  }
   // En Tocar: si secciones globales están activas, el click no hace nada
   if (_readonly && _eagleSections) return;
 
@@ -17122,7 +17203,7 @@ function _eagleActivateSection(block, e) {
         font-family:var(--font-data);font-size:0.65rem;font-weight:700;
         letter-spacing:0.12em;text-transform:uppercase;
         color:${color};padding:2px 8px 2px 10px;
-        pointer-events:none;user-select:none;
+        pointer-events:none;user-select:none; -webkit-user-select:none;
       `;
       block.insertBefore(tag, block.firstChild);
     }
@@ -17206,7 +17287,7 @@ function toggleEagleMode() {
           font-family:var(--font-data);font-size:0.65rem;font-weight:700;
           letter-spacing:0.12em;text-transform:uppercase;
           color:${color};padding:2px 8px 2px 10px;
-          pointer-events:none;user-select:none;
+          pointer-events:none;user-select:none; -webkit-user-select:none;
         `;
         block.insertBefore(tag, block.firstChild);
       });
@@ -17251,7 +17332,7 @@ function eagleToggleSections() {
         font-family:var(--font-data);font-size:0.65rem;font-weight:700;
         letter-spacing:0.12em;text-transform:uppercase;
         color:${color};padding:2px 8px 2px 10px;
-        pointer-events:none;user-select:none;
+        pointer-events:none;user-select:none; -webkit-user-select:none;
       `;
       block.insertBefore(tag, block.firstChild);
     });
@@ -17265,6 +17346,7 @@ function eagleToggleSections() {
 function eagleToggleComments() {
   _eagleComments = !_eagleComments;
   document.body.classList.toggle('eagle-comments', _eagleComments);
+  if (_eagleComments && typeof _textosAjustarYa === 'function') _textosAjustarYa();   // F39
   _eagleUpdateToggleBtns();
 }
 
@@ -17301,7 +17383,10 @@ function _immersiveUpdateButtonVisibility() {
   if (!btn) return;
   const isMobile = window.innerWidth < 1024;
   const show = isMobile && _immersiveShouldShow();
-  btn.style.display = show ? 'flex' : 'none';
+  // F37: ya no se pinta aqui. Se apunta en el body y el CSS elige: el ⛶
+  // de la barra si la barra se ve, el flotante si no (o para salir).
+  document.body.classList.toggle('immersive-ok', show);
+  btn.style.display = '';
 }
 
 function _immersiveDeactivate() {
@@ -20849,7 +20934,7 @@ function _dateStr(d) {
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   transition: all 0.2s;
-  user-select: none;
+  user-select: none; -webkit-user-select: none;
 }
 #helpBtn:hover { transform: scale(1.1); }
 #helpBtn.help-active {
