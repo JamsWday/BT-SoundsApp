@@ -1402,6 +1402,16 @@ body.has-song-player { padding-bottom: 110px !important; }
 /* ══════════════════════════════════════════════
    SONG PLAYER BAR — barra unificada fija abajo
 ══════════════════════════════════════════════ */
+/* F43 · 🐯 aviso a quien sigue */
+#bandaAviso {
+  position: fixed; left: 50%; bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 8px); max-width: calc(100vw - 32px);
+  padding: 8px 14px; border-radius: 16px; text-align: center; line-height: 1.3;
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  font-size: .82rem; font-weight: 600; box-shadow: 0 4px 18px rgba(0,0,0,.35);
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 10050;
+}
+#bandaAviso.visible { opacity: 1; transform: translate(-50%, 0); }
 #songPlayerBar {
   display: none;
   position: fixed;
@@ -6977,7 +6987,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261122.2";
+const APP_VERSION = "20261122.5";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -7626,7 +7636,7 @@ function render(scrollTargetId) {
       const _secCal = (songData.sectionTimestamps || {})[sec.id];
       const _secTieneCal = (_secCal !== undefined && _secCal !== null);
       const secLoopBtn = document.createElement("button");
-      secLoopBtn.className = "sec-loop-btn" + (_syncBucleSecId === sec.id ? " on" : "")
+      secLoopBtn.className = "sec-loop-btn" + (_syncBucleId() === sec.id ? " on" : "")   // F45
                            + (_secTieneCal ? "" : " sin-cal");
       secLoopBtn.dataset.secId = sec.id;
       secLoopBtn.textContent = "\u27F3";   // el mismo que spbLoopBtn, que ya es el bucle de la cancion
@@ -7634,7 +7644,7 @@ function render(scrollTargetId) {
         ? "Esta secci\u00f3n no est\u00e1 calibrada todav\u00eda"
         : (_syncBucleSecId === sec.id
             ? "Dejar de repetir esta secci\u00f3n" : "Repetir esta secci\u00f3n en bucle");
-      secLoopBtn.setAttribute('aria-pressed', _syncBucleSecId === sec.id ? 'true' : 'false');
+      secLoopBtn.setAttribute('aria-pressed', _syncBucleId() === sec.id ? 'true' : 'false');
       // stopPropagation: la cabecera entera salta a la seccion en Tocar,
       // y el salto lo hace ya syncBucleToggle cuando enciende.
       secLoopBtn.addEventListener("click", e => {
@@ -9695,6 +9705,22 @@ let _bandaUltimaDif   = null;   // s: lo que se habia ido quien sigue (para prob
 let _syncRitmo        = 1;      // velocidad del reloj propio (la del director)
 let _syncPausaBanda   = false;  // el director ha pausado
 
+// ── F43 · B3: quien sigue no mueve la cancion ──────────────────
+// Su ▶ de la barra hacia sonar SU movil (eco) y tocar una seccion
+// saltaba y el pulso le devolvia. Ahora se le dice quien dirige.
+let _bandaDirectorNombre = "";
+function _bandaSigo() {
+  return !!(_bandaActive && _syncPlaying && !_bandaDirijo && _bandaDirector);
+}
+function _bandaAvisoSigo() {
+  let el = document.getElementById("bandaAviso");
+  if (!el) { el = document.createElement("div"); el.id = "bandaAviso"; document.body.appendChild(el); }
+  el.textContent = "🐯 Dirige " + (_bandaDirectorNombre || "otro") + ": solo su móvil mueve la canción";
+  el.classList.add("visible");
+  clearTimeout(el.__oculta);
+  el.__oculta = setTimeout(function () { el.classList.remove("visible"); }, 2400);
+}
+
 function _bandaMedirViaje(desde) {
   const v = (performance.now() - desde) / 1000;
   if (v >= 0 && v < 2) _bandaViaje = v;
@@ -9712,7 +9738,8 @@ function _bandaPulsoMandar() {
                 : (_syncPausaBanda ? _syncElapsed : (performance.now() - _syncStartTs) / 1000 * _syncRitmo),
     ritmo:   a ? (a.playbackRate || 1) : _syncRitmo,
     pausado: a ? a.paused : false,
-    viaje:   _bandaViaje
+    viaje:   _bandaViaje,
+    bucle:   _syncBucleSecId || null      // F44: para que su pantalla tambien se quede quieta
   }});
 }
 
@@ -9725,7 +9752,7 @@ function _bandaPulsoEmpezar() {
   const a = _syncAudioEl;
   if (a && !a.__bandaOye) {
     a.__bandaOye = true;
-    ["pause", "playing", "ratechange"].forEach(function (ev) {
+    ["pause", "playing", "ratechange", "seeked"].forEach(function (ev) {   // F43: + saltos
       a.addEventListener(ev, function () {
         if (_bandaDirijo && _syncPlaying && _syncAudioEl === a) _bandaPulsoMandar();
       });
@@ -9746,6 +9773,10 @@ function _bandaReceivePulso(p) {
   }
   // Solo quien sigue, con todo en marcha, y al que dirige AHORA
   if (_bandaDirijo || !_syncPlaying || _syncMode === "audio" || p.quien !== _bandaDirector) return;
+  if ((p.bucle || null) !== _bandaBucleDir) {                               // F44 · F45: y verlo
+    _bandaBucleDir = p.bucle || null;
+    _syncBucleSync();
+  }
   const ritmo   = p.ritmo > 0 ? p.ritmo : 1;
   const pausado = !!p.pausado;
   // Lo que tarda en llegarme ≈ su ida y vuelta (misma wifi)
@@ -9805,6 +9836,7 @@ function _bandaReceivePlay(payload) {
   if (_syncPlaying) syncStop();           // alguien toma el mando con todo en marcha
   _bandaDirijo = dirijo;
   _bandaDirector = payload.quien || null;                                   // F42
+  _bandaDirectorNombre = payload.nombre || "";                              // F43
   if (dirijo && payload.quien && _bandaPlayEnviado) _bandaMedirViaje(_bandaPlayEnviado);
   // Quien sigue no suena: su audio, callado
   if (!dirijo && _spb && _spb.audio && !_spb.audio.paused) _spb.audio.pause();
@@ -9934,6 +9966,8 @@ function syncPlay(fromBanda) {
   _syncLastNow      = _syncStartTs;
   _syncElapsed      = 0;
   _syncRitmo        = 1;       // F42: solo cambia siguiendo a un director
+  _syncPrevT        = null;    // F43
+  _syncVuelo        = null;
   _syncPausaBanda   = false;
   _syncLastSecId    = null;
   _syncUserScrolled = false;
@@ -9956,6 +9990,7 @@ function syncStop() {
   _syncPlaying = false;
   _bandaPulsoParar();          // F42
   _syncPausaBanda = false;
+  if (_bandaBucleDir) { _bandaBucleDir = null; _syncBucleSync(); }   // F44 · F45: se apaga su ⟳
   document.body.classList.remove("sync-playing");
   if (_syncRaf) { cancelAnimationFrame(_syncRaf); _syncRaf = null; }
   if (_syncUserScrollTimer) { clearTimeout(_syncUserScrollTimer); _syncUserScrollTimer = null; }
@@ -10019,9 +10054,10 @@ function _syncBucleFin(secId, calibrated) {
 
 // Pinta los interruptores segun quien este en bucle.
 function _syncBucleSync() {
+  if (typeof _bandaPulsoMandar === "function") _bandaPulsoMandar();   // F44: 🐯 al momento (si dirijo)
   const stamps = songData.sectionTimestamps || {};
   document.querySelectorAll('.sec-loop-btn').forEach(b => {
-    const on  = (b.dataset.secId === _syncBucleSecId);
+    const on  = (b.dataset.secId === _syncBucleId());      // F45: o la del que dirige
     // El calibrado puede cambiar sin repintar la cancion (el calibrador
     // es un modal), asi que el estado «sin calibrar» se refresca aqui y
     // no solo al construir el boton.
@@ -10030,7 +10066,8 @@ function _syncBucleSync() {
     b.classList.toggle('on', on);
     b.classList.toggle('sin-cal', sin);
     b.title = sin ? 'Esta secci\u00f3n no est\u00e1 calibrada todav\u00eda'
-            : (on ? 'Dejar de repetir esta secci\u00f3n' : 'Repetir esta secci\u00f3n en bucle');
+            : (on && !_syncBucleSecId ? 'La repite quien dirige'                       // F45
+            : (on ? 'Dejar de repetir esta secci\u00f3n' : 'Repetir esta secci\u00f3n en bucle'));
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 }
@@ -10077,6 +10114,7 @@ function syncBucleQuitar() {
 // Encender el bucle SALTA a la seccion: «repetir esto» es ir alli y
 // quedarse, no esperar a que el tema llegue solo.
 function syncBucleToggle(secId) {
+  if (_bandaSigo()) { _bandaAvisoSigo(); return; }   // F43: solo el que dirige
   if (_syncBucleSecId === secId) { syncBucleQuitar(); return; }
   const t = (songData.sectionTimestamps || {})[secId];
   if (t === undefined || t === null) {
@@ -10117,6 +10155,7 @@ function _asaSaltarAudio(secId) {
 // Mueve el audio (que es quien manda desde la F2) al segundo calibrado de
 // esa sección; la letra va detrás sola. Sin calibrar, no hace nada.
 function syncJumpToSection(secId) {
+  if (_bandaSigo()) { _bandaAvisoSigo(); return; }   // F43: solo el que dirige
   const t = (songData.sectionTimestamps || {})[secId];
   if (t === undefined || t === null) return;
 
@@ -10158,6 +10197,59 @@ function _syncGetTargetY(secId) {
   const visibleH = window.innerHeight - headerH;
   const guideY   = headerH + visibleH * SYNC_GUIDE_POS;
   return Math.max(0, window.scrollY + block.getBoundingClientRect().top - guideY);
+}
+
+// ── F43 · si el tiempo SALTA, la pantalla vuela a su sitio ─────
+// Antes se quedaba quieta 2,5 s (el toque) y luego se deslizaba despacio
+// hacia la seccion siguiente: tras un salto largo, segundos perdida.
+const _SYNC_SALTO    = 1.0;   // s de golpe = salto (las correcciones del 🐯 son menores)
+const _SYNC_VUELO_MS = 450;
+let _syncPrevT = null, _syncVuelo = null;
+
+// ── F44 · con el bucle, si la seccion CABE, la pantalla quieta ──
+// Antes subia hacia la siguiente mientras repetia y la del bucle se iba
+// por arriba. Devuelve el scroll donde se queda, o null si no cabe (o no
+// hay bucle): entonces, como siempre.
+let _bandaBucleDir = null;   // 🐯 el bucle del que dirige (quien sigue no tiene el suyo)
+function _syncBucleId() { return _syncBucleSecId || _bandaBucleDir; }
+function _syncBucleY() {
+  const id = _syncBucleId();
+  if (!id) return null;
+  const block = document.querySelector(".section-block[data-secid='" + id + "']");
+  if (!block) return null;
+  const r = block.getBoundingClientRect();
+  if (!r.height) return null;
+  const headerEl = document.querySelector(".header");
+  const headerH  = (headerEl && !headerEl.classList.contains("immersive-hidden")) ? headerEl.offsetHeight : 0;
+  const bar      = document.getElementById("songPlayerBar");
+  const arriba   = headerH + 8;
+  const abajo    = window.innerHeight - (bar ? bar.getBoundingClientRect().height : 0) - 8;
+  if (r.height > abajo - arriba) return null;                       // no cabe
+  const guia     = headerH + (window.innerHeight - headerH) * SYNC_GUIDE_POS;
+  const top      = Math.max(arriba, Math.min(guia, abajo - r.height));   // en la guia si entra; si no, lo justo
+  return Math.max(0, window.scrollY + r.top - top);
+}
+
+// Donde esta la pantalla a ese segundo cuando todo va bien: el paso la
+// lleva en linea recta de la guia de su seccion a la de la siguiente.
+function _syncIdealY(t, calibrated) {
+  var i = 0;
+  for (var k = 0; k < calibrated.length; k++) { if (t >= calibrated[k].time) i = k; else break; }
+  if (calibrated[i].id === _syncBucleId()) {                 // F44
+    var yq = _syncBucleY();
+    if (yq !== null) return yq;
+  }
+  var y0 = _syncGetTargetY(calibrated[i].id);
+  if (y0 === null) return null;
+  var sig = calibrated[i + 1], y1, t1;
+  if (sig) { y1 = _syncGetTargetY(sig.id); t1 = sig.time; }
+  else {
+    y1 = document.documentElement.scrollHeight - window.innerHeight;
+    t1 = (_spb && _spb.audio && _spb.audio.duration) ? _spb.audio.duration : calibrated[i].time + 30;
+  }
+  if (y1 === null || !(t1 > calibrated[i].time)) return y0;
+  var f = Math.min(1, Math.max(0, (t - calibrated[i].time) / (t1 - calibrated[i].time)));
+  return y0 + (y1 - y0) * f;
 }
 
 function _syncStep(now) {
@@ -10202,6 +10294,28 @@ function _syncStep(now) {
     // se usa cuando no manda el audio).
     if (_syncElapsed !== _antesDelBucle) _syncStartTs = now - _syncElapsed * 1000 / _syncRitmo;
   }
+  // F44: 🐯 quien sigue repite TAMBIEN el bucle del que dirige, en el mismo
+  // segundo y sin esperar su aviso (si no, se asomaba un instante a la
+  // seccion siguiente antes de volver).
+  if (!_syncBucleSecId && _bandaBucleDir && !_mandaAudio) {
+    const _ini = (songData.sectionTimestamps || {})[_bandaBucleDir];
+    if (_ini !== undefined && _ini !== null && _syncElapsed >= _syncBucleFin(_bandaBucleDir) - 0.05 && _syncElapsed > _ini) {
+      _syncElapsed = _ini;
+      _syncStartTs = now - _ini * 1000 / _syncRitmo;
+    }
+  }
+
+  // F43: ¿ha saltado el tiempo? (barra, −5/+5, seccion, bucle, el que dirige)
+  const _ritmoAhora = _mandaAudio ? (_syncAudioEl.playbackRate || 1) : _syncRitmo;
+  const _salto = _syncPrevT === null
+    ? Math.abs(window.scrollY - (_syncIdealY(_syncElapsed, calibrated) || 0)) > 150   // al arrancar a mitad
+    : Math.abs(_syncElapsed - (_syncPrevT + delta * _ritmoAhora)) > _SYNC_SALTO;
+  _syncPrevT = _syncElapsed;
+  if (_salto) {
+    _syncVuelo = { t0: now, desde: window.scrollY };
+    _syncUserScrolled = false;          // el toque que ha saltado no frena el vuelo
+    if (_syncUserScrollTimer) { clearTimeout(_syncUserScrollTimer); _syncUserScrollTimer = null; }
+  }
 
   // 1. Sección activa
   var current = calibrated[0], currentPos = 0;
@@ -10220,8 +10334,19 @@ function _syncStep(now) {
     _syncUpdateGuideLine(next);
   }
 
+  // F43: el vuelo (frena al llegar). Tocar la pantalla lo corta.
+  if (_syncVuelo) {
+    const hasta = _syncUserScrolled ? null : _syncIdealY(_syncElapsed, calibrated);
+    if (hasta === null) _syncVuelo = null;
+    else {
+      const p = Math.min(1, (now - _syncVuelo.t0) / _SYNC_VUELO_MS), e = 1 - Math.pow(1 - p, 3);
+      window.scrollTo(0, _syncVuelo.desde + (hasta - _syncVuelo.desde) * e);
+      if (p >= 1) _syncVuelo = null;
+    }
+  }
+
   // 3 & 4. Scroll a velocidad constante
-  if (!_syncUserScrolled) {
+  if (!_syncUserScrolled && !_syncVuelo) {
     var targetY, secsLeft;
 
     if (next) {
@@ -10238,6 +10363,11 @@ function _syncStep(now) {
       const endOfDoc  = document.documentElement.scrollHeight - window.innerHeight;
       targetY  = endOfDoc;
       secsLeft = audioDur - _syncElapsed;
+    }
+    // F44: repitiendo esta seccion y cabe: quieta
+    if (current.id === _syncBucleId()) {
+      const yq = _syncBucleY();
+      if (yq !== null) targetY = yq;
     }
 
     if (targetY !== null && secsLeft > 0.05 && Math.abs(targetY - window.scrollY) > 0.5) {
@@ -11515,6 +11645,7 @@ function _spbDestroy() {
 
 // Toggle play/pause — llamado desde todos los botones
 function spbToggle() {
+  if (_bandaSigo()) { _bandaAvisoSigo(); return; }   // F43
   if (!_spbInit()) return;
   if (_spb.audio.paused) {
     audioTurno('cancion');
@@ -11528,6 +11659,7 @@ function spbToggle() {
 
 // Seek ±N segundos
 function spbSeek(delta) {
+  if (_bandaSigo()) { _bandaAvisoSigo(); return; }   // F43
   if (!_spbInit()) return;
   _spb.audio.currentTime = Math.max(0,
     Math.min(_spb.audio.duration || 0, _spb.audio.currentTime + delta));
@@ -11539,6 +11671,7 @@ function spbSeek(delta) {
 
 // Click en barra de progreso
 function spbClickProgress(e) {
+  if (_bandaSigo()) { _bandaAvisoSigo(); return; }   // F43
   if (!_spbInit()) return;
   const bar = e.currentTarget;
   const rect = bar.getBoundingClientRect();
