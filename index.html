@@ -6977,7 +6977,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261122.1";
+const APP_VERSION = "20261122.2";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -9232,6 +9232,7 @@ function toggleReadonly() {
     stopScroll();
     stopAllSectionAudio();
     stopSongAudio();
+    if (_bandaActive && _bandaDirijo && _syncPlaying) bandaEmitStop();   // F42: paran los demas
     syncStop(true);
     bandaLeave();
     _bandaActive = false;
@@ -9649,10 +9650,20 @@ function bandaJoin(songId) {
     .on("broadcast", { event: "stop" }, function() {
       _bandaReceiveStop();
     })
+    .on("broadcast", { event: "pulso" }, function(payload) {   // F42
+      _bandaReceivePulso(payload.payload);
+    })
     .subscribe();
 }
 
 function bandaLeave() {
+  // F42: si se va el que dirige con todo sonando, paran los demas
+  if (_bandaChannel && _bandaDirijo && _syncPlaying) {
+    try { _bandaChannel.send({ type: "broadcast", event: "stop", payload: {} }); } catch (e) {}
+  }
+  _bandaPulsoParar();
+  _bandaDirijo = false;
+  _bandaDirector = null;
   if (_bandaArranque) { clearTimeout(_bandaArranque); _bandaArranque = null; }   // F41
   if (_bandaChannel) {
     _sb.removeChannel(_bandaChannel);
@@ -9667,6 +9678,88 @@ function bandaLeave() {
 const _bandaYo = Math.random().toString(36).slice(2, 10);   // este movil
 let _bandaArranque = null;     // temporizador del arranque (tras el 3 2 1)
 let _bandaDirijo   = false;
+
+// ── F42 · B2 «el director corrige» ─────────────────────────────
+// El que dirige manda un PULSO: «voy por el segundo X, a tal velocidad,
+// sonando o en pausa». Cada 2 s, y al momento si su audio se pausa, sigue
+// o cambia de velocidad. Quien sigue se ajusta si se ha ido > 0,25 s.
+const _BANDA_PULSO_MS = 2000;
+const _BANDA_TOLERA   = 0.25;   // s
+let _bandaDirector    = null;   // id del que dirige ahora
+let _bandaPulsoTimer  = null;
+let _bandaPulsoN      = 0;
+let _bandaPulsoSalida = null;   // {n, at}: para medir el viaje
+let _bandaPlayEnviado = null;   // performance.now() al mandar el play
+let _bandaViaje       = 0.1;    // s: ida y vuelta por Supabase (se mide)
+let _bandaUltimaDif   = null;   // s: lo que se habia ido quien sigue (para probar)
+let _syncRitmo        = 1;      // velocidad del reloj propio (la del director)
+let _syncPausaBanda   = false;  // el director ha pausado
+
+function _bandaMedirViaje(desde) {
+  const v = (performance.now() - desde) / 1000;
+  if (v >= 0 && v < 2) _bandaViaje = v;
+}
+
+function _bandaPulsoMandar() {
+  if (!_bandaActive || !_bandaChannel || !_bandaDirijo || !_syncPlaying) return;
+  const a = (_syncMode === "audio") ? _syncAudioEl : null;
+  _bandaPulsoN++;
+  _bandaPulsoSalida = { n: _bandaPulsoN, at: performance.now() };
+  _bandaChannel.send({ type: "broadcast", event: "pulso", payload: {
+    quien:   _bandaYo,
+    n:       _bandaPulsoN,
+    t:       a ? a.currentTime
+                : (_syncPausaBanda ? _syncElapsed : (performance.now() - _syncStartTs) / 1000 * _syncRitmo),
+    ritmo:   a ? (a.playbackRate || 1) : _syncRitmo,
+    pausado: a ? a.paused : false,
+    viaje:   _bandaViaje
+  }});
+}
+
+function _bandaPulsoEmpezar() {
+  _bandaPulsoParar();
+  _bandaPulsoTimer = setInterval(_bandaPulsoMandar, _BANDA_PULSO_MS);
+  // Al momento: pausa, sigue (tambien tras un atasco cargando) y velocidad.
+  // Se escucha el AUDIO, asi vale cualquier boton: la barra, el del
+  // editor de bateria o los del movil bloqueado.
+  const a = _syncAudioEl;
+  if (a && !a.__bandaOye) {
+    a.__bandaOye = true;
+    ["pause", "playing", "ratechange"].forEach(function (ev) {
+      a.addEventListener(ev, function () {
+        if (_bandaDirijo && _syncPlaying && _syncAudioEl === a) _bandaPulsoMandar();
+      });
+    });
+  }
+}
+
+function _bandaPulsoParar() {
+  if (_bandaPulsoTimer) { clearInterval(_bandaPulsoTimer); _bandaPulsoTimer = null; }
+}
+
+function _bandaReceivePulso(p) {
+  if (!p) return;
+  const ahora = performance.now();
+  if (p.quien === _bandaYo) {                       // el mio de vuelta: mide el viaje
+    if (_bandaPulsoSalida && p.n === _bandaPulsoSalida.n) _bandaMedirViaje(_bandaPulsoSalida.at);
+    return;
+  }
+  // Solo quien sigue, con todo en marcha, y al que dirige AHORA
+  if (_bandaDirijo || !_syncPlaying || _syncMode === "audio" || p.quien !== _bandaDirector) return;
+  const ritmo   = p.ritmo > 0 ? p.ritmo : 1;
+  const pausado = !!p.pausado;
+  // Lo que tarda en llegarme ≈ su ida y vuelta (misma wifi)
+  const viaje   = Math.min(1, Math.max(0, +p.viaje || 0.1));
+  const suyo    = pausado ? p.t : p.t + viaje * ritmo;
+  const mio     = _syncPausaBanda ? _syncElapsed : (ahora - _syncStartTs) / 1000 * _syncRitmo;
+  _bandaUltimaDif = mio - suyo;
+  if (pausado === _syncPausaBanda && ritmo === _syncRitmo && Math.abs(mio - suyo) <= _BANDA_TOLERA) return;
+  _syncPausaBanda = pausado;
+  _syncRitmo      = ritmo;
+  _syncElapsed    = suyo;
+  _syncStartTs    = ahora - suyo * 1000 / ritmo;
+  _syncLastNow    = ahora;
+}
 
 // iPhone solo deja sonar si el play nace de un toque. El director toca ▶
 // AHORA pero su audio arranca 3 s despues: se desbloquea en este toque
@@ -9688,9 +9781,11 @@ function _bandaDesbloquearAudio() {
 function bandaEmitPlay(mode) {
   if (!_bandaActive || !_bandaChannel) return;
   const desde = (mode === "audio" && _spb && _spb.audio) ? (_spb.audio.currentTime || 0) : 0;
+  const ritmo = (mode === "audio" && _spb && _spb.speed) ? _spb.speed : 1;   // F42
+  _bandaPlayEnviado = performance.now();
   _bandaChannel.send({
     type: "broadcast", event: "play",
-    payload: { mode: mode, startAt: Date.now() + 3000, espera: 3000, desde: desde,
+    payload: { mode: mode, startAt: Date.now() + 3000, espera: 3000, desde: desde, ritmo: ritmo,
                quien: _bandaYo, nombre: currentUserName() }
   });
 }
@@ -9709,6 +9804,8 @@ function _bandaReceivePlay(payload) {
   if (_bandaArranque) { clearTimeout(_bandaArranque); _bandaArranque = null; }
   if (_syncPlaying) syncStop();           // alguien toma el mando con todo en marcha
   _bandaDirijo = dirijo;
+  _bandaDirector = payload.quien || null;                                   // F42
+  if (dirijo && payload.quien && _bandaPlayEnviado) _bandaMedirViaje(_bandaPlayEnviado);
   // Quien sigue no suena: su audio, callado
   if (!dirijo && _spb && _spb.audio && !_spb.audio.paused) _spb.audio.pause();
   const etiqueta = !payload.quien ? "preparados..."
@@ -9722,14 +9819,18 @@ function _bandaReceivePlay(payload) {
     syncPlay(true);                        // true = ya iniciado por banda
     if (!_syncPlaying) return;
     if (!dirijo) {
-      _syncStartTs = performance.now() - desde * 1000;   // desde el segundo del director
+      _syncRitmo   = payload.ritmo > 0 ? payload.ritmo : 1;                // F42
+      _syncStartTs = performance.now() - desde * 1000 / _syncRitmo;        // desde el segundo del director
       _syncLastNow = performance.now();
-    } else if (_syncMode === "audio") {
+    }
+    if (dirijo && payload.quien) _bandaPulsoEmpezar();                     // F42
+    if (dirijo && _syncMode === "audio") {
       // Si aun asi el audio del director no arranca, seguir con el reloj
       setTimeout(function () {
         if (_syncPlaying && _syncMode === "audio" && _syncAudioEl && _syncAudioEl.paused) {
           _syncMode = "scroll";            // reloj desde el arranque, como los demas
-          _syncStartTs = t0 - desde * 1000;
+          _syncRitmo = payload.ritmo > 0 ? payload.ritmo : 1;              // F42
+          _syncStartTs = t0 - desde * 1000 / _syncRitmo;
           _syncLastNow = performance.now();
         }
       }, 800);
@@ -9832,6 +9933,8 @@ function syncPlay(fromBanda) {
   _syncStartTs      = performance.now();
   _syncLastNow      = _syncStartTs;
   _syncElapsed      = 0;
+  _syncRitmo        = 1;       // F42: solo cambia siguiendo a un director
+  _syncPausaBanda   = false;
   _syncLastSecId    = null;
   _syncUserScrolled = false;
 
@@ -9851,6 +9954,8 @@ function syncPlay(fromBanda) {
 
 function syncStop() {
   _syncPlaying = false;
+  _bandaPulsoParar();          // F42
+  _syncPausaBanda = false;
   document.body.classList.remove("sync-playing");
   if (_syncRaf) { cancelAnimationFrame(_syncRaf); _syncRaf = null; }
   if (_syncUserScrollTimer) { clearTimeout(_syncUserScrollTimer); _syncUserScrollTimer = null; }
@@ -10027,7 +10132,7 @@ function syncJumpToSection(secId) {
   }
 
   _syncElapsed = t;
-  _syncStartTs = performance.now() - t * 1000;      // por si no hay audio
+  _syncStartTs = performance.now() - t * 1000 / _syncRitmo;   // por si no hay audio
   // Llevar la pantalla a esa sección de golpe (no arrastrando poco a poco)
   const y = _syncGetTargetY(secId);
   if (y !== null) window.scrollTo({ top: y, behavior: 'smooth' });
@@ -10062,6 +10167,13 @@ function _syncStep(now) {
 
   const _mandaAudio = !!(_syncAudioEl && _syncMode === "audio");
   if (_mandaAudio && _syncAudioEl.paused) {   // pausado abajo = pausado aquí
+    _syncLastNow = now;      // F42: al seguir, no sumar de golpe el rato parado (tiron)
+    _syncRaf = requestAnimationFrame(_syncStep);
+    return;
+  }
+  if (!_mandaAudio && _syncPausaBanda) {      // F42: el director ha pausado
+    _syncLastNow = now;
+    _syncStartTs = now - _syncElapsed * 1000 / _syncRitmo;
     _syncRaf = requestAnimationFrame(_syncStep);
     return;
   }
@@ -10072,7 +10184,7 @@ function _syncStep(now) {
   // (así el ensayo sin música sigue funcionando igual que siempre).
   _syncElapsed = _mandaAudio
     ? _syncAudioEl.currentTime
-    : (now - _syncStartTs) / 1000;
+    : (now - _syncStartTs) / 1000 * _syncRitmo;   // F42: 1 salvo siguiendo
 
   const calibrated = _syncGetCalibrated();
   if (!calibrated.length) { syncStop(); return; }
@@ -10088,7 +10200,7 @@ function _syncStep(now) {
     _syncElapsed = _bucleVigilar(_syncElapsed);
     // Si el bucle movio el reloj, recolocar el cronometro propio (el que
     // se usa cuando no manda el audio).
-    if (_syncElapsed !== _antesDelBucle) _syncStartTs = now - _syncElapsed * 1000;
+    if (_syncElapsed !== _antesDelBucle) _syncStartTs = now - _syncElapsed * 1000 / _syncRitmo;
   }
 
   // 1. Sección activa
