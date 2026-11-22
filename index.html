@@ -6977,7 +6977,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261121.3";
+const APP_VERSION = "20261122.1";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -9653,19 +9653,45 @@ function bandaJoin(songId) {
 }
 
 function bandaLeave() {
+  if (_bandaArranque) { clearTimeout(_bandaArranque); _bandaArranque = null; }   // F41
   if (_bandaChannel) {
     _sb.removeChannel(_bandaChannel);
     _bandaChannel = null;
   }
 }
 
-// Emitir play a la banda (con modo y timestamp de arranque)
+// ── F41 · B1 «un solo altavoz»: quien da al ▶ DIRIGE ──────────
+// Solo suena su movil; los demas siguen su reloj en silencio. Antes cada
+// movil arrancaba su propio audio sin que nadie lo tocara, el navegador
+// (iPhone siempre) lo bloqueaba y la letra se quedaba esperando.
+const _bandaYo = Math.random().toString(36).slice(2, 10);   // este movil
+let _bandaArranque = null;     // temporizador del arranque (tras el 3 2 1)
+let _bandaDirijo   = false;
+
+// iPhone solo deja sonar si el play nace de un toque. El director toca ▶
+// AHORA pero su audio arranca 3 s despues: se desbloquea en este toque
+// (play mudo y pausa, volviendo al mismo segundo).
+function _bandaDesbloquearAudio() {
+  if (!_spbInit()) return;
+  const a = _spb.audio;
+  if (!a.paused) return;
+  const t = a.currentTime || 0;
+  a.muted = true;
+  const fin = () => { a.pause(); a.currentTime = t; a.muted = false; };
+  try {
+    const p = a.play();
+    if (p && p.then) p.then(fin, () => { a.muted = false; }); else fin();
+  } catch (e) { a.muted = false; }
+}
+
+// Emitir play a la banda: quien dirige y desde que segundo
 function bandaEmitPlay(mode) {
   if (!_bandaActive || !_bandaChannel) return;
-  const startAt = Date.now() + 3000;
+  const desde = (mode === "audio" && _spb && _spb.audio) ? (_spb.audio.currentTime || 0) : 0;
   _bandaChannel.send({
     type: "broadcast", event: "play",
-    payload: { mode: mode, startAt: startAt }
+    payload: { mode: mode, startAt: Date.now() + 3000, espera: 3000, desde: desde,
+               quien: _bandaYo, nombre: currentUserName() }
   });
 }
 
@@ -9674,29 +9700,52 @@ function bandaEmitStop() {
   _bandaChannel.send({ type: "broadcast", event: "stop", payload: {} });
 }
 
-// Recibir play — mostrar countdown y arrancar en el momento exacto
+// Recibir play: 3 2 1 diciendo quien dirige, y arrancar 3 s despues de
+// RECIBIRLO (no con la hora de cada movil, que puede no coincidir).
 function _bandaReceivePlay(payload) {
-  const mode    = payload.mode || "scroll";
-  const startAt = payload.startAt;
-  const now     = Date.now();
-  const msLeft  = startAt - now;
-
-  _syncMode = mode;
-
-  // Mostrar countdown
-  _showCountdown(Math.ceil(msLeft / 1000), function() {
-    // Arrancar scroll sincronizado
-    syncPlay(true); // true = ya iniciado por banda, no emitir de nuevo
-  });
+  const dirijo = payload.quien ? payload.quien === _bandaYo : true;   // aviso viejo: como antes
+  const espera = payload.espera || Math.max(0, payload.startAt - Date.now());
+  const desde  = payload.desde || 0;
+  if (_bandaArranque) { clearTimeout(_bandaArranque); _bandaArranque = null; }
+  if (_syncPlaying) syncStop();           // alguien toma el mando con todo en marcha
+  _bandaDirijo = dirijo;
+  // Quien sigue no suena: su audio, callado
+  if (!dirijo && _spb && _spb.audio && !_spb.audio.paused) _spb.audio.pause();
+  const etiqueta = !payload.quien ? "preparados..."
+                 : dirijo ? "diriges tú" : ("dirige " + (payload.nombre || "otro"));
+  _showCountdown(Math.round(espera / 1000), null, etiqueta);
+  _bandaArranque = setTimeout(function () {
+    _bandaArranque = null;
+    // director: su modo (audio si hay); quien sigue: reloj, en silencio
+    _syncMode = dirijo ? (payload.mode || "scroll") : "scroll";
+    const t0 = performance.now();
+    syncPlay(true);                        // true = ya iniciado por banda
+    if (!_syncPlaying) return;
+    if (!dirijo) {
+      _syncStartTs = performance.now() - desde * 1000;   // desde el segundo del director
+      _syncLastNow = performance.now();
+    } else if (_syncMode === "audio") {
+      // Si aun asi el audio del director no arranca, seguir con el reloj
+      setTimeout(function () {
+        if (_syncPlaying && _syncMode === "audio" && _syncAudioEl && _syncAudioEl.paused) {
+          _syncMode = "scroll";            // reloj desde el arranque, como los demas
+          _syncStartTs = t0 - desde * 1000;
+          _syncLastNow = performance.now();
+        }
+      }, 800);
+    }
+  }, espera);
 }
 
 function _bandaReceiveStop() {
+  if (_bandaArranque) { clearTimeout(_bandaArranque); _bandaArranque = null; }
+  _bandaDirijo = false;
   _hideCountdown();
   syncStop(true);
 }
 
 // Mostrar overlay 3...2...1...▶
-function _showCountdown(secs, onDone) {
+function _showCountdown(secs, onDone, etiqueta) {   // F41: etiqueta = quien dirige
   if (_countdownTimer) clearTimeout(_countdownTimer);
   const overlay = document.getElementById("countdownOverlay");
   const numEl   = document.getElementById("countdownNumber");
@@ -9708,7 +9757,7 @@ function _showCountdown(secs, onDone) {
   function tick() {
     if (remaining > 0) {
       numEl.textContent  = remaining;
-      lblEl.textContent  = "preparados...";
+      lblEl.textContent  = etiqueta || "preparados...";
       numEl.style.color  = "var(--accent)";
       remaining--;
       _countdownTimer = setTimeout(tick, 1000);
@@ -9740,6 +9789,15 @@ function syncPlayPressed() {
 }
 
 function syncTogglePlay(mode) {
+  // F41: con 🐯, el ⏹ de cualquiera para a todos (antes, el de quien
+  // seguia podia acabar arrancando otra vez) y el ▶ te hace director.
+  if (_bandaActive) {
+    if (_syncPlaying || _bandaArranque) { bandaEmitStop(); return; }
+    _syncMode = mode;
+    if (mode === "audio") _bandaDesbloquearAudio();   // en ESTE toque
+    bandaEmitPlay(mode);
+    return;
+  }
   if (_syncPlaying && _syncMode === mode) {
     if (_bandaActive) bandaEmitStop();
     else syncStop();
