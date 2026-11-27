@@ -3518,11 +3518,13 @@ body.readonly .drum-add-btn  { display: none !important; }
 .cfg-modal-hdr {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 20px 0; border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;              /* F54 */
 }
 .cfg-modal-title { font-family: var(--font-display); font-size: 1rem; color: var(--accent); }
 .cfg-close { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1.1rem; padding: 0 4px; }
 .cfg-tabs {
   display: flex; padding: 0 20px; border-bottom: 1px solid var(--border-soft); gap: 0;
+  flex-shrink: 0;              /* F54: con un panel largo se encogía y cortaba los nombres */
   overflow-x: auto;            /* desliza si no caben (móvil) */
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;       /* oculta scrollbar Firefox */
@@ -3537,7 +3539,7 @@ body.readonly .drum-add-btn  { display: none !important; }
 }
 .cfg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .cfg-tab:hover:not(.active) { color: var(--text); }
-.cfg-panel { display: none; padding: 18px 20px; overflow-y: auto; flex: 1; }
+.cfg-panel { display: none; padding: 18px 20px; overflow-y: auto; flex: 1; min-height: 0; }
 .cfg-panel.active { display: block; }
 .cfg-desc { font-family: var(--font-body); font-size: 0.78rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
 .dv-pill {
@@ -3668,6 +3670,31 @@ body:has(#estructuraOverlay.open) #songPlayerBar { display: none !important; }
 .cfg-pal-swatch:hover { transform: scale(1.18); }
 .cfg-pal-swatch.selected { border-color: var(--text); }
 .cfg-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border-soft); flex-shrink: 0; }
+/* F48 · Configuración → Instrumentos (las partes) */
+.parte-fila { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 8px 10px; margin-bottom: 6px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text);
+  text-align: left; cursor: pointer; font-family: var(--font-body); font-size: 0.85rem; }
+.parte-fila.abierta { border-color: var(--accent); }
+.parte-fila.parte-oculta { border-style: dashed; }
+.parte-fila.parte-oculta .parte-nom { color: var(--muted); }
+.parte-ico { font-size: 1.1rem; flex: 0 0 auto; }
+.parte-nom { flex: 1; min-width: 0; }
+.parte-nom b { font-weight: 600; }
+.parte-ini { font-family: var(--font-data); font-size: 0.7rem; border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; color: var(--muted); }
+.parte-sw { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; }
+.parte-form { border: 1.5px solid var(--accent); border-radius: 12px; padding: 12px; margin: 0 0 10px; background: var(--surface); }
+.parte-lbl { font-family: var(--font-data); font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 12px 0 6px; }
+.parte-form > .parte-lbl:first-child { margin-top: 0; }
+.parte-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.parte-chip { min-height: 30px; padding: 4px 11px; border-radius: 99px; border: 1px solid var(--border); background: transparent;
+  color: var(--text); font-family: var(--font-body); font-size: 0.8rem; cursor: pointer; }
+.parte-chip.on { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.parte-col { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.parte-col.on { border-color: var(--text); box-shadow: inset 0 0 0 2px var(--bg); }
+.parte-nota { font-family: var(--font-body); font-size: 0.75rem; color: var(--muted); }
+.parte-ini-in { width: 4.5em; flex: 0 0 auto; }
+.parte-botones { display: flex; gap: 8px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+.parte-nueva-btn { width: 100%; margin-top: 6px; min-height: 36px; }
 .cfg-placeholder { text-align: center; padding: 40px 20px; color: var(--muted); font-family: var(--font-body); font-size: 0.85rem; }
 .cfg-placeholder-icon { font-size: 2rem; margin-bottom: 10px; opacity: 0.4; }
 .lib-cfg-btn {
@@ -4650,12 +4677,13 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <button class="cfg-close" onclick="closeLibConfig()">✕</button>
     </div>
     <div class="cfg-tabs">
+      <!-- F53: primero lo de cada uno, después lo de la banda -->
       <button class="cfg-tab active" onclick="cfgSwitchTab('secciones',this)">Secciones</button>
+      <button class="cfg-tab" onclick="cfgSwitchTab('tema',this)">Tema</button>
+      <button class="cfg-tab" onclick="cfgSwitchTab('preferencias',this)">Preferencias</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('etiquetas',this)">Etiquetas</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('frases',this)">Novedades</button>
       <button class="cfg-tab" onclick="cfgSwitchTab('instrumentos',this)">Instrumentos</button>
-      <button class="cfg-tab" onclick="cfgSwitchTab('tema',this)">Tema</button>
-      <button class="cfg-tab" onclick="cfgSwitchTab('preferencias',this)">Preferencias</button>
     </div>
 
     <!-- Panel: Secciones -->
@@ -4709,11 +4737,8 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 
     <!-- Panel: Instrumentos -->
     <div class="cfg-panel" id="cfgPanel-instrumentos">
-      <div class="cfg-placeholder">
-        <div class="cfg-placeholder-icon">🎸</div>
-        <div>Los colores de instrumento se adaptan automáticamente al tema activo.</div>
-        <div style="margin-top:8px;font-size:0.7rem;color:var(--muted);">La personalización por banda llegará en una próxima versión.</div>
-      </div>
+      <p class="cfg-desc">Cada <b>parte</b> es una línea de las canciones. Toca una para cambiar quién la toca, su color o su inicial.</p>
+      <div id="cfgPartes"></div>
     </div>
 
     <!-- Panel: Tema -->
@@ -4732,6 +4757,11 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
       <p class="cfg-desc" style="margin-top:10px;font-size:0.7rem;opacity:0.8;">
         Sin ninguno marcado, las canciones abren mostrando solo la estructura (secciones).
       </p>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+        <p class="cfg-desc">🎬 <strong>Al abrir una canción</strong></p>
+        <p class="cfg-desc" style="margin-top:-4px;">⛶ Ampliada, al abrirla para tocar, en el móvil. 🦅 El Águila, al abrirla para tocar y para editar. Dentro de la canción lo cambias como siempre; la siguiente vuelve a abrir así. También se guarda en tu perfil.</p>
+        <div id="cfgAguila" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+      </div>
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
         <p class="cfg-desc">📚 <strong>Mi biblioteca</strong></p>
         <p class="cfg-desc" style="margin-top:-4px;">Cómo quieres verla al entrar. También se guarda en tu perfil.</p>
@@ -5343,6 +5373,13 @@ const Router = (function () {
       edBtn.textContent = info.icon;
       edBtn.title = info.title;
     }
+
+    // F52: el volver flotante de la pantalla ampliada
+    const imBtn = document.getElementById('btnImmersiveBack');
+    if (imBtn) {
+      if (info) { imBtn.textContent = info.icon; imBtn.title = info.title; }
+      imBtn.classList.toggle('hay-vuelta', !!info);
+    }
   }
 
   function backInfo() {
@@ -5444,7 +5481,7 @@ function bandRenderPills() {
   const themeBtn = document.getElementById('btnThemePill');
   if (bar && themeBtn && !bar._bandPillsDone) {
     bar._bandPillsDone = true;
-    BAND.instruments.forEach(i => {
+    instVisibles().forEach(i => {   // F48: sin las ocultas
       const b = document.createElement('button');
       b.className = 'inst-pill inst-pill-' + i.key;
       b.dataset.inst = i.key;
@@ -5458,7 +5495,7 @@ function bandRenderPills() {
   const dv = document.getElementById('defaultViewPills');
   if (dv && !dv._bandPillsDone) {
     dv._bandPillsDone = true;
-    BAND.instruments.forEach(i => {
+    instVisibles().forEach(i => {   // F48: sin las ocultas
       const b = document.createElement('button');
       b.className = 'dv-pill';
       b.dataset.inst = i.key;
@@ -5511,6 +5548,7 @@ async function bandLoadFromDB(bandId) {
     const _cat = {};
     ((cat && !cat.error && cat.data) || []).forEach(c => { _cat[c.id] = c; });
     const _tipoDe = row => (_cat[row.instrumento] && _cat[row.instrumento].tipo_fila) || _tipoPorClave(row.key);
+    BAND.catalogo = Object.values(_cat).sort((a, b) => (a.orden || 0) - (b.orden || 0));   // F48
 
     // Identidad
     BAND.id = b.id;
@@ -5528,6 +5566,12 @@ async function bandLoadFromDB(bandId) {
         inst.color = row.color; inst.printColor = row.print_color;
         inst.pickable = !!row.pickable;
         inst.tipo = _tipoDe(row);                                  // F46
+        inst.id = row.id; inst.orden = row.orden; inst.oculta = !!row.oculta;   // F48
+        if (!_PARTES_CON_ESTILO.has(row.key)) {                    // F47
+          inst.colorBase = _parteColorBase(row.color);
+          inst.color = 'var(--inst-' + row.key + ')';
+          if (!inst.printColor) inst.printColor = inst.colorBase;
+        }
         inst.instrumento = row.instrumento || null;
         inst.miembroId = row.miembro_id || null;
       } else {
@@ -5535,7 +5579,12 @@ async function bandLoadFromDB(bandId) {
           short: row.short, color: row.color, printColor: row.print_color,
           pickable: !!row.pickable,
           tipo: _tipoDe(row), instrumento: row.instrumento || null,   // F46
-          miembroId: row.miembro_id || null });
+          miembroId: row.miembro_id || null,
+          id: row.id, orden: row.orden, oculta: !!row.oculta,       // F48
+          // F47: color propio en su variable (las cinco de BT ya la tienen)
+          ...(_PARTES_CON_ESTILO.has(row.key) ? {} : {
+            colorBase: _parteColorBase(row.color), color: 'var(--inst-' + row.key + ')',
+            printColor: row.print_color || _parteColorBase(row.color) }) });
       }
     });
     // …y ELIMINAR los que esta banda no tiene (si no, quedarían pills/labels
@@ -5556,7 +5605,7 @@ async function bandLoadFromDB(bandId) {
     // Miembros: reemplazar contenido EN SITIO (CAL_MEMBERS referencia este array)
     if (mi.data && mi.data.length) {
       BAND.members.length = 0;
-      mi.data.forEach(m => BAND.members.push({ key: m.key, name: m.nombre, role: m.rol, initials: m.initials }));
+      mi.data.forEach(m => BAND.members.push({ id: m.id, key: m.key, name: m.nombre, role: m.rol, initials: m.initials }));   // F48: + id
     }
 
     // Reconstruir mapas derivados
@@ -5567,6 +5616,7 @@ async function bandLoadFromDB(bandId) {
       _DUP_INST_LABELS[i.key] = { icon: i.icon, label: i.label };
     });
 
+    _partesNuevasEstilo();   // F47
     bandRebuildPills();
     bandApplyIdentity();
     window._bandFromDB = true;
@@ -5661,6 +5711,259 @@ function instTipo(key) {
   return (i && i.tipo) || _tipoPorClave(key);
 }
 function instEsBateria(key) { return instTipo(key) === 'bateria'; }
+
+// ── F47 · el COLOR de las partes nuevas ──────────────────────────
+// Las cinco de BT tienen sus reglas escritas a mano por clave. Una parte
+// nueva recibe las mismas, generadas: su color pasa a ser su variable
+// --inst-<clave> (y --inst-<clave>-ink, más oscura, para temas claros).
+const _PARTES_CON_ESTILO = new Set(['guit1', 'guit2', 'bajo', 'bat', 'voz']);
+const _PARTE_SIN_COLOR = '#94a3b8';
+function _parteColorBase(color) {
+  return (typeof color === 'string' && /^(#|rgb|hsl)/i.test(color.trim())) ? color.trim() : _PARTE_SIN_COLOR;
+}
+// ── F48 · F2c-2: Configuración → Instrumentos (las partes) ───────
+// Colores para partes nuevas: distintos de los cinco de BT; no se repiten.
+const PARTES_PALETA = ['#22d3ee', '#fb923c', '#f472b6', '#a3e635', '#e879f9',
+                       '#94a3b8', '#6366f1', '#2dd4bf', '#b45309', '#e5e7eb'];
+let _cfgParte = null;   // la ficha abierta: { modo: 'nueva' | 'editar', key, instrumento, miembroId, color, short, shortTocada }
+
+function instVisibles() { return BAND.instruments.filter(i => !i.oculta); }
+function _parteCat(id) { return (BAND.catalogo || []).find(c => c.id === id) || null; }
+// «Guitarra 1» / «Guitarra 2» si hay varias del mismo instrumento; si no, «Bajo»
+function _parteNombre(i) {
+  const c = _parteCat(i.instrumento);
+  if (!c) return i.label || i.key;
+  const mismas = BAND.instruments.filter(x => x.instrumento === i.instrumento);
+  return mismas.length > 1 ? c.nombre + ' ' + (mismas.indexOf(i) + 1) : c.nombre;
+}
+function _parteNombreNueva(c) {
+  const n = BAND.instruments.filter(x => x.instrumento === c.id).length + 1;
+  return n > 1 ? c.nombre + ' ' + n : c.nombre;
+}
+function _parteMiembro(id) { return (BAND.members || []).find(m => m.id && m.id === id) || null; }
+function _parteColoresUsados(salvoKey) {
+  return new Set(BAND.instruments.filter(i => i.key !== salvoKey && i.colorBase).map(i => i.colorBase.toLowerCase()));
+}
+function _parteColoresLibres(salvoKey) {
+  const usados = _parteColoresUsados(salvoKey);
+  return PARTES_PALETA.filter(c => !usados.has(c));
+}
+// La clave nueva: abreviatura + (partes de ese instrumento + 1); si estuviera cogida, la siguiente.
+function _parteClaveNueva(c) {
+  const usadas = new Set(BAND.instruments.map(i => i.key));
+  let n = BAND.instruments.filter(i => i.instrumento === c.id).length + 1;
+  while (usadas.has(c.abreviatura + n)) n++;
+  return c.abreviatura + n;
+}
+function _parteInicialPorDefecto(f) {
+  const m = _parteMiembro(f.miembroId);
+  if (m) return (m.initials || m.name || '?').charAt(0).toUpperCase();
+  const c = _parteCat(f.instrumento);
+  return c ? c.nombre.charAt(0).toUpperCase() : '';
+}
+const _parteKeySegura = k => String(k).replace(/[^\w-]/g, '');
+
+function cfgRenderPartes() {
+  const box = document.getElementById('cfgPartes');
+  if (!box) return;
+  if (!BAND.id || !(BAND.catalogo && BAND.catalogo.length)) {
+    box.innerHTML = '<div class="parte-nota">Para gestionar las partes hace falta la banda cargada y el catálogo de instrumentos en la base.</div>';
+    return;
+  }
+  let h = '';
+  BAND.instruments.forEach(i => {
+    const m = _parteMiembro(i.miembroId);
+    const abierta = !!(_cfgParte && _cfgParte.modo === 'editar' && _cfgParte.key === i.key);
+    h += '<button class="parte-fila' + (i.oculta ? ' parte-oculta' : '') + (abierta ? ' abierta' : '') + '"'
+       + ' onclick="cfgParteEditar(\'' + _parteKeySegura(i.key) + '\')">'
+       + '<span class="parte-ico">' + esc(i.icon || '') + '</span>'
+       + '<span class="parte-nom"><b>' + esc(_parteNombre(i)) + '</b> · ' + (m ? esc(m.name) : 'nadie fijo')
+       + (i.oculta ? ' · oculta' : '') + '</span>'
+       + '<span class="parte-ini">' + esc(i.short || '') + '</span>'
+       + '<span class="parte-sw" style="background:' + esc(i.color || '') + '"></span></button>';
+    if (abierta) h += _parteFichaHTML();
+  });
+  if (_cfgParte && _cfgParte.modo === 'nueva') h += _parteFichaHTML();
+  else h += '<button class="cfg-add-btn parte-nueva-btn" onclick="cfgParteNueva()">➕ Añadir parte</button>';
+  box.innerHTML = h;
+}
+
+function _parteFichaHTML() {
+  const f = _cfgParte, nueva = f.modo === 'nueva';
+  const i = nueva ? null : BAND.instruments.find(x => x.key === f.key);
+  let h = '<div class="parte-form">';
+  if (nueva) {
+    h += '<div class="parte-lbl">Instrumento</div><div class="parte-chips">'
+       + BAND.catalogo.map(c => '<button class="parte-chip' + (f.instrumento === c.id ? ' on' : '') + '"'
+           + ' onclick="cfgParteCampo(\'instrumento\',\'' + _parteKeySegura(c.id) + '\')">'
+           + esc((c.icono || '') + ' ' + c.nombre) + '</button>').join('') + '</div>';
+  }
+  h += '<div class="parte-lbl">¿Quién la toca?</div><div class="parte-chips">'
+     + (BAND.members || []).filter(m => m.id).map(m => '<button class="parte-chip' + (f.miembroId === m.id ? ' on' : '') + '"'
+         + ' onclick="cfgParteCampo(\'miembroId\',\'' + _parteKeySegura(m.id) + '\')">' + esc(m.name) + '</button>').join('')
+     + '<button class="parte-chip' + (!f.miembroId ? ' on' : '') + '" onclick="cfgParteCampo(\'miembroId\',\'\')">Nadie fijo</button></div>';
+  h += '<div class="parte-lbl">Color</div>';
+  if (!nueva && _PARTES_CON_ESTILO.has(f.key)) {
+    h += '<div class="parte-nota">El de siempre de esta parte, según el tema.</div>';
+  } else {
+    const libres = _parteColoresLibres(nueva ? null : f.key);
+    h += '<div class="parte-chips">' + libres.map(c => '<button class="parte-col' + (f.color === c ? ' on' : '') + '"'
+         + ' style="background:' + c + '" aria-label="color ' + c + '" onclick="cfgParteCampo(\'color\',\'' + c + '\')"></button>').join('') + '</div>';
+    if (!libres.length) h += '<div class="parte-nota">No quedan colores libres.</div>';
+  }
+  h += '<div class="parte-lbl">Inicial</div>'
+     + '<input class="cfg-add-input parte-ini-in" maxlength="2" value="' + esc(f.short || '') + '"'
+     + ' oninput="cfgParteCampo(\'short\', this.value, true)">';
+  if (nueva) {
+    const c = _parteCat(f.instrumento), m = _parteMiembro(f.miembroId);
+    h += '<div class="parte-lbl">Así se verá</div>'
+       + '<div class="parte-fila" style="cursor:default;margin:0"><span class="parte-ico">' + esc(c ? c.icono || '' : '') + '</span>'
+       + '<span class="parte-nom"><b>' + esc(c ? _parteNombreNueva(c) : '') + '</b> · ' + (m ? esc(m.name) : 'nadie fijo') + '</span>'
+       + '<span class="parte-ini" id="parteVistaIni">' + esc(f.short || '') + '</span>'
+       + '<span class="parte-sw" style="background:' + esc(f.color || 'transparent') + '"></span></div>';
+  }
+  h += '<div class="parte-botones">';
+  if (!nueva) h += '<button class="cfg-add-btn" onclick="cfgParteOcultar()">' + (i && i.oculta ? 'Mostrar' : 'Ocultar') + '</button>'
+                 + '<button class="cfg-add-btn" onclick="cfgParteBorrar()">Borrar</button>';   // F49
+  h += '<span style="flex:1"></span>'
+     + '<button class="cfg-add-btn" onclick="cfgParteCancelar()">Cancelar</button>'
+     + '<button class="cfg-add-btn" onclick="cfgParteGuardar()">' + (nueva ? 'Añadir' : 'Guardar') + '</button></div></div>';
+  return h;
+}
+
+function cfgParteNueva() {
+  const c = (BAND.catalogo || [])[0];
+  _cfgParte = { modo: 'nueva', instrumento: c ? c.id : null, miembroId: '', color: _parteColoresLibres(null)[0] || null, short: '', shortTocada: false };
+  _cfgParte.short = _parteInicialPorDefecto(_cfgParte);
+  cfgRenderPartes();
+}
+function cfgParteEditar(key) {
+  if (_cfgParte && _cfgParte.modo === 'editar' && _cfgParte.key === key) { _cfgParte = null; cfgRenderPartes(); return; }
+  const i = BAND.instruments.find(x => x.key === key);
+  if (!i) return;
+  _cfgParte = { modo: 'editar', key: i.key, miembroId: i.miembroId || '', color: i.colorBase || null, short: i.short || '', shortTocada: true };
+  cfgRenderPartes();
+}
+function cfgParteCancelar() { _cfgParte = null; cfgRenderPartes(); }
+function cfgParteCampo(campo, valor, sinRepintar) {
+  const f = _cfgParte;
+  if (!f) return;
+  f[campo] = valor;
+  if (campo === 'short') {
+    f.shortTocada = true;
+    const v = document.getElementById('parteVistaIni');
+    if (v) v.textContent = valor;
+  } else if ((campo === 'miembroId' || campo === 'instrumento') && !f.shortTocada) {
+    f.short = _parteInicialPorDefecto(f);
+  }
+  if (!sinRepintar) cfgRenderPartes();
+}
+
+async function cfgParteGuardar() {
+  const f = _cfgParte;
+  if (!f || !BAND.id) return;
+  const m = _parteMiembro(f.miembroId);
+  const short = String(f.short || '').trim().slice(0, 2);
+  let res;
+  if (f.modo === 'nueva') {
+    const c = _parteCat(f.instrumento);
+    if (!c) { alert('Elige un instrumento.'); return; }
+    if (!f.color) { alert('Elige un color.'); return; }
+    const orden = BAND.instruments.reduce((mx, i) => Math.max(mx, i.orden || 0), 0) + 1;
+    res = await _sb.from('banda_instrumentos').insert({
+      banda_id: BAND.id, key: _parteClaveNueva(c), instrumento: c.id, icon: c.icono,
+      label: m ? m.name : _parteNombreNueva(c), short: short || _parteInicialPorDefecto(f),
+      color: f.color, print_color: f.color, pickable: c.tipo_fila !== 'letra', orden,
+      miembro_id: m ? m.id : null }).select('id');
+  } else {
+    const i = BAND.instruments.find(x => x.key === f.key);
+    if (!i || !i.id) return;
+    const cambio = { miembro_id: m ? m.id : null, label: m ? m.name : _parteNombre(i), short: short || i.short };
+    if (!_PARTES_CON_ESTILO.has(i.key) && f.color) { cambio.color = f.color; cambio.print_color = f.color; }
+    res = await _sb.from('banda_instrumentos').update(cambio).eq('id', i.id).select('id');
+  }
+  if (!_parteEscrita(res)) return;
+  _cfgParte = null;
+  await _partesRecargar();
+}
+
+async function cfgParteOcultar() {
+  const f = _cfgParte;
+  const i = f && BAND.instruments.find(x => x.key === f.key);
+  if (!i || !i.id) return;
+  const res = await _sb.from('banda_instrumentos').update({ oculta: !i.oculta }).eq('id', i.id).select('id');
+  if (!_parteEscrita(res)) return;
+  _cfgParte = null;
+  await _partesRecargar();
+}
+
+// ── F49 · borrar una parte: solo si ninguna canción la usa ──────
+// Si la usa alguna (ideas y versiones incluidas), se ofrece ocultarla: si
+// no, esas canciones tendrían líneas de una parte que ya no existe. La base
+// hace la misma comprobación (SQL F2d).
+async function cfgParteBorrar() {
+  const f = _cfgParte;
+  const i = f && BAND.instruments.find(x => x.key === f.key);
+  if (!i || !i.id) return;
+  const nombre = _parteNombre(i);
+  const { data: usan, error } = await bandFilter(_sb.from('Canciones').select('id, titulo'))
+    .contains('data', { sections: [{ rows: [{ instrument: i.key }] }] });
+  if (error) { alert('No se ha podido comprobar si alguna canción la usa: ' + error.message); return; }
+  if (usan && usan.length) {
+    const n = usan.length;
+    const cuales = usan.slice(0, 3).map(c => '«' + (c.titulo || 'sin título') + '»').join(', ') + (n > 3 ? '…' : '');
+    const porque = 'No se puede borrar «' + nombre + '»: ' + (n === 1 ? 'la usa 1 canción' : 'la usan ' + n + ' canciones') + ' (' + cuales + ').';
+    if (i.oculta) { alert(porque + '\n\nYa está oculta: no sale para elegir y esas canciones se quedan como están.'); return; }
+    if (confirm(porque + '\n\n¿Ocultarla? Dejará de salir para elegir, y esas canciones se quedan como están.')) await cfgParteOcultar();
+    return;
+  }
+  if (!confirm('¿Borrar la parte «' + nombre + '»?\n\nNinguna canción la usa. No se puede deshacer.')) return;
+  const res = await _sb.from('banda_instrumentos').delete().eq('id', i.id).select('id');
+  if (!_parteEscrita(res, 'F2d', 'borrado')) return;
+  _cfgParte = null;
+  await _partesRecargar();
+}
+
+// .select() para saber si REALMENTE se escribió: sin permiso, un cambio
+// no da error, solo no toca ninguna fila (mismo criterio que la config de la banda).
+function _parteEscrita(res, falta, hecho) {
+  falta = falta || 'F2c'; hecho = hecho || 'guardado';
+  if (res && res.error) { alert('No se ha ' + hecho + ': ' + res.error.message); return false; }
+  if (!res || !res.data || !res.data.length) {
+    alert('No se ha ' + hecho + ': la base todavía no lo deja hacer desde la app (falta aplicar ' + falta + ').');
+    return false;
+  }
+  return true;
+}
+
+async function _partesRecargar() {
+  await bandLoadFromDB(BAND.id);
+  cfgRenderPartes();
+  if (document.body.classList.contains('editor-open') && typeof render === 'function') render();
+}
+
+function _partesNuevasEstilo() {
+  let css = '';
+  BAND.instruments.forEach(i => {
+    if (_PARTES_CON_ESTILO.has(i.key)) return;
+    const k = (window.CSS && CSS.escape) ? CSS.escape(i.key) : i.key;
+    const v = '--inst-' + i.key, base = i.colorBase || _PARTE_SIN_COLOR;
+    // tinta: en temas oscuros, el propio color (como BT); en claros, más oscura
+    css += ':root { ' + v + ': ' + base + '; ' + v + '-ink: ' + base + '; }\n'
+        +  '[data-mode="light"] { ' + v + '-ink: color-mix(in srgb, ' + base + ' 62%, #000); }\n'
+        +  '.row-inst-' + k + ' .inst-stripe { background: var(' + v + '); }\n'
+        +  '.row-inst-' + k + ' .inst-icon { color: var(' + v + '); }\n'
+        +  '[data-mode="light"] .row-inst-' + k + ' .inst-icon { color: var(' + v + '-ink); }\n'
+        +  '[data-mode="light"] .row-inst-' + k + ' .comment-row { background: color-mix(in srgb, var(' + v + ') 12%, transparent); }\n'
+        +  '.inst-pill-' + k + ' { border-color: var(' + v + '); }\n'
+        +  '.inst-pill-' + k + '.active { background: var(' + v + '); color: #000; border-color: var(' + v + '); }\n'
+        +  '@media (max-width: 600px) { .inst-pill-' + k + '::before { content: ' + JSON.stringify(i.icon || '') + '; } '
+        +  '.inst-pill-' + k + '::after { content: ' + JSON.stringify(i.short || '') + '; } }\n';
+  });
+  let el = document.getElementById('partesNuevasEstilo');
+  if (!el) { el = document.createElement('style'); el.id = 'partesNuevasEstilo'; document.head.appendChild(el); }
+  el.textContent = css;
+}
 function instEsLetra(key)   { return instTipo(key) === 'letra'; }
 
 // Regenera las pills tras actualizar BAND (quita las generadas y re-crea)
@@ -6606,8 +6909,10 @@ async function openSong(id, playMode = true) {
   // El botón ✏️ Editar de la biblioteca llama con playMode=false.
   if (playMode && !_readonly)       toggleReadonly();   // entrar en Tocar
   else if (!playMode && _readonly)  toggleReadonly();   // entrar en Editar
+  _abrirEnAguila();   // F50: si lo tienes en Preferencias, ya en Águila
   window._immersiveDeactivate && window._immersiveDeactivate();
   window._immersiveResetZoom && window._immersiveResetZoom();
+  _abrirAmpliada();   // F51: si lo tienes en Preferencias (tocar, móvil)
   setTimeout(() => window._immersiveUpdateButtonVisibility && window._immersiveUpdateButtonVisibility(), 50);
 
   versionsHideBreadcrumb();
@@ -7011,7 +7316,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261127.1";
+const APP_VERSION = "20261127.9";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -8126,7 +8431,7 @@ function render(scrollTargetId) {
     // + add row — instrument picker
     const addRowWrap = document.createElement("div");
     addRowWrap.className = "add-row-inst-wrap";
-    const instDefs = BAND.instruments;   // ← fuente única BAND
+    const instDefs = instVisibles();   // ← fuente única BAND · F48: sin las ocultas
     instDefs.forEach(inst => {
       const btn = document.createElement("button");
       btn.className = "add-row-inst-btn";
@@ -8190,8 +8495,10 @@ function render(scrollTargetId) {
   if (typeof _eagleOn !== 'undefined' && _eagleOn) {
     _eagleApplySectionColors();
     _eagleBindSections();
-    // En editar: regenerar los labels de sección (siempre visibles)
-    if (!_readonly && _eagleSections) {
+    // Regenerar los labels de sección tras pintar. Antes solo en Editar: en
+    // Tocar, abrir la siguiente canción (concierto, Ensayar…) los borraba
+    // aunque el ☰ siguiera encendido (F50, medido: 15 → 0).
+    if (_eagleSections) {
       document.querySelectorAll('.eagle-sec-label-global').forEach(el => el.remove());
       document.querySelectorAll('.section-block[data-secid]').forEach(block => {
         if (document.getElementById('eagleSecLabel-' + block.dataset.secid)) return;
@@ -9038,7 +9345,7 @@ function closePopup() {
 // ═══════════════════════════════════════════════
 // INSTRUMENT PICKER POPUP
 // ═══════════════════════════════════════════════
-const _instOptions = () => BAND.instruments.filter(i => i.pickable);   // ← fuente única BAND, LIVE (sin voz)
+const _instOptions = () => BAND.instruments.filter(i => i.pickable && !i.oculta);   // F48   // ← fuente única BAND, LIVE (sin voz)
 
 let _instPicker = null;
 
@@ -15638,6 +15945,49 @@ function dvRenderPills() {
   });
 }
 
+// ── F50 · abrir las canciones en modo Águila (preferencia de cada uno) ──
+// _userSettings.abrirAguila = { activo, secciones, comentarios }
+function _prefAguila() {
+  const p = _userSettings && _userSettings.abrirAguila;
+  return (p && typeof p === 'object') ? p : null;
+}
+function cfgRenderAguila() {
+  const box = document.getElementById('cfgAguila');
+  if (!box) return;
+  const p = _prefAguila() || {};
+  const pill = (txt, on, campo) => '<button class="cfg-pill' + (on ? ' on' : '') + '" onclick="cfgAguilaCampo(\'' + campo + '\')">' + txt + '</button>';
+  // F54: ⛶ primero; el 🦅 despliega sus ☰ / 💬 y queda al final
+  box.innerHTML = '<button class="cfg-pill' + (_userSettings.abrirAmpliada ? ' on' : '') + '" onclick="cfgAmpliadaCampo()">⛶ Pantalla ampliada</button>'   // F51
+    + pill('🦅 Modo Águila', !!p.activo, 'activo')
+    + (p.activo ? pill('☰ Con secciones', p.secciones !== false, 'secciones') + pill('💬 Con comentarios', !!p.comentarios, 'comentarios') : '');
+}
+function cfgAmpliadaCampo() {   // F51
+  _userSettings.abrirAmpliada = !_userSettings.abrirAmpliada;
+  cfgRenderAguila();
+}
+// F51: al abrir para TOCAR, en el móvil, si lo tienes en Preferencias.
+function _abrirAmpliada() {
+  if (!_userSettings || !_userSettings.abrirAmpliada || !_readonly) return;
+  if (window.innerWidth >= 1024) return;                       // el ⛶ solo existe en el móvil
+  if (typeof toggleImmersive !== 'function' || typeof _immersiveActive === 'undefined' || _immersiveActive) return;
+  toggleImmersive();
+}
+function cfgAguilaCampo(campo) {
+  const p = Object.assign({ activo: false, secciones: true, comentarios: false }, _prefAguila() || {});
+  p[campo] = !p[campo];
+  _userSettings.abrirAguila = p;
+  cfgRenderAguila();
+}
+// Al abrir una canción (Tocar o Editar), ya en su modo: si la preferencia
+// está, entra en Águila con lo elegido. Sin preferencia, nada cambia.
+function _abrirEnAguila() {
+  const p = _prefAguila();
+  if (!p || !p.activo || typeof _eagleOn === 'undefined') return;   // el Águila vive en otro bloque
+  if (!_eagleOn) toggleEagleMode();
+  if (_readonly && _eagleSections !== (p.secciones !== false)) eagleToggleSections();   // en Editar salen siempre
+  if (_eagleComments !== !!p.comentarios) eagleToggleComments();
+}
+
 function dvTogglePill(inst) {
   if (!Array.isArray(_userSettings.defaultView)) _userSettings.defaultView = [];
   const view = _userSettings.defaultView;
@@ -16614,7 +16964,8 @@ function cfgSwitchTab(id, btn) {
   document.getElementById('cfgPanel-' + id).classList.add('active');
   if (id === 'etiquetas') { cfgRenderTags(); cfgRenderTagPalette(); }
   if (id === 'frases')    { cfgRenderFrases(); cfgRenderFrasesMen(); }
-  if (id === 'preferencias') { cfgRenderLibPrefs(); }
+  if (id === 'preferencias') { cfgRenderLibPrefs(); cfgRenderAguila(); }   // F50
+  if (id === 'instrumentos') { _cfgParte = null; cfgRenderPartes(); }   // F48
 }
 
 function cfgRenderPalette() {
@@ -16682,6 +17033,9 @@ function cfgCycleColor(i) {
 }
 
 async function cfgSave() {
+  // F48: si hay una parte a medias en Instrumentos, «Guardar» la guarda
+  // también (si no, se perdía sin avisar). Si falla, no se cierra.
+  if (_cfgParte) { await cfgParteGuardar(); if (_cfgParte) return; }
   await saveUserSettings();
   // Las preferencias se aplican una sola vez por sesion (_libPrefsDone).
   // Si no se rearma, eliges el orden, guardas, entras en la biblioteca
@@ -17107,6 +17461,7 @@ function drumPatternToHTML(dp, colorClass) {
   ">preparados...</div>
 </div>
 <button id="btnImmersive" onclick="toggleImmersive()" title="Modo inmersivo">⛶</button>
+<button id="btnImmersiveBack" onclick="immersiveBack()" title="Volver">🎵</button>
 
 <style>
 /* ══════════════════════════════════════════════
@@ -17375,9 +17730,32 @@ body.immersive-ok.readonly:not(.has-song-player) #btnImmersive {
   border-color: var(--accent);
   opacity: 1;
 }
+/* F52: volver sin salir de la ampliada. Encima del ⛶, su mismo marco. El
+   icono y el destino, los del volver de la cabecera (Router._syncBackBtn). */
+#btnImmersiveBack { display: none; }
+body.immersive-ok.immersive-mode #btnImmersiveBack.hay-vuelta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  z-index: 9999;
+  right: 16px;
+  bottom: calc(44px + env(safe-area-inset-bottom));
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  font-size: 0.8rem;
+  line-height: 1;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+}
 /* En desktop nunca se muestra aunque JS lo active */
 @media (min-width: 1024px) {
   #btnImmersive { display: none !important; }
+  #btnImmersiveBack { display: none !important; }
 }
 
 /* Transición suave del header */
@@ -17753,6 +18131,14 @@ function toggleImmersive() {
     // DESACTIVAR
     _immersiveDeactivate();
   }
+}
+
+// F52: volver desde la ampliada. Primero se quita (si no, se queda puesta y
+// el ⛶ flotando encima de la pantalla a la que vuelves); luego, lo mismo que
+// el volver de la cabecera.
+function immersiveBack() {
+  if (_immersiveActive) _immersiveDeactivate();
+  Router.back();
 }
 
 /* Exponer helpers para que las funciones de navegación los llamen */
