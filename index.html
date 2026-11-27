@@ -5410,11 +5410,11 @@ const BAND = {
   // color = variable CSS · printColor = hex para imprimir/PDF.
   // pickable = aparece en el selector de cambio de instrumento de una fila.
   instruments: [
-    { key:'guit1', icon:'🎸', label:'Marco',   short:'M', color:'var(--inst-guit1)', printColor:'#4a9eff', pickable:true  },
-    { key:'guit2', icon:'🎸', label:'Juan',    short:'J', color:'var(--inst-guit2)', printColor:'#c8a000', pickable:true  },
-    { key:'bajo',  icon:'🎸', label:'Hugo',    short:'H', color:'var(--inst-bajo)',  printColor:'#e04040', pickable:true  },
-    { key:'bat',   icon:'🥁', label:'Sergito', short:'S', color:'var(--inst-bat)',   printColor:'#3ab06a', pickable:true  },
-    { key:'voz',   icon:'🎤', label:'Juan',    short:'J', color:'var(--inst-voz)',   printColor:'#7c5cbf', pickable:false },
+    { key:'guit1', icon:'🎸', label:'Marco',   short:'M', color:'var(--inst-guit1)', printColor:'#4a9eff', pickable:true , tipo:'acordes' },
+    { key:'guit2', icon:'🎸', label:'Juan',    short:'J', color:'var(--inst-guit2)', printColor:'#c8a000', pickable:true , tipo:'acordes' },
+    { key:'bajo',  icon:'🎸', label:'Hugo',    short:'H', color:'var(--inst-bajo)',  printColor:'#e04040', pickable:true , tipo:'acordes' },
+    { key:'bat',   icon:'🥁', label:'Sergito', short:'S', color:'var(--inst-bat)',   printColor:'#3ab06a', pickable:true , tipo:'bateria' },
+    { key:'voz',   icon:'🎤', label:'Juan',    short:'J', color:'var(--inst-voz)',   printColor:'#7c5cbf', pickable:false, tipo:'letra' },
   ],
   // Miembros (personas) — usado por el calendario/RSVP.
   members: [
@@ -5500,11 +5500,17 @@ async function bandLoadFromDB(bandId) {
     const { data: bandas, error } = await q;
     if (error || !bandas || !bandas.length) throw (error || new Error('sin bandas'));
     const b = bandas[0];
-    const [mi, ins] = await Promise.all([
+    const [mi, ins, cat] = await Promise.all([
       _sb.from('banda_miembros').select('*').eq('banda_id', b.id).order('orden'),
       _sb.from('banda_instrumentos').select('*').eq('banda_id', b.id).order('orden'),
+      _sb.from('catalogo_instrumentos').select('*'),   // F46 (F2a)
     ]);
     if (mi.error || ins.error) throw (mi.error || ins.error);
+    // F46: el catálogo dice el tipo de fila de cada instrumento. Si no está
+    // (base sin F2a) o falla, el tipo sale de la clave, como siempre.
+    const _cat = {};
+    ((cat && !cat.error && cat.data) || []).forEach(c => { _cat[c.id] = c; });
+    const _tipoDe = row => (_cat[row.instrumento] && _cat[row.instrumento].tipo_fila) || _tipoPorClave(row.key);
 
     // Identidad
     BAND.id = b.id;
@@ -5521,10 +5527,15 @@ async function bandLoadFromDB(bandId) {
         inst.icon = row.icon; inst.label = row.label; inst.short = row.short;
         inst.color = row.color; inst.printColor = row.print_color;
         inst.pickable = !!row.pickable;
+        inst.tipo = _tipoDe(row);                                  // F46
+        inst.instrumento = row.instrumento || null;
+        inst.miembroId = row.miembro_id || null;
       } else {
         BAND.instruments.push({ key: row.key, icon: row.icon, label: row.label,
           short: row.short, color: row.color, printColor: row.print_color,
-          pickable: !!row.pickable });
+          pickable: !!row.pickable,
+          tipo: _tipoDe(row), instrumento: row.instrumento || null,   // F46
+          miembroId: row.miembro_id || null });
       }
     });
     // …y ELIMINAR los que esta banda no tiene (si no, quedarían pills/labels
@@ -5638,6 +5649,19 @@ async function bandSwitch() {
 function bandFilter(q) { return BAND.id ? q.eq('banda_id', BAND.id) : q; }
 // Añade banda_id a un payload de insert (solo si hay banda cargada).
 function bandPayload(p) { if (BAND.id) p.banda_id = BAND.id; return p; }
+
+// ── F46 · F2b: el TIPO de fila de una parte, de los datos ─────────
+// 'acordes' | 'bateria' | 'letra'. Antes se reconocía por el nombre de la
+// clave («bat», «voz»), así que una «bat2» salía como acordes. Ahora lo
+// dice la parte (su instrumento del catálogo, F2a). Respaldo, para una
+// base sin F2a o una fila de una parte que ya no existe: lo de siempre.
+function _tipoPorClave(key) { return key === 'bat' ? 'bateria' : key === 'voz' ? 'letra' : 'acordes'; }
+function instTipo(key) {
+  const i = BAND.instruments.find(x => x.key === key);
+  return (i && i.tipo) || _tipoPorClave(key);
+}
+function instEsBateria(key) { return instTipo(key) === 'bateria'; }
+function instEsLetra(key)   { return instTipo(key) === 'letra'; }
 
 // Regenera las pills tras actualizar BAND (quita las generadas y re-crea)
 function bandRebuildPills() {
@@ -6987,7 +7011,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261122.5";
+const APP_VERSION = "20261127.1";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -7816,7 +7840,9 @@ function render(scrollTargetId) {
 
       // ── comment row ARRIBA (antes del cifrado)
       const _instLabels = BAND_INST_LABELS;   // ← fuente única BAND
-      const _instFirstLetter = { guit1:'M', guit2:'J', bajo:'H', bat:'S', voz:'J' };
+      // F46: de la parte (short), no a mano. En BT: M, J, H, S, J, como antes.
+      const _instFirstLetter = {};
+      BAND.instruments.forEach(i => { _instFirstLetter[i.key] = i.short || String(i.label || i.key).charAt(0).toUpperCase(); });
 
       const commRow = document.createElement("div");
       commRow.className = "comment-row";
@@ -7824,7 +7850,7 @@ function render(scrollTargetId) {
       // Botón instrumento con primera letra (sustituye al 💬)
       const instBtn = document.createElement("button");
       instBtn.className = "comment-inst-btn";
-      instBtn.title = inst !== "voz" ? "Clic para cambiar instrumento" : _instLabels[inst] || inst;
+      instBtn.title = !instEsLetra(inst) ? "Clic para cambiar instrumento" : _instLabels[inst] || inst;
       instBtn.innerHTML = `<span class="cib-icon">${instMeta.icon}</span><span class="cib-letter">${_instFirstLetter[inst] || '?'}</span>`;
       // Cajetín del comentario: texto y borde en TINTA. En los temas oscuros
       // la tinta es el propio color, así que allí no cambia nada. (tanda 16)
@@ -7833,7 +7859,7 @@ function render(scrollTargetId) {
         : instMeta.color;
       instBtn.style.color = _instInk;
       instBtn.style.borderColor = _instInk;
-      if (inst !== "voz") {
+      if (!instEsLetra(inst)) {
         instBtn.addEventListener("click", e => {
           e.stopPropagation();
           if (_readonly) return;
@@ -7905,7 +7931,7 @@ function render(scrollTargetId) {
 
       // instrument icon moved to comment row above
 
-      if (inst === "bat") {
+      if (instEsBateria(inst)) {
         // ── Drum row: preview or add-pattern button
         if (row.drumPattern) {
           renderDrumPreview(barLine, row);
@@ -7919,7 +7945,7 @@ function render(scrollTargetId) {
           });
           barLine.appendChild(addDrumBtn);
         }
-      } else if (inst === "voz") {
+      } else if (instEsLetra(inst)) {
         // ── Vocal row: free multiline textarea
         const vozTa = document.createElement("textarea");
         vozTa.className = "voz-text";
@@ -7995,7 +8021,7 @@ function render(scrollTargetId) {
       right.className = "row-right";
 
       // 1. PRIMER SLOT: lápiz/editar para bat, + compás para otros
-      if (inst === "bat") {
+      if (instEsBateria(inst)) {
         if (!_readonly) {
           const drumEditBtn = document.createElement("button");
           drumEditBtn.className = "add-bar-btn";
@@ -8009,7 +8035,7 @@ function render(scrollTargetId) {
           });
           right.appendChild(drumEditBtn);
         }
-      } else if (inst !== "voz") {
+      } else if (!instEsLetra(inst)) {
         const addBar = document.createElement("button");
         addBar.className = "add-bar-btn";
         addBar.innerHTML = `<span style="font-size:1rem;line-height:1">+</span> compás`;
@@ -8019,7 +8045,7 @@ function render(scrollTargetId) {
       }
 
       // 2. BADGE x [ ] para bat y otros (no voz)
-      if (inst !== "voz") {
+      if (!instEsLetra(inst)) {
         const xl = document.createElement("span");
         xl.className = "x-label";
         xl.textContent = "x";
@@ -8029,7 +8055,7 @@ function render(scrollTargetId) {
         repIn.className = "repeat-input";
         repIn.value = (row.repeats ?? 1);   // 1 por defecto (antes quedaba en "×")
         repIn.placeholder = "–";
-        repIn.title = inst === "bat" ? "Número de repeticiones del patrón" : "Número de repeticiones";
+        repIn.title = instEsBateria(inst) ? "Número de repeticiones del patrón" : "Número de repeticiones";
         repIn.addEventListener("change", () => {
           const v = parseInt(repIn.value);
           row.repeats = (isNaN(v) || v < 1) ? 1 : v;
@@ -8039,7 +8065,7 @@ function render(scrollTargetId) {
         right.appendChild(repIn);
       }
 
-      if (inst === "bat" && row.drumPattern && row.drumPattern.bars && row.drumPattern.bars.length) {
+      if (instEsBateria(inst) && row.drumPattern && row.drumPattern.bars && row.drumPattern.bars.length) {
         const pvPlayBtn = document.createElement("button");
         pvPlayBtn.className = "pv-play-btn";
         pvPlayBtn.textContent = "▶";
@@ -8051,7 +8077,7 @@ function render(scrollTargetId) {
         right.appendChild(pvPlayBtn);
       }
 
-      if (inst === "bat" && row.drumPattern && row.drumPattern.bars && row.drumPattern.bars.length) {
+      if (instEsBateria(inst) && row.drumPattern && row.drumPattern.bars && row.drumPattern.bars.length) {
         const sendBtn = document.createElement("button");
         sendBtn.textContent = "📥";
         sendBtn.title = "Enviar/copiar estos compases a otra línea de batería…";
@@ -8084,7 +8110,7 @@ function render(scrollTargetId) {
       right.appendChild(dupRow);
       right.appendChild(delRow);
 
-      if (inst === "bat") {
+      if (instEsBateria(inst)) {
         // Controles debajo del patrón, no dentro del barLine horizontal
         rowWrap.appendChild(barLine);
         right.style.cssText = "padding: 4px 10px 6px; border-top: 1px solid var(--border);";
@@ -8113,8 +8139,8 @@ function render(scrollTargetId) {
       btn.addEventListener("mouseleave", () => { btn.style.borderColor = inst.color + "44"; });
       btn.addEventListener("click", () => {
         saveUndo();
-        if (inst.key === "voz") {
-          sec.rows.push({ id: uid(), instrument: "voz", vozText: "", repeats: null, comment: "" });
+        if (instEsLetra(inst.key)) {                                   // F46
+          sec.rows.push({ id: uid(), instrument: inst.key, vozText: "", repeats: null, comment: "" });
         } else {
           sec.rows.push({ id: uid(), instrument: inst.key, bars: [[""]], repeats: null, comment: "" });
         }
@@ -9203,8 +9229,8 @@ function _textosAjustarYa() {
 // si lo tiene). Tocar no repinta: render() marca y el CSS decide.
 function _filaSinContenido(row) {
   if (!row) return false;
-  if (row.instrument === "voz") return !String(row.vozText || "").trim();
-  if (row.instrument === "bat") {
+  if (instEsLetra(row.instrument)) return !String(row.vozText || "").trim();
+  if (instEsBateria(row.instrument)) {
     const dp = row.drumPattern;
     if (!dp || !dp.bars || !dp.bars.length) return true;
     return !dp.bars.some(b => b && b.voices &&
@@ -10781,7 +10807,7 @@ function exportWord() {
       const lbl = rtfEsc((instIcon[inst] || '') + ' ' + (instLabel[inst] || inst));
       const cf  = instCf[inst] || 4;
 
-      if (inst === 'bat') {
+      if (instEsBateria(inst)) {
         const drumTxt = row.drumPattern ? drumPatternToText(row.drumPattern) : '(sin patrón)';
         lines.push(`\\pard\\sb80\\sa40\\li200\\f0\\fs20\\cf${cf}\\b [${lbl}]\\b0\\cf1\\par`);
         drumTxt.split('\n').forEach(ln => {
@@ -10794,7 +10820,7 @@ function exportWord() {
         return;
       }
 
-      if (inst === 'voz') {
+      if (instEsLetra(inst)) {
         const vozLines = (row.vozText || '').split('\n');
         lines.push(`\\pard\\sb80\\sa40\\li200\\f0\\fs20\\cf${cf}\\b [${lbl}]\\b0\\cf1\\par`);
         vozLines.forEach((ln, i) => {
@@ -13209,7 +13235,7 @@ function buildScoreHTML() {
       const color = instColor[inst] || '#888';
       const label = instLabel[inst] || inst;
 
-      if (inst === 'bat') {
+      if (instEsBateria(inst)) {
         const drumHTML = row.drumPattern ? drumPatternToHTML(row.drumPattern) : '<em style="color:#aaa;">(sin patrón)</em>';
         const cmt = row.comment ? `<div class="p-comment" style="color:${color};border-left-color:${color}40;">💬 ${esc(row.comment)}</div>` : '';
         return `<div class="p-row-wrap">
@@ -13219,7 +13245,7 @@ function buildScoreHTML() {
           </div>${cmt}</div>`;
       }
 
-      if (inst === 'voz') {
+      if (instEsLetra(inst)) {
         return `<div class="p-row-wrap">
           <div class="p-bar-line p-voz-line" style="border-left:4px solid ${color};">
             <span class="p-inst-lbl" style="color:${color}">🎤 ${label}</span>
@@ -13385,7 +13411,7 @@ function exportScorePDF() {
         const inst  = row.instrument || 'guit1';
         const color = instColor[inst] || '#888';
         const label = instLabel[inst] || inst;
-        if (inst === 'bat') {
+        if (instEsBateria(inst)) {
           const drumH = row.drumPattern ? drumPatternToHTML(row.drumPattern) : '<em style="color:#aaa;">(sin patrón)</em>';
           const cmt = row.comment ? `<div class="pdf-comment" style="color:${color};border-left-color:${color}40;">${esc(row.comment)}</div>` : '';
           return `<div class="pdf-row-wrap"><div class="pdf-bar-line" style="border-left:4px solid ${color};display:block;">` +
@@ -13393,7 +13419,7 @@ function exportScorePDF() {
             drumH + `</div>${cmt}</div>`;
         }
 
-        if (inst === 'voz') {
+        if (instEsLetra(inst)) {
           return `<div class="pdf-row-wrap"><div class="pdf-bar-line pdf-voz-line" style="border-left:4px solid ${color}">` +
             `<span class="pdf-inst-lbl" style="color:${color}">${label}</span>` +
             `<span class="pdf-voz-text">${esc(row.vozText||'')}</span></div></div>`;
@@ -13603,7 +13629,7 @@ function drumBarNumStart(targetRow) {
   const secs = (typeof songData !== 'undefined' && songData && songData.sections) || [];
   for (const sec of secs) {
     for (const r of (sec.rows || [])) {
-      if (r.instrument !== 'bat' || !r.drumPattern || !r.drumPattern.bars) continue;
+      if (!instEsBateria(r.instrument) || !r.drumPattern || !r.drumPattern.bars) continue;
       if (r === targetRow) return n;
       n += drumRowSpanBars(r);
     }
@@ -13616,7 +13642,7 @@ function _drumAllRows() {
   const out = [];
   ((songData && songData.sections) || []).forEach((sec, si) =>
     (sec.rows || []).forEach((r, ri) => {
-      if (r.instrument === 'bat' && r.drumPattern && r.drumPattern.bars) out.push({ sec, si, ri, row: r });
+      if (instEsBateria(r.instrument) && r.drumPattern && r.drumPattern.bars) out.push({ sec, si, ri, row: r });
     }));
   return out;
 }
@@ -14731,7 +14757,7 @@ function renderDrumPreview(container, row) {
   const _scanBars = [];
   const _secs = (typeof songData !== 'undefined' && songData && songData.sections) || [];
   _secs.forEach(sec => (sec.rows || []).forEach(r => {
-    if (r.instrument === 'bat' && r.drumPattern && r.drumPattern.bars)
+    if (instEsBateria(r.instrument) && r.drumPattern && r.drumPattern.bars)
       r.drumPattern.bars.forEach(b0 => _scanBars.push([b0, r.drumPattern]));
   }));
   if (!_scanBars.length) dp.bars.forEach(b0 => _scanBars.push([b0, dp]));
@@ -15685,7 +15711,7 @@ function lyricsGetSections() {
   const data = lyricsData();
   const secs = (data && data.sections) || [];
   secs.forEach(sec => {
-    const vozRows = (sec.rows || []).filter(r => r.instrument === 'voz');
+    const vozRows = (sec.rows || []).filter(r => instEsLetra(r.instrument));
     const lyric = vozRows.map(r => (r.vozText || '').trim()).filter(Boolean).join('\n');
     if (lyric) out.push({ name: sec.name || '', lyric });
   });
@@ -15948,7 +15974,7 @@ function drumScoreOpen() {
     h.style.borderLeftColor = col; h.style.color = col;
     h.textContent = sec.name || '(sección)';
     body.appendChild(h);
-    const drumRows = (sec.rows || []).filter(r => r.instrument === 'bat' && r.drumPattern && r.drumPattern.bars && r.drumPattern.bars.length);
+    const drumRows = (sec.rows || []).filter(r => instEsBateria(r.instrument) && r.drumPattern && r.drumPattern.bars && r.drumPattern.bars.length);
     if (!drumRows.length) {
       const e = document.createElement('div');
       e.className = 'ds-empty';
