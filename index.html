@@ -4969,6 +4969,7 @@ body.readonly #btnCalibrate { display: inline-flex !important; }
 
 </div>
 
+<div id="ampliadaTitulo"><span id="ampliadaTituloTxt"></span></div>   <!-- F56 -->
 <div class="container" id="chart"></div>
 
 </div><!-- /zoomWrapper -->
@@ -5413,8 +5414,8 @@ const Router = (function () {
 // wrappers finos que el HTML invoca por onclick.
 // ═══════════════════════════════════════════════
 
-function editorGoBack() { Router.back(); }   // botón volver del editor
-function playBarBack()   { Router.back(); }   // botón volver de la barra Tocar
+function editorGoBack() { _volverDeCancion(); }   // botón volver del editor (F55: pregunta si hay cambios)
+function playBarBack()   { _volverDeCancion(); }   // botón volver de la barra Tocar
 
 function showHome() {
   muroCheckNews();   // el sticker se entera de si hay algo nuevo
@@ -6896,6 +6897,12 @@ function toggleLibView() {
 }
 
 async function openSong(id, playMode = true) {
+  // F55: desde dentro de una canción (versiones, volver a la principal), si
+  // hay cambios se pregunta antes de cambiar de canción.
+  if (Router.current && Router.current() === 'song' && _hayCambios()) {
+    _salirCancion(() => openSong(id, playMode));
+    return;
+  }
   const { data, error } = await _sb.from("Canciones").select("*").eq("id", id).single();
   if (error || !data) { alert("Error cargando la canción."); return; }
   _currentSongId = id;
@@ -6936,6 +6943,7 @@ function newSong() {
   resetHistory();
   saveUndo();
   render();
+  _fotoTomar();   // F55: la plantilla sin tocar no pide guardar
   // Router: canción nueva se abre como 'song' (apila la pantalla actual)
   Router.go('song');
   setCloudStatus("");
@@ -7167,6 +7175,7 @@ async function versionsConfirmNew(copiar) {
     _versionEstado(null);
     versionsCloseNewModal();
     versionsClosePanel();
+    if (copiar) _fotoPoner(null);   // F55: lo cambiado se ha ido con la copia
     openSong(data.id, false);   // versión recién creada → Editar
   } catch (err) {
     await deshacer();
@@ -7235,6 +7244,7 @@ async function saveSongCloud() {
   // created_by NO va aqui: este payload sirve tambien para el update, y
   // ponerlo convertiria al que guarda en «creador» cada vez. Ese era el
   // fallo: la columna se llamaba created_by y guardaba al ultimo editor.
+  const fotoEnviada = _fotoDe(songData);   // F55
   const payload = {
     titulo: songData.title || "(Sin título)",
     artista: songData.artist || "",
@@ -7263,8 +7273,92 @@ async function saveSongCloud() {
   }
 
   _currentSongId = result.data.id;
+  _fotoPoner(fotoEnviada);   // F55: lo guardado es lo que se envió
   setCloudStatus("saved", "✓ Guardado");
   setTimeout(() => setCloudStatus(""), 3000);
+}
+
+// ═══════════════════════════════════════════════
+// F55 · CAMBIOS SIN GUARDAR
+// Una «foto» (texto) de la canción al abrirla, crearla y guardarla. Si al
+// salir no coincide, se pregunta. La velocidad del scroll no cuenta: se
+// guarda sola en el móvil y era lo único que cambiaba solo con tocar.
+// ═══════════════════════════════════════════════
+let _fotoCancion = null;   // null = no hay canción que vigilar
+function _fotoDe(d) {
+  return JSON.stringify(d, (k, v) => k === 'scrollSpeed' ? undefined : v);
+}
+function _fotoPoner(f) { _fotoCancion = f; _sinGuardarMarcar(); }
+function _fotoTomar() { _fotoPoner(songData ? _fotoDe(songData) : null); }
+function _hayCambios() {
+  return _fotoCancion !== null && !!songData && _fotoDe(songData) !== _fotoCancion;
+}
+// El punto: en el ☁ de la cabecera y en el ✎/👁 flotante de la ampliada
+function _sinGuardarMarcar() {
+  document.body.classList.toggle('sin-guardar', _hayCambios());
+}
+let _sinGuardarT = null;
+function _sinGuardarPronto() {
+  if (_fotoCancion === null || _sinGuardarT) return;
+  _sinGuardarT = setTimeout(() => { _sinGuardarT = null; _sinGuardarMarcar(); }, 300);
+}
+['input', 'change', 'pointerup', 'keyup', 'drop'].forEach(ev =>
+  document.addEventListener(ev, _sinGuardarPronto, true));
+// Cerrar o recargar la pestaña (en el ordenador; el móvil no siempre deja)
+window.addEventListener('beforeunload', e => {
+  if (_hayCambios()) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// Salir de la canción: si hay cambios, se pregunta antes de seguir()
+function _salirCancion(seguir) {
+  if (!_hayCambios()) { seguir(); return; }
+  _avisoSinGuardar(seguir);
+}
+// Los volver de la canción. Sin adónde volver no hay nada que preguntar.
+function _volverDeCancion(antes) {
+  if (!Router.backInfo()) { Router.back(); return; }
+  _salirCancion(() => { if (antes) antes(); Router.back(); });
+}
+
+function _avisoSinGuardar(seguir) {
+  let o = document.getElementById('sinGuardarOverlay');
+  if (!o) {
+    o = document.createElement('div');
+    o.id = 'sinGuardarOverlay';
+    o.className = 'cfg-overlay';
+    o.style.zIndex = '10050';   // por encima de los flotantes (9999)
+    o.innerHTML = `<div class="cfg-modal" style="max-width:330px;">
+      <div class="cfg-modal-hdr" style="padding-bottom:12px;"><span class="cfg-modal-title">⚠️ Cambios sin guardar</span></div>
+      <div style="padding:16px 20px 4px;"><p class="cfg-desc" id="sinGuardarTexto"></p></div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:4px 20px 18px;">
+        <button class="btn btn-primary" id="sinGuardarSi" style="width:100%;justify-content:center;">☁ Guardar y salir</button>
+        <button class="btn" id="sinGuardarNo" style="width:100%;justify-content:center;color:var(--accent2);border-color:var(--accent2);">Salir sin guardar</button>
+        <button class="btn" id="sinGuardarSeguir" style="width:100%;justify-content:center;">Seguir aquí</button>
+      </div></div>`;
+    document.body.appendChild(o);
+    o.addEventListener('click', e => { if (e.target === o) o._cerrar(); });   // fuera = seguir aquí
+  }
+  const titulo = (songData && songData.title) || 'esta canción';
+  o.querySelector('#sinGuardarTexto').innerHTML =
+    'Has cambiado <b style="color:var(--text)">«' + esc(titulo) + '»</b> y no está guardada. Si sales sin guardar, se pierde lo cambiado.';
+  const teclas = e => { if (e.key === 'Escape') o._cerrar(); };
+  o._cerrar = () => { o.classList.remove('open'); document.removeEventListener('keydown', teclas, true); };
+  document.addEventListener('keydown', teclas, true);
+  o.querySelector('#sinGuardarSeguir').onclick = () => o._cerrar();
+  o.querySelector('#sinGuardarNo').onclick = () => { o._cerrar(); _fotoPoner(null); seguir(); };
+  o.querySelector('#sinGuardarSi').onclick = async () => {
+    const b = o.querySelector('#sinGuardarSi');
+    b.disabled = true; b.textContent = '☁ Guardando…';
+    await saveSongCloud();
+    b.disabled = false; b.textContent = '☁ Guardar y salir';
+    o._cerrar();
+    if (_hayCambios()) {   // no se guardó: te quedas, con tus cambios
+      if (_currentUser) alert('⚠ No se ha podido guardar. Sigues en la canción, con tus cambios.');
+      return;
+    }
+    seguir();
+  };
+  o.classList.add('open');
 }
 
 // ═══════════════════════════════════════════════
@@ -7316,7 +7410,7 @@ async function _navigateToDeepEvent(eventId) {
 //  sistema de siempre: descargar y comparar.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "20261127.9";
+const APP_VERSION = "20261127.11";
 
 let _verFicha  = null;   // ETag o Last-Modified visto por ultima vez
 let _verAvisado = false; // para no sacar la banda dos veces
@@ -7380,9 +7474,9 @@ function _verMostrarBanda(nueva) {
   document.body.appendChild(d);
   // Recargar contra una URL distinta: un reload normal puede volver a
   // servirse de cache y no actualizar nada.
-  d.querySelector("#verBandaBtn").onclick = () => {
+  d.querySelector("#verBandaBtn").onclick = () => _salirCancion(() => {   // F55
     location.replace(location.pathname + "?v=" + Date.now());
-  };
+  });
   d.querySelector("#verBandaX").onclick = () => { d.remove(); };
 }
 
@@ -7678,6 +7772,7 @@ function undo() {
   syncHeaderInputs();
   render();
   updateUndoButtons();
+  if (typeof _sinGuardarMarcar === 'function') _sinGuardarMarcar();   // F55
 }
 
 function redo() {
@@ -7687,6 +7782,7 @@ function redo() {
   syncHeaderInputs();
   render();
   updateUndoButtons();
+  if (typeof _sinGuardarMarcar === 'function') _sinGuardarMarcar();   // F55
 }
 
 function updateUndoButtons() {
@@ -7696,9 +7792,14 @@ function updateUndoButtons() {
   if (r) r.disabled = _histIdx >= _history.length - 1;
 }
 
+function _ampliadaTituloPoner() {   // F56
+  const t = document.getElementById("ampliadaTituloTxt");
+  if (t) t.textContent = (songData && songData.title) || "";
+}
 function syncHeaderInputs() {
   document.getElementById("songTitle").value  = songData.title || "";
   document.getElementById("songArtist").value = songData.artist || "";
+  _ampliadaTituloPoner();   // F56
   _syncKeyPill();
   _syncBpmPill();
 }
@@ -9865,7 +9966,9 @@ async function calibSave() {
   const btn = document.getElementById("calibSaveBtn");
   try {
     if (_currentSongId) {
-      await _sb.from("Canciones").update({ data: songData, updated_at: new Date().toISOString() }).eq("id", _currentSongId);
+      const fotoEnviada = _fotoDe(songData);   // F55
+      const r = await _sb.from("Canciones").update({ data: songData, updated_at: new Date().toISOString() }).eq("id", _currentSongId);
+      if (r && !r.error) _fotoPoner(fotoEnviada);
     }
     if (btn) {
       btn.textContent = "✓ ¡Guardado!";
@@ -11023,6 +11126,7 @@ function loadSong(d) {
   spd = Math.max(1, Math.min(10, spd));
   const el = document.getElementById("scrollSpeed");
   if (el) { el.value = spd; document.getElementById("speedVal").textContent = spd; }
+  _fotoTomar();   // F55: así está guardada
 }
 
 function copyJSON() {
@@ -17462,6 +17566,7 @@ function drumPatternToHTML(dp, colorClass) {
 </div>
 <button id="btnImmersive" onclick="toggleImmersive()" title="Modo inmersivo">⛶</button>
 <button id="btnImmersiveBack" onclick="immersiveBack()" title="Volver">🎵</button>
+<button id="btnImmersiveEdit" onclick="toggleReadonly()" title="Editar / Tocar"><span class="ie-editar">✎</span><span class="ie-tocar">👁</span></button>
 
 <style>
 /* ══════════════════════════════════════════════
@@ -17752,10 +17857,80 @@ body.immersive-ok.immersive-mode #btnImmersiveBack.hay-vuelta {
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.45);
 }
+/* F55: ✎ / 👁 encima del ↩ (o del ⛶ si no hay adónde volver). Pasa a
+   Editar sin quitar la ampliada; en Editar es 👁 para volver a Tocar. */
+#btnImmersiveEdit { display: none; }
+body.immersive-ok.immersive-mode #btnImmersiveEdit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  z-index: 9999;
+  right: 16px;
+  bottom: calc(44px + env(safe-area-inset-bottom));
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  font-size: 0.85rem;
+  line-height: 1;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+}
+#btnImmersiveBack.hay-vuelta + #btnImmersiveEdit { bottom: calc(76px + env(safe-area-inset-bottom)); }
+body.readonly #btnImmersiveEdit .ie-tocar,
+body:not(.readonly) #btnImmersiveEdit .ie-editar { display: none; }
+/* F55: el punto de «sin guardar» */
+body.sin-guardar .btn-save-cloud { position: relative; }   /* el flotante ya es fixed */
+body.sin-guardar .btn-save-cloud::after,
+body.sin-guardar #btnImmersiveEdit::after {
+  content: '';
+  position: absolute;
+  top: -4px; right: -4px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--accent2);
+  border: 1px solid var(--surface);
+}
+/* F55: dentro de la ampliada el ⛶ va relleno, como pulsado (la regla del
+   flotante de F37 le quitaba el relleno de .active) */
+body.immersive-ok.immersive-mode #btnImmersive.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+/* F56: el título de la canción, arriba del todo en la ampliada. Alto 0:
+   vive dentro del margen de arriba de la canción (32 px) y no baja nada. */
+#ampliadaTitulo { display: none; }
+body.immersive-mode #ampliadaTitulo {
+  display: block;
+  position: relative;
+  height: 0;
+  max-width: 900px;
+  margin: 0 auto;
+}
+#ampliadaTituloTxt {
+  position: absolute;
+  top: 8px; left: 20px; right: 48px;   /* a la derecha queda el ? */
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+[data-theme="neon"] #ampliadaTituloTxt { color: #00ffe7; text-shadow: 0 0 12px rgba(0,255,231,0.5); }
+[data-theme="bluered"] #ampliadaTituloTxt { color: #3a9fd4; }
 /* En desktop nunca se muestra aunque JS lo active */
 @media (min-width: 1024px) {
   #btnImmersive { display: none !important; }
   #btnImmersiveBack { display: none !important; }
+  #btnImmersiveEdit { display: none !important; }
 }
 
 /* Transición suave del header */
@@ -17777,6 +17952,8 @@ body.immersive-ok.immersive-mode #btnImmersiveBack.hay-vuelta {
   transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
   overflow: hidden;
 }
+/* F55: a la vista no recorta: el 🦅 encendido crece y brilla, y se cortaba */
+#songKeyBar:not(.immersive-hidden) { overflow: visible; }
 #songKeyBar.immersive-hidden {
   max-height: 0 !important;
   opacity: 0 !important;
@@ -18125,6 +18302,7 @@ function toggleImmersive() {
     keyBar    && keyBar.classList.add('immersive-hidden');
     filterBar && filterBar.classList.add('immersive-hidden');
     playerBar && playerBar.classList.add('immersive-hidden');
+    if (typeof _ampliadaTituloPoner === 'function') _ampliadaTituloPoner();   // F56: por si cambió el título
     document.body.classList.add('immersive-mode');
     if (btn) btn.classList.add('active');
   } else {
@@ -18137,8 +18315,7 @@ function toggleImmersive() {
 // el ⛶ flotando encima de la pantalla a la que vuelves); luego, lo mismo que
 // el volver de la cabecera.
 function immersiveBack() {
-  if (_immersiveActive) _immersiveDeactivate();
-  Router.back();
+  _volverDeCancion(() => { if (_immersiveActive) _immersiveDeactivate(); });   // F55
 }
 
 /* Exponer helpers para que las funciones de navegación los llamen */
